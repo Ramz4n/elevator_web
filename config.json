@@ -1,8 +1,0 @@
-{
-    "db_host": "10.40.1.40",
-    "db_user": "root",
-    "db_password": "13373a87",
-    "db_name": "okmitol",
-    "db_port": 3306,
-    "table_name": "okmitol"
-}

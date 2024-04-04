@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
+    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+	<script src="C:\Server\bin\Apache24\htdocs\templates\project.js"></script>
+	<script src="C:\Server\bin\Apache24\htdocs\templates\project.css"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>Неисправности</title>
+</head>
+<body>
+  <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+	<script>
+function goBack() {
+  window.history.back();
+}
+</script>
+	<h2 style="text-align: center"> <button class="btn btn-success" onclick="goBack()">Назад</button> Неисправности лифтов города {{town}}</h2>
+<table>
+  <thead>
+    <tr>
+      <th>№ заявки</th>
+      <th>Дата заявки</th>
+      <th>Диспетчер</th>
+      <th>Город</th>
+      <th>Адрес</th>
+      <th>Лифт</th>
+      <th>Причина</th>
+      <th>Механик</th>
+      <th>Дата устранения</th>
+      <th>Комментарий</th>
+    </tr>
+  </thead>
+  <tbody>
+    {%for dat in data1%}
+	<tr>
+        <td class="data">{{dat[0]}}</td>
+        <td class="data">{{dat[1]}}</td>
+        <td class="data">{{dat[2]}}</td>
+        <td class="data">{{dat[3]}}</td>
+        <td class="data">{{dat[4]}}</td>
+        <td class="data">{{dat[5]}}</td>
+        <td class="data">{{dat[6]}}</td>
+        <td class="data">{{dat[7]}}</td>
+        <td class="data">{{dat[8]}}</td>
+        <td class="data">{{dat[9]}}</td>
+    </tr>
+	{%endfor%}
+  </tbody>
+</table>
+</body>
+</html>

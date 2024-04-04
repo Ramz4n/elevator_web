@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
+    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+	<script src="C:\Server\bin\Apache24\htdocs\templates\project.js"></script>
+	<script src="C:\Server\bin\Apache24\htdocs\templates\project.css"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>Поиск заявок</title>
+</head>
+<body>
+  <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+	<script>
+function goBack() {
+  window.history.back();
+}
+</script>
+<h2 style="text-align: center;"> 
+<div style='margin-bottom: 5px; margin-top: 5pt;'>
+<button class="btn btn-success" onclick="goBack()">Назад</button> Поиск заявок 
+</div>
+						<form method="post" action="/submit">
+						<label for="cityList" class="customLabel">Город:</label>
+<select class="customSelect" name="city" id="cityList" onchange="changeCity(this.value)">
+    {% for city in town %}
+        {% if city == selectedCity %}
+            <option class="data" id="gorod" value="{{ city }}">{{ city }}</option>
+        {% else %}
+            <option class="data" id="gorod" value="{{ city }}">{{ city }}</option>
+        {% endif %}
+    {% endfor %}
+</select>
+						<label for="adresList" class="customLabel">Адрес:</label>
+						<select class="customSelect" name="adres" id="adresList" onchange="changeAdres(this.value)">
+						{% for add in adres %}
+						<option class='data' id='adres' value="{{ adres }}">{{ add[0] }}</option>
+						{% endfor %}
+						</select>
+						<input class='data' id='date1' type="date" name="date1" value="2024-02-19"/>
+						<input class='data' id='date2' type="date" name="date2" value="2024-02-20"/>
+						<button type="submit" class="btn btn-success">Поиск</button>
+						</form>
+			<div class="customSelectItem">
+			<form method="post">
+			</form>			
+			</div>
+<script>
+    // Обновляем остальные данные на странице
+let elementsToUpdate = document.querySelectorAll(".data");
+elementsToUpdate.forEach((element) => {
+  let id = element.id; // Получаем ID элемента
+  let dataIndex = Number(id.replace('data', '')) - 1; // Извлекаем номер данных из ID
+  switch (id) {
+    case "gorod":
+      element.innerText = updatedData.gorod;
+      break;
+    // Добавьте другие случаи или условия для других данных
+  }
+});
+</script>
+
+</h2> 
+<table>
+  <thead>
+    <tr>
+      <th>№ заявки</th>
+      <th>Дата заявки</th>
+      <th>Диспетчер</th>
+      <th>Город</th>
+      <th>Адрес</th>
+      <th>Лифт</th>
+      <th>Причина</th>
+      <th>Механик</th>
+      <th>Дата устранения</th>
+      <th>Комментарий</th>
+    </tr>
+  </thead>
+  <tbody>
+    {%for dat in data1%}
+	<tr>
+        <td class="data">{{dat[0]}}</td>
+        <td class="data">{{dat[1]}}</td>
+        <td class="data">{{dat[2]}}</td>
+        <td class="data">{{dat[3]}}</td>
+        <td class="data">{{dat[4]}}</td>
+        <td class="data">{{dat[5]}}</td>
+        <td class="data">{{dat[6]}}</td>
+        <td class="data">{{dat[7]}}</td>
+        <td class="data">{{dat[8]}}</td>
+        <td class="data">{{dat[9]}}</td>
+    </tr>
+	{%endfor%}
+  </tbody>
+</table>
+</body>
+</html>

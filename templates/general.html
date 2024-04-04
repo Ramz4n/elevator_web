@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style>
+  body {
+    background-color: #16253c;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+ .content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+
+.center-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.rollover_osp, .rollover_ok, .rollover_olteks, .rollover_m_vest {
+    display: block;
+    position: relative;
+    background-size: 90% 90%;
+}
+
+</style>
+
+</head>
+<body>
+<script>
+function changeCity(city) {
+      fetch('/general', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ selectedCity: city })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        // Дополнительные действия после успешного ответа сервера, если необходимо
+      })
+      .catch(error => {
+        console.error('Ошибка:', error);
+        // Обработка ошибки, если что-то пошло не так
+      });
+    }
+</script>
+<div class="content">
+    <div class="center-block">
+        <img class="rollover_osp"
+             data-hover-image="{{ url_for('static', filename='into_osp.jpg') }}"
+             data-original-image="{{ url_for('static', filename='osp.jpg') }}"
+             src="{{ url_for('static', filename='osp.jpg') }}" alt="Изображение 1">
+        <img class="rollover_olteks"
+             data-hover-image="{{ url_for('static', filename='into_osp.jpg') }}"
+             data-original-image="{{ url_for('static', filename='olteks.jpg') }}"
+             src="{{ url_for('static', filename='olteks.jpg') }}" alt="Изображение 2">
+    </div>
+    <div class="center-block">
+        <img style="height: 970px;" src="{{ url_for('static', filename='logo.jpg') }}" alt="Изображение 3">
+    </div>
+    <div class="center-block">
+        <img class="rollover_ok"
+             data-hover-image="{{ url_for('static', filename='into_osp.jpg') }}"
+             data-original-image="{{ url_for('static', filename='ok.jpg') }}"
+             src="{{ url_for('static', filename='ok.jpg') }}" alt="Изображение 4">
+        <img class="rollover_m_vest"
+             data-hover-image="{{ url_for('static', filename='into_osp.jpg') }}"
+             data-original-image="{{ url_for('static', filename='m_vest.jpg') }}"
+             src="{{ url_for('static', filename='m_vest.jpg') }}" alt="Изображение 5">
+    </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const images = document.querySelectorAll('.rollover_osp, .rollover_olteks, .rollover_m_vest, .rollover_ok');
+    images.forEach(image => {
+        image.addEventListener('mouseenter', function() {
+            const hoverImageUrl = this.getAttribute('data-hover-image');
+            this.src = hoverImageUrl;
+        });
+        image.addEventListener('mouseleave', function() {
+            const originalImageUrl = this.getAttribute('data-original-image');
+            this.src = originalImageUrl;
+        });
+
+        image.addEventListener('click', function() {
+            // Получить URL страницы Flask, на которую вы хотите перейти
+            const urlToRedirect = '/index';  
+            // Перейти на указанную страницу
+            window.location.href = urlToRedirect;
+        });
+    });
+});
+</script>
+</body>
+</html>

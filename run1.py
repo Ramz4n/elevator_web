@@ -11,8 +11,12 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, cur
 from wtforms import StringField, SubmitField, TextAreaField, BooleanField, PasswordField
 from wtforms.validators import DataRequired
 from flask_wtf import FlaskForm
+from flask_ipban import IpBan
+from osp import index_osp
+# from flask_caching import Cache
 
 #
+
 UPLOAD_FOLDER = 'static'
 load_dotenv()
 db_table_name = os.getenv("DB_NAME1")
@@ -22,15 +26,33 @@ db_port = os.getenv("DB_PORT")
 db_host = os.getenv("DB_HOST")
 run1 = Flask(__name__, static_folder='static')
 run1.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-run1.config[
-    'SQLALCHEMY_DATABASE_URI'] = f'mariadb+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_table_name}'
+run1.config['SQLALCHEMY_DATABASE_URI'] = f'mariadb+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_table_name}'
+run1.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
+run1.config['SQLALCHEMY_POOL_SIZE'] = 20  # Увеличить размер пула соединений
+run1.config['SQLALCHEMY_MAX_OVERFLOW'] = 0  # Запретить переполнение пула
+run1.config['SQLALCHEMY_CONNECT_TIMEOUT'] = 30  # Установить время ожидания соединения
+run1.config['SQLALCHEMY_POOL_RECYCLE'] = 3600  # Сбрасывать соединения каждые 3600 секунд (1 час)
+
+# config = {
+#     "CACHE_TYPE": "SimpleCache",  # Flask-Caching related configs
+#     "CACHE_DEFAULT_TIMEOUT": 300
+# }
+# run1.config.from_mapping(config)
+# cache = Cache(run1)
+
+# cache.init_app(run1)
 login_manager = LoginManager(run1)
 login_manager.init_app(run1)
 login_manager.login_view = 'login'
 
+
 secret_key = os.urandom(24)
 run1.config['SECRET_KEY'] = secret_key
 db = SQLAlchemy(run1)
+ip_ban = IpBan(run1)
+
+# Настройки блокировки IP
+run1.config['BANNED_IPS'] = set()
 
 
 @login_manager.user_loader
@@ -54,12 +76,19 @@ def login():
             # Check the hash
             if check_password_hash(user.password, form.password.data):
                 login_user(user)
-                flash("Успешно!")
+                print(request.remote_addr)
                 return redirect(url_for('general'))
             else:
-                print(user.password, form.password.data)
-                flash("Неверный Логин или Пароль")
+                ip_address = request.remote_addr
+                run1.config['BANNED_IPS'].add(ip_address)
+                ip_ban.add(ip_address)
+                return 'Ошибка входа. Ваш IP-адрес заблокирован'
         else:
+            ip_address = request.remote_addr
+            run1.config['BANNED_IPS'].add(ip_address)
+            ip_ban.add(ip_address)
+            print(request.remote_addr)
+            print('Неверно х2')
             flash("Неверный Логин или Пароль")
 
     return render_template('login.html', form=form)
@@ -72,13 +101,18 @@ class Users(db.Model, UserMixin):
     password = db.Column(db.String(162), nullable=False, unique=True)
 
 
+@run1.route('/_passport', methods=['GET'])
+@login_required
+def _passport():
+    return render_template('_passport.html')
+
+
 @run1.route('/general', methods=['GET', 'POST'])
 @login_required
 def general():
     if request.method == 'GET':
         return render_template('general.html')
     if request.method == 'POST':
-        print(123)
         return jsonify({'message': 'Вы перешли на страницу general'})
 
 
@@ -90,10 +124,424 @@ def logout():
     return redirect(url_for('login'))
 
 
+@run1.route('/connect_db', methods=['POST'])
+def connect_db():
+    company = request.json.get('company')
+    if company == 'okmitol':
+        with open(f'{company}.json', 'r') as file:
+            data = json.loads(file.read())
+        return redirect(url_for('index', host=data['db_host'], user=data['db_user'], password=data['db_password'],
+                                port=data['db_port'],
+                                dbname=data['db_name'], tablename=data['table_name']))
+    elif company == 'ospmitol':
+        with open(f'{company}.json', 'r') as file:
+            data = json.loads(file.read())
+        return redirect(url_for('base', host=data['db_host'], user=data['db_user'], password=data['db_password'],
+                                port=data['db_port'],
+                                dbname=data['db_name'], table_name=data['table_name']))
+
+
+@run1.route('/base', methods=['GET', 'POST'])
+# @cache.cached(timeout=10)
+@login_required
+def base():
+    session['db_file'] = 'ospmitol.json'
+    with open(f'ospmitol.json', 'r') as file:
+        data = json.loads(file.read())
+    host = data['db_host']
+    user = data['db_user']
+    password = data['db_password']
+    port = data['db_port']
+    database = data['db_name']
+    table_name = data['table_name']
+    if request.method == 'GET':
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT g.Город FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            where DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = {str(current_month_index + 1).zfill(2)}
+                            group by Город order by Город desc''')
+            data8 = cursor.fetchall()
+            cities = [city[-1] for city in data8]
+            town = cities[0]
+# КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
+            cursor.execute((f'''SELECT count(z.id) FROM lifts z
+                            JOIN goroda g ON z.id_город = g.id
+                            where Город="{town}" and id_ЛК="1"'''))
+            data1 = cursor.fetchall()
+# КОЛИЧЕСТВО ВСЕГО ОБРАЩЕНИЙ ЗА МЕСЯЦ ГОРОДА
+            cursor.execute((f'''SELECT count(z.id) FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            where Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
+                            AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
+                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data2 = cursor.fetchall()
+# ЗАСТРЕВАНИЯ В МЕСЯЦ ГОРОДА
+            cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            where not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
+                            AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
+                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data3 = cursor.fetchall()
+ # НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
+            cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            WHERE Город='{town}' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%электр%'
+                           and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) LIKE '%пож%'
+                           and not LOWER(Комментарий) like '%ложная%' and Причина='Неисправность' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                           AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
+                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data4 = cursor.fetchall()
+# ОСТАНОВЛЕННЫЕ ЗА МЕСЯЦ
+            cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            where Причина="Остановлен" and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
+                            AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
+                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data5 = cursor.fetchall()
+# ОТСУТСТВИЕ ЭЛЕКТРОЭНЕРГИИ
+            cursor.execute((f'''SELECT count(*) FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            WHERE Город='{town}' and (LOWER(Комментарий) like '%скачок%'  
+                           or LOWER(Комментарий) like '%напряж%' or LOWER(Комментарий) like '%фаз%'
+                           or LOWER(Комментарий) like '%электр%' or LOWER(Комментарий) like '%свет%')
+                           and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                           AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data6 = cursor.fetchall()
+# ВАНДАЛЬНЫЕ ДЕЙСТВИЯ
+            cursor.execute((f'''SELECT count(*) FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            WHERE Город = '{town}' AND LOWER(Комментарий) like '%вандал%' or LOWER(Комментарий) like '%пож%'
+                            and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                            AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data11 = cursor.fetchall()
+# ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
+            cursor.execute((f'''SELECT count(Комментарий) FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            WHERE Город='{town}' and LOWER(Комментарий) like '%ложная%' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
+                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data7 = cursor.fetchall()
+
+            if data3[0][0] + data4[0][0] + data7[0][0] != 0:
+                procent1 = '%.1f' % ((data3[0][0] / (data3[0][0] + data4[0][0] + data7[0][0])) * 100)
+            else:
+                procent1 = '0'
+            if data3[0][0] + data4[0][0] + data7[0][0] != 0:
+                procent2 = '%.1f' % ((data4[0][0] / (data3[0][0] + data4[0][0] + data7[0][0])) * 100)
+            else:
+                procent2 = '0'
+            if data3[0][0] + data4[0][0] + data7[0][0] != 0:
+                procent3 = '%.1f' % ((data7[0][0] / (data3[0][0] + data4[0][0] + data7[0][0])) * 100)
+            else:
+                procent3 = '0'
+# ГРАФИК ОБРАЩЕНИЙ ЛИНЕЙНЫЙ
+            cursor.execute(f'''SELECT
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 1 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS January,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 2 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS February,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 3 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS March,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 4 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS April,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 5 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS May,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 6 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS June,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 7 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS July,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 8 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS August,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 9 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS September,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 10 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS October,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 11 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS November,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 12 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS December
+            FROM {table_name} z 
+            JOIN goroda g ON z.id_город = g.id;''')
+            data9 = cursor.fetchall()
+# ГРАФИК ЗАСТРЕВАНИЙ СТОЛБЧАТЫЙ
+            for i in range(11):
+                cursor.execute(f'''SELECT
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS January,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS Febriary,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS March,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS April,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS May,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS June,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS July,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS August,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS September,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS October,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS November,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" THEN 1 END) AS December
+                    FROM {table_name} z JOIN goroda g ON z.id_город = g.id''')
+            data10 = cursor.fetchall()
+# ГРАФИК НЕИСПРАВНОСТЕЙ СТОЛБЧАТЫЙ
+            for i in range(11):
+                cursor.execute(f'''SELECT
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS January,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS Febriary,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS March,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS April,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS May,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS June,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS July,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS August,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS September,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS October,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS November,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пож%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS December
+                    FROM {table_name} z JOIN goroda g ON z.id_город = g.id''')
+            data12 = cursor.fetchall()
+# ПОДСЧЁТ АДРЕСОВ ХУДШИХ ЛИФТОВ
+            cursor.execute(f'''SELECT g.город, 
+                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес, 
+                                z.Тип_лифта, 
+                                COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                FROM {table_name} z
+                                JOIN goroda g ON z.id_город = g.id
+                                JOIN street s ON z.id_улица = s.id
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN padik p ON z.id_подъезд = p.id
+                                WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                                and LOWER(Комментарий) not like '%скачок%'  
+                                and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
+                                and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%'
+                                and LOWER(Комментарий) not like '%вандал%' and LOWER(Комментарий) not like '%пож%'
+                                GROUP BY Адрес, Тип_лифта
+                                ORDER BY address_count DESC
+                                LIMIT 10;''')
+            data_count_address = cursor.fetchall()
+        return render_template('osp.html',
+                               data1=data1,
+                               data2=data2,
+                               data3=data3,
+                               data4=data4,
+                               data5=data5,
+                               data6=data6,
+                               data7=data7,
+                               data8=cities,
+                               data9=data9,
+                               data10=data10,
+                               data11=data11,
+                               data12=data12,
+                               data_count_address=data_count_address,
+                               procent1=procent1,
+                               procent2=procent2,
+                               procent3=procent3)
+    if request.method == 'POST':
+        #selected_city = request.json.get('selectedCity')
+        #month = request.json.get('monthList')
+        data = request.get_json()
+        selected_city = data.get('selectedCity')
+        month_list = data.get('monthList')
+        print(selected_city, month_list)
+        town = selected_city
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        with closing(mariadb.connect(user=user, password=password, host=host, port=port, database=database)) as connection:
+            cursor = connection.cursor()
+#ВЫБОР ГОРОДА
+            cursor.execute(f'''SELECT g.Город FROM {table_name} z
+                        JOIN goroda g ON z.id_город = g.id
+                        where DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = {str(current_month_index + 1).zfill(2)} 
+                        group by Город order by Город desc''')
+            data8 = cursor.fetchall()
+            cities = [city[-1] for city in data8]
+# КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
+            cursor.execute((f'''SELECT count(z.id) FROM lifts z
+                        JOIN goroda g ON z.id_город = g.id
+                        where Город="{town}" and id_ЛК="1"'''))
+            data1 = cursor.fetchall()
+# КОЛИЧЕСТВО ВСЕГО ОБРАЩЕНИЙ ЗА МЕСЯЦ ГОРОДА
+            cursor.execute((f'''SELECT count(z.id) FROM {table_name} z
+                        JOIN goroda g ON z.id_город = g.id
+                        where Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
+                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
+                (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+            data2 = cursor.fetchall()
+# ЗАСТРЕВАНИЯ В МЕСЯЦ ГОРОДА
+            cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
+                        JOIN goroda g ON z.id_город = g.id
+                        where not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
+                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
+                (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+            data3 = cursor.fetchall()
+# НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
+            cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
+                        JOIN goroda g ON z.id_город = g.id
+                        WHERE Город='{town}' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%фаз%'
+                       and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) LIKE '%пож%'
+                       and not LOWER(Комментарий) like '%ложная%' and Причина='Неисправность' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
+                (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+            data4 = cursor.fetchall()
+# ОСТАНОВЛЕННЫЕ ЗА МЕСЯЦ
+            cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
+                                JOIN goroda g ON z.id_город = g.id
+                                where Причина="Остановлен" and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? 
+                                AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
+                (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+            data5 = cursor.fetchall()
+# ОТСУТСТВИЕ ЭЛЕКТРОЭНЕРГИИ
+            cursor.execute((f'''SELECT count(*) FROM {table_name} z
+                                JOIN goroda g ON z.id_город = g.id
+                                WHERE Город='{town}' and (LOWER(Комментарий) like '%скачок%'  
+                               or LOWER(Комментарий) like '%напряж%' or LOWER(Комментарий) like '%фаз%'
+                               or LOWER(Комментарий) like '%электр%' or LOWER(Комментарий) like '%свет%')
+                               and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
+                           (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+            data6 = cursor.fetchall()
+# ВАНДАЛЬНЫЕ ДЕЙСТВИЯ
+            cursor.execute((f'''SELECT count(*) FROM {table_name} z
+                                JOIN goroda g ON z.id_город = g.id
+                                WHERE Город='{town}' AND LOWER(Комментарий) like '%вандал%' or LOWER(Комментарий) like '%пож%'
+                                and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                                AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
+                           (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+            data11 = cursor.fetchall()
+# ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
+            cursor.execute((
+                f'''SELECT count(Комментарий) FROM {table_name} z
+                JOIN goroda g ON z.id_город = g.id
+                WHERE Город='{town}' and LOWER(Комментарий) like '%ложная%' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
+                (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+            data7 = cursor.fetchall()
+#ПРОЦЕНТЫ В КРУГУ СТАТИСТИКИ
+            if data3[0][0] + data4[0][0] + data7[0][0] != 0:
+                procent1 = '%.1f' % ((data3[0][0] / (data3[0][0] + data4[0][0] + data7[0][0])) * 100)
+            else:
+                procent1 = '0'
+            if data3[0][0] + data4[0][0] + data7[0][0] != 0:
+                procent2 = '%.1f' % ((data4[0][0] / (data3[0][0] + data4[0][0] + data7[0][0])) * 100)
+            else:
+                procent2 = '0'
+            if data3[0][0] + data4[0][0] + data7[0][0] != 0:
+                procent3 = '%.1f' % ((data7[0][0] / (data3[0][0] + data4[0][0] + data7[0][0])) * 100)
+            else:
+                procent3 = '0'
+#ГОДОВАЯ СТАТИСТИКА
+            cursor.execute(f'''SELECT
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 1 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS January,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 2 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS February,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 3 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS March,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 4 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS April,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 5 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS May,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 6 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS June,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 7 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS July,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 8 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS August,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 9 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS September,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 10 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS October,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 11 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS November,
+                COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 12 and Город="{town}" AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW()) THEN 1 END) AS December
+            FROM {table_name} z JOIN goroda g ON z.id_город = g.id;''')
+            data9 = cursor.fetchall()
+#СТАТИСТИКА ЗАСТРЕВАНИЙ
+            for i in range(11):
+                cursor.execute(f'''SELECT 
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS January,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS Febriary,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS March,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS April,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS May,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS June,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS July,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS August,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS September,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS October,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS November,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS December
+                    FROM {table_name} z JOIN goroda g ON z.id_город = g.id;''')
+            data10 = cursor.fetchall()
+# ГРАФИК НЕИСПРАВНОСТЕЙ СТОЛБЧАТЫЙ
+            for i in range(11):
+                cursor.execute(f'''SELECT
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS January,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS Febriary,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS March,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS April,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS May,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS June,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS July,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS August,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS September,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS October,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS November,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and not LOWER(Комментарий) LIKE '%электр%' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%ложная%' and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) like '%пожар%' AND Причина = 'Неисправность' and Город="{town}" THEN 1 END) AS December
+                    FROM {table_name} z JOIN goroda g ON z.id_город = g.id''')
+            data12 = cursor.fetchall()
+# ГРАФИК ЛОЖНЫХ СТОЛБЧАТЫЙ
+            for i in range(11):
+                cursor.execute(f'''SELECT
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS January,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS Febriary,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS March,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS April,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS May,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS June,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS July,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS August,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS September,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS October,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS November,
+                                COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and LOWER(Комментарий) like "%ложная%" and Город="{town}" THEN 1 END) AS December
+                                FROM {table_name} z JOIN goroda g ON z.id_город = g.id''')
+            data13 = cursor.fetchall()
+# ПОДСЧЁТ АДРЕСОВ ХУДШИХ ЛИФТОВ
+            cursor.execute(f'''SELECT g.город, 
+                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес, 
+                                z.Тип_лифта, 
+                                COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                FROM {table_name} z
+                                JOIN goroda g ON z.id_город = g.id
+                                JOIN street s ON z.id_улица = s.id
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN padik p ON z.id_подъезд = p.id
+                                WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                                and (LOWER(Комментарий) not like '%скачок%'  
+                                and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
+                                and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
+                                and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
+                                GROUP BY Адрес, Тип_лифта
+                                ORDER BY address_count DESC 
+                                LIMIT 10;''')
+            data_count_address = cursor.fetchall()
+
+    return jsonify({'data1': data1,
+                    'data2': data2,
+                    'data3': data3,
+                    'data4': data4,
+                    'data5': data5,
+                    'data6': data6,
+                    'data7': data7,
+                    'data8': cities,
+                    'data9': data9,
+                    'data10': data10,
+                    'data11': data11,
+                    'data12': data12,
+                    'data13': data13,
+                    'data_count_address': data_count_address,
+                    'procent1': procent1,
+                    'procent2': procent2,
+                    'procent3': procent3})
+
+
 @run1.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
-    host, user, password, port, database, table_name = get_db_config()
+    session['db_file'] = 'okmitol.json'
+    with open(f'okmitol.json', 'r') as file:
+        data = json.loads(file.read())
+    host = data['db_host']
+    user = data['db_user']
+    password = data['db_password']
+    port = data['db_port']
+    database = data['db_name']
+    table_name = data['table_name']
     if request.method == 'GET':
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
@@ -123,14 +571,14 @@ def index():
 
             # ЗАСТРЕВАНИЯ В МЕСЯЦ ГОРОДА
             cursor.execute((
-                f'SELECT count(Причина) FROM {table_name} where Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
+                f'SELECT count(Причина) FROM {table_name} where LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
                 f'AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'),
                 (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data3 = cursor.fetchall()
 
             # НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
             cursor.execute((
-                f'SELECT count(Причина) FROM {table_name} where Комментарий<>"Ложная заявка" and (Причина="Неисправность" or Причина="Остановлен") and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
+                f'SELECT count(Причина) FROM {table_name} where LOWER(Комментарий) <>"ложная заявка" and (Причина="Неисправность" or Причина="Остановлен") and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
                 f'AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'),
                 (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data4 = cursor.fetchall()
@@ -143,13 +591,16 @@ def index():
             data5 = cursor.fetchall()
 
             # ОСТАНОВЛЕННЫЕ БОЛЕЕ СУТОК ТЕКУЩЕГО МЕСЯЦА
-            cursor.execute(
-                f'SELECT count(*) FROM {table_name} WHERE Город="{town}" AND Дата_запуска IS NULL AND (UNIX_TIMESTAMP() - Дата_заявки) >= 86400')
+            cursor.execute(f'''SELECT count(*) FROM {table_name} WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' 
+                            and Дата_запуска is NULL and TIMESTAMPDIFF(SECOND, FROM_UNIXTIME(Дата_заявки), NOW()) >= 86400 
+                            and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                            AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data6 = cursor.fetchall()
 
             # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
             cursor.execute((
-                f'SELECT count(Комментарий) FROM {table_name} where Город="{town}" and Комментарий="Ложная заявка" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
+                f'SELECT count(Комментарий) FROM {table_name} where Город="{town}" and LOWER(Комментарий) ="ложная заявка" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
                 f'AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'),
                 (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data7 = cursor.fetchall()
@@ -187,28 +638,30 @@ def index():
             # ГРАФИК ЗАСТРЕВАНИЙ СТОЛБЧАТЫЙ
             for i in range(11):
                 cursor.execute(f'''SELECT
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS January,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS Febriary,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS March,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS April,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS May,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS June,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS July,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS August,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS September,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS October,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS November,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS December
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS January,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS Febriary,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS March,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS April,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS May,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS June,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS July,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS August,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS September,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS October,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS November,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS December
                     FROM {table_name}''')
             data10 = cursor.fetchall()
 
             # ПОДСЧЁТ АДРЕСОВ ХУДШИХ ЛИФТОВ
-            cursor.execute(f'''SELECT Адрес, Тип_лифта, count(Адрес) as address_count
-                                        FROM {table_name} where Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = {str(current_month_index + 1).zfill(2)}
-                                        GROUP BY Адрес, Тип_лифта
-                                        ORDER BY address_count DESC 
-                                        LIMIT 10;''')
+            cursor.execute(f'''SELECT Город, Адрес, Тип_лифта, COUNT(Адрес) as address_count
+                                FROM {table_name}
+                                WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                                GROUP BY Адрес, Тип_лифта
+                                ORDER BY address_count DESC 
+                                LIMIT 10;''')
             data_count_address = cursor.fetchall()
+
         return render_template('index.html', data1=data1,
                                data2=data2,
                                data3=data3,
@@ -224,9 +677,16 @@ def index():
                                procent2=procent2,
                                procent3=procent3)
     if request.method == 'POST':
+        with open(f'okmitol.json', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
         selected_city = request.json.get('selectedCity')
         town = selected_city
-
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
         with closing(mariadb.connect(
@@ -249,13 +709,13 @@ def index():
             data2 = cursor.fetchall()
             #
             cursor.execute((
-                f'SELECT count(Причина) FROM {table_name} where Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
+                f'SELECT count(Причина) FROM {table_name} where LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
                 f'AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'),
                 (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data3 = cursor.fetchall()
             #
             cursor.execute((
-                f'SELECT count(Причина) FROM {table_name} where Комментарий<>"Ложная заявка" and (Причина="Неисправность" or Причина="Остановлен") and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
+                f'SELECT count(Причина) FROM {table_name} where LOWER(Комментарий) <>"ложная заявка" and (Причина="Неисправность" or Причина="Остановлен") and Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
                 f'AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'),
                 (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data4 = cursor.fetchall()
@@ -266,14 +726,15 @@ def index():
                 (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data5 = cursor.fetchall()
             #
-            cursor.execute(
-                f'''SELECT count(*) FROM {table_name} WHERE Город='{town}' and Комментарий<>'Ложная заявка' and Дата_запуска is NULL and TIMESTAMPDIFF(SECOND, FROM_UNIXTIME(Дата_заявки), NOW()) >= 86400 and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
-                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            cursor.execute(f'''SELECT count(*) FROM {table_name} WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' 
+                and Дата_запуска is NULL and TIMESTAMPDIFF(SECOND, FROM_UNIXTIME(Дата_заявки), NOW()) >= 86400 
+                and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data6 = cursor.fetchall()
             #
             cursor.execute((
-                f'SELECT count(Комментарий) FROM {table_name} where Город="{town}" and Комментарий="Ложная заявка" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
+                f'SELECT count(Комментарий) FROM {table_name} where Город="{town}" and LOWER(Комментарий) ="ложная заявка" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ? '
                 f'AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'),
                 (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data7 = cursor.fetchall()
@@ -308,22 +769,23 @@ def index():
             data9 = cursor.fetchall()
             for i in range(11):
                 cursor.execute(f'''SELECT 
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS January,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS Febriary,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS March,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS April,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS May,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS June,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS July,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS August,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS September,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS October,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS November,
-                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and Комментарий<>"Ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS December
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('01.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS January,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('02.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS Febriary,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('03.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS March,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('04.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS April,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('05.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS May,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('06.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS June,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('07.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS July,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('08.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS August,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('09.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS September,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('10.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS October,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('11.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS November,
+                    COUNT(CASE WHEN DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m.%Y") = CONCAT('12.', YEAR(CURDATE())) and LOWER(Комментарий) <>"ложная заявка" and Причина="Застревание" and Город="{town}" THEN 1 END) AS December
                     FROM {table_name}''')
             data10 = cursor.fetchall()
-            cursor.execute(f'''SELECT Адрес, Тип_лифта, count(Адрес) as address_count
-                                FROM {table_name} where Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = {str(current_month_index + 1).zfill(2)}
+            cursor.execute(f'''SELECT Город, Адрес, Тип_лифта, COUNT(Адрес) as address_count
+                                FROM {table_name}
+                                WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
                                 GROUP BY Адрес, Тип_лифта
                                 ORDER BY address_count DESC 
                                 LIMIT 10;
@@ -345,13 +807,21 @@ def index():
 
 
 @run1.route('/poisk', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def poisk():
     # ОБРАЩЕНИЯ №0
     if request.method == 'GET':
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
-        host, user, password, port, database, table_name = get_db_config()
         town_url = request.args.get('selectedCity')
         with closing(mariadb.connect(
                 user=user,
@@ -382,12 +852,20 @@ def poisk():
 
             cursor.execute(f"SELECT Адрес FROM {table_name} where Город='{town_url}' group by Адрес order by Адрес")
             adres = cursor.fetchall()
-            print(adres)
 
         return render_template('poisk.html', data1=data1, town=town, town_url=town_url, adres=adres)
 
     if request.method == 'POST':
-        host, user, password, port, database, table_name = get_db_config()
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
         town = request.json.get('selectedCity')
         with closing(mariadb.connect(
                 user=user,
@@ -402,14 +880,53 @@ def poisk():
         return jsonify({'cities': cities})
 
 
+@run1.route('/top_bad', methods=['GET', 'POST'])
+@login_required
+def top_bad():
+    if request.method == 'GET':
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT Город, Адрес, Тип_лифта, COUNT(Адрес) as address_count
+                                FROM {table_name}
+                                WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                                GROUP BY Адрес, Тип_лифта
+                                ORDER BY address_count DESC;''')
+            data1 = cursor.fetchall()
+        return render_template('top_bad.html', data1=data1)
+
+
 @run1.route('/obrasch', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def obrasch():
     # ОБРАЩЕНИЯ №1
     if request.method == 'GET':
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
-        host, user, password, port, database, table_name = get_db_config()
+        company = request.args.get('company')
         town = request.args.get('selectedCity')
         print(town)
         with closing(mariadb.connect(
@@ -438,13 +955,22 @@ def obrasch():
 
 
 @run1.route('/neispr', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def neispr():
     # НЕИСПРАВНОСТИ №2
     if request.method == 'GET':
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
-        host, user, password, port, database, table_name = get_db_config()
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
         town = request.args.get('selectedCity')
         print(town)
         with closing(mariadb.connect(
@@ -465,7 +991,7 @@ def neispr():
                        FROM_UNIXTIME(Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
                        Комментарий
                        FROM {table_name}
-                       WHERE Город='{town}' and Комментарий<>'Ложная заявка' and Причина='Неисправность' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' and Причина='Неисправность' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data1 = cursor.fetchall()
@@ -473,13 +999,22 @@ def neispr():
 
 
 @run1.route('/zastrev', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def zastrev():
     # ЗАСТРЕВАНИЯ №3
     if request.method == 'GET':
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
-        host, user, password, port, database, table_name = get_db_config()
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
         town = request.args.get('selectedCity')
         print(town)
         with closing(mariadb.connect(
@@ -500,7 +1035,7 @@ def zastrev():
                        FROM_UNIXTIME(Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
                        Комментарий
                        FROM {table_name}
-                       WHERE Город='{town}' and Комментарий<>'Ложная заявка' and Причина='Застревание' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' and Причина='Застревание' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data1 = cursor.fetchall()
@@ -508,13 +1043,22 @@ def zastrev():
 
 
 @run1.route('/ostanov', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def ostanov():
     # ОСТАНОВКИ №4
     if request.method == 'GET':
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
-        host, user, password, port, database, table_name = get_db_config()
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
         town = request.args.get('selectedCity')
         print(town)
         with closing(mariadb.connect(
@@ -535,7 +1079,7 @@ def ostanov():
                        FROM_UNIXTIME(Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
                        Комментарий
                        FROM {table_name}
-                       WHERE Город='{town}' and Комментарий<>'Ложная заявка' and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data1 = cursor.fetchall()
@@ -543,13 +1087,22 @@ def ostanov():
 
 
 @run1.route('/ostanov_more', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def ostanov_more():
+    company = request.args.get('company')
+    db_file = session.get('db_file', 'okmitol.json')
+    with open(f'{db_file}', 'r') as file:
+        data = json.loads(file.read())
+    host = data['db_host']
+    user = data['db_user']
+    password = data['db_password']
+    port = data['db_port']
+    database = data['db_name']
+    table_name = data['table_name']
     # ОСТАНОВКИ БОЛЕЕ СУТОК №5
     if request.method == 'GET':
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
-        host, user, password, port, database, table_name = get_db_config()
         town = request.args.get('selectedCity')
         print(town)
         with closing(mariadb.connect(
@@ -570,22 +1123,31 @@ def ostanov_more():
                        FROM_UNIXTIME(Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
                        Комментарий
                        FROM {table_name}
-                       WHERE Город='{town}' and Комментарий<>'Ложная заявка' and Дата_запуска is NULL and TIMESTAMPDIFF(SECOND, FROM_UNIXTIME(Дата_заявки), NOW()) >= 86400 and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' and Дата_запуска is NULL 
+                       and TIMESTAMPDIFF(SECOND, FROM_UNIXTIME(Дата_заявки), NOW()) >= 86400 and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data1 = cursor.fetchall()
-            print(data1)
         return render_template('ostanov_more.html', data1=data1, town=town)
 
 
 @run1.route('/lojnie', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def lojnie():
     # ЛОЖНЫЕ ЗАЯВКИ №6
     if request.method == 'GET':
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
-        host, user, password, port, database, table_name = get_db_config()
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
         town = request.args.get('selectedCity')
         print(town)
         with closing(mariadb.connect(
@@ -606,19 +1168,748 @@ def lojnie():
                        FROM_UNIXTIME(Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
                        Комментарий
                        FROM {table_name}
-                       WHERE Город='{town}' and Комментарий='Ложная заявка' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       WHERE Город='{town}' and LOWER(Комментарий) ='ложная заявка' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data1 = cursor.fetchall()
         return render_template('lojnie.html', data1=data1, town=town)
 
 
-def get_db_config():
-    with open('config.json', 'r') as file:
+@run1.route('/kolvo_lifts', methods=['GET', 'POST'])
+@login_required
+def kolvo_lifts():
+    # ЛОЖНЫЕ ЗАЯВКИ №6
+    if request.method == 'GET':
+        db_file = session.get('db_file', 'ospmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        town = request.args.get('selectedCity')
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT g.город,
+                       s.`улица`,
+                       d.`номер`,
+                       p.`номер`,
+                       Тип_лифта,
+                       lc.`название`
+                       FROM lifts l
+                       JOIN goroda g ON l.id_город = g.id
+                       JOIN street s ON l.id_улица = s.id
+                       JOIN doma d ON l.id_дом = d.id
+                       JOIN padik p ON l.id_подъезд = p.id
+                       JOIN lifts_company lc ON l.id_ЛК = lc.id
+                       WHERE город="{town}" and id_ЛК="1";''')
+            data1 = cursor.fetchall()
+        return render_template('kolvo_lifts.html', data1=data1, town=town)
+
+
+# =========================================================================================
+# ОСПМИТОЛ
+# =========================================================================================
+@run1.route('/_postbutton', methods=['POST'])
+@login_required
+def _postbutton():
+    data = request.get_json()
+    city = data.get('city')
+    adres = data.get('adres')
+    date1 = data.get('date1')
+    date2 = data.get('date2')
+    print(city)
+    print(adres)
+    print(date1)
+    print(date2)
+    return jsonify({'city': city, 'adres': adres, 'date1': date1, 'date2': date2})
+
+
+@run1.route('/_get_city_for_poisk', methods=['POST'])
+@login_required
+def _get_city_for_poisk():
+    data = request.get_json()
+    town = data.get('city')
+    print(data)
+    db_file = session.get('db_file', 'ospmitol.json')
+    with open(f'{db_file}', 'r') as file:
         data = json.loads(file.read())
-        return data['db_host'], data['db_user'], data['db_password'], data['db_port'], data['db_name'], data[
-            'table_name']
+    host = data['db_host']
+    user = data['db_user']
+    password = data['db_password']
+    port = data['db_port']
+    database = data['db_name']
+    table_name = data['table_name']
+    with closing(mariadb.connect(
+            user=user,
+            password=password,
+            host=host,
+            port=port,
+            database=database)) as connection:
+        cursor = connection.cursor()
+        cursor.execute(f'''SELECT s.улица, d.номер as дом, p.номер as Подъезд
+                            FROM lifts z
+                            JOIN goroda g ON z.id_город = g.id
+                            JOIN street s ON z.id_улица = s.id
+                            JOIN doma d ON z.id_дом = d.id
+                            JOIN padik p ON z.id_подъезд = p.id  
+                            WHERE Город='{town}' 
+                            GROUP BY s.улица, дом, Подъезд
+                            ORDER BY s.улица, дом, Подъезд''')
+        adres = cursor.fetchall()
+    return jsonify(adres)
+
+
+@run1.route('/_poisk', methods=['GET', 'POST'])
+@login_required
+def _poisk():
+    # ОБРАЩЕНИЯ №0
+    if request.method == 'GET':
+        db_file = session.get('db_file', 'ospmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        town_url = request.args.get('selectedCity')
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT g.город FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                            group by Город 
+                            order by Город desc''')
+            data2 = cursor.fetchall()
+            town = [city[-1] for city in data2]
+
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                                   FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                                   di.фио,
+                                   g.город,
+                                   concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                   z.Тип_лифта,
+                                   z.Причина,
+                                   m.фио,
+                                   FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                                   z.Комментарий
+                                   FROM {table_name} z
+                                   JOIN workers di ON z.id_Диспетчер = di.id
+                                   JOIN goroda g ON z.id_город = g.id
+                                   JOIN street s ON z.id_улица = s.id
+                                   JOIN doma d ON z.id_дом = d.id
+                                   JOIN padik p ON z.id_подъезд = p.id
+                                   JOIN workers m ON z.id_Механик = m.id
+                                   WHERE Город='{request.args.get('selectedCity')}' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                                   AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                                   group by номер_заявки
+                                   order by номер_заявки;''',
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+
+            cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес FROM lifts z
+                                JOIN goroda g ON z.id_город = g.id
+                                JOIN street s ON z.id_улица = s.id
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN padik p ON z.id_подъезд = p.id  
+                                where Город='{town[0]}' 
+                                group by Адрес 
+                                order by Адрес''')
+            adres = cursor.fetchall()
+
+        return render_template('_poisk.html', data1=data1, town=town, town_url=town_url, adres=adres)
+
+    if request.method == 'POST':
+        data = request.get_json()
+        town = data.get('city')
+        adres = data.get('adres')
+        date1 = data.get('date1')
+        date2 = data.get('date2')
+        db_file = session.get('db_file', 'ospmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес FROM {table_name} z
+                            JOIN goroda g ON z.id_город = g.id
+                           JOIN street s ON z.id_улица = s.id
+                           JOIN doma d ON z.id_дом = d.id
+                           JOIN padik p ON z.id_подъезд = p.id  
+                           where Город='{town}' and s.улица = '{adres}'
+                           group by Адрес 
+                           order by Адрес desc''')
+            adres = cursor.fetchall()
+            data1 = [i[-1] for i in adres]
+        return jsonify({'data1': data1})
+
+
+@run1.route('/_top_bad', methods=['GET', 'POST'])
+@login_required
+def _top_bad():
+    if request.method == 'GET':
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT g.город, 
+                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес, 
+                                z.Тип_лифта, 
+                                COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                FROM {table_name} z
+                                JOIN goroda g ON z.id_город = g.id
+                                JOIN street s ON z.id_улица = s.id
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN padik p ON z.id_подъезд = p.id
+                                WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                                and (LOWER(Комментарий) not like '%скачок%'  
+                                and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
+                                and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
+                                and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
+                                GROUP BY Адрес, Тип_лифта
+                                ORDER BY address_count DESC
+                                limit 100;''')
+            data1 = cursor.fetchall()
+        return render_template('_top_bad.html', data1=data1)
+
+
+@run1.route('/_obrasch', methods=['GET', 'POST'])
+@login_required
+def _obrasch():
+    # ОБРАЩЕНИЯ №1
+    if request.method == 'GET':
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        company = request.args.get('company')
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                       di.фио,
+                       g.город,
+                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                       z.Тип_лифта,
+                       z.Причина,
+                       m.фио,
+                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                       z.Комментарий
+                       FROM {table_name} z
+                       JOIN workers di ON z.id_Диспетчер = di.id
+                       JOIN goroda g ON z.id_город = g.id
+                       JOIN street s ON z.id_улица = s.id
+                       JOIN doma d ON z.id_дом = d.id
+                       JOIN padik p ON z.id_подъезд = p.id
+                       JOIN workers m ON z.id_Механик = m.id
+                       WHERE Город='{town}' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                       group by z.id
+                       order by z.id;''',
+                           (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+        return render_template('_obrasch.html', data1=data1, town=town)
+
+
+@run1.route('/_stat', methods=['GET', 'POST'])
+@login_required
+def _stat():
+    # statistica
+    if request.method == 'GET':
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        company = request.args.get('company')
+        town = request.args.get('selectedCity')
+        print(town)
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT Город,
+                                CASE 
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'January' THEN 'Январь'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'February' THEN 'Февраль'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'March' THEN 'Март'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'April' THEN 'Апрель'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'May' THEN 'Май'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'June' THEN 'Июнь'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'July' THEN 'Июль'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'August' THEN 'Август'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'September' THEN 'Сентябрь'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'October' THEN 'Октябрь'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'November' THEN 'Ноябрь'
+                                WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'December' THEN 'Декабрь'
+                                END AS месяц,
+                                COUNT(*) as всего_заявок,
+                                SUM(CASE WHEN Причина IN ('Остановлен', 'Неисправность') AND not LOWER(Комментарий) like '%ложная%' THEN 1 ELSE 0 END) as Остановки,
+                                SUM(CASE WHEN Причина = 'Застревание' AND not LOWER(Комментарий) like '%ложная%' THEN 1 ELSE 0 END) as Застревание,
+                                SUM(CASE WHEN Причина IN ('Остановлен', 'Неисправность') AND LOWER(Комментарий) like '%ложная%' THEN 1 ELSE 0 END) as Остановки_ложные,
+                                SUM(CASE WHEN Причина = 'Застревание' AND LOWER(Комментарий) like '%ложная%' THEN 1 ELSE 0 END) as Застревание_ложные,
+                                SUM(CASE WHEN LOWER(Комментарий) like '%ложная%' THEN 1 ELSE 0 END) as всего_ложные
+                            FROM zayavki z 
+                            JOIN goroda g ON z.id_город = g.id
+                            where DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') not in ('01', '02')
+                            GROUP BY Город, месяц
+                            order BY Город, Дата_заявки, месяц;''')
+            statistic = cursor.fetchall()
+        return render_template('_stat.html', statistic=statistic)
+
+
+@run1.route('/_neispr', methods=['GET', 'POST'])
+@login_required
+def _neispr():
+    # НЕИСПРАВНОСТИ №2
+    if request.method == 'GET':
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        print(town)
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                       di.фио,
+                       g.город,
+                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                       z.Тип_лифта,
+                       z.Причина,
+                       m.фио,
+                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                       z.Комментарий
+                       FROM {table_name} z
+                       JOIN workers di ON z.id_Диспетчер = di.id
+                       JOIN goroda g ON z.id_город = g.id
+                       JOIN street s ON z.id_улица = s.id
+                       JOIN doma d ON z.id_дом = d.id
+                       JOIN padik p ON z.id_подъезд = p.id
+                       JOIN workers m ON z.id_Механик = m.id
+                       WHERE Город='{town}' and not LOWER(Комментарий) LIKE '%скачок%' and not LOWER(Комментарий) LIKE '%электр%'
+                       and not LOWER(Комментарий) LIKE '%вандал%' and not LOWER(Комментарий) LIKE '%пож%'
+                       and not LOWER(Комментарий) like '%ложная%' and Причина='Неисправность' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                       GROUP by z.id
+                       ORDER by z.id;''',
+                           (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+        return render_template('_neispr.html', data1=data1, town=town)
+
+
+@run1.route('/_zastrev', methods=['GET', 'POST'])
+@login_required
+def _zastrev():
+    # ЗАСТРЕВАНИЯ №3
+    if request.method == 'GET':
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        print(town)
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                       di.фио,
+                       g.город,
+                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                       z.Тип_лифта,
+                       z.Причина,
+                       m.фио,
+                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                       z.Комментарий
+                       FROM {table_name} z
+                       JOIN workers di ON z.id_Диспетчер = di.id
+                       JOIN goroda g ON z.id_город = g.id
+                       JOIN street s ON z.id_улица = s.id
+                       JOIN doma d ON z.id_дом = d.id
+                       JOIN padik p ON z.id_подъезд = p.id
+                       JOIN workers m ON z.id_Механик = m.id
+                       WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' and Причина='Застревание' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                       GROUP by z.id
+                        ORDER by z.id;''',
+                           (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+        return render_template('_zastrev.html', data1=data1, town=town)
+
+
+@run1.route('/_ostanov', methods=['GET', 'POST'])
+@login_required
+def _ostanov():
+    # ОСТАНОВКИ №4
+    if request.method == 'GET':
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        print(town)
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                       di.фио,
+                       g.город,
+                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                       z.Тип_лифта,
+                       z.Причина,
+                       m.фио,
+                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                       z.Комментарий
+                       FROM {table_name} z
+                       JOIN workers di ON z.id_Диспетчер = di.id
+                       JOIN goroda g ON z.id_город = g.id
+                       JOIN street s ON z.id_улица = s.id
+                       JOIN doma d ON z.id_дом = d.id
+                       JOIN padik p ON z.id_подъезд = p.id
+                       JOIN workers m ON z.id_Механик = m.id
+                       WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                        GROUP by z.id
+                        ORDER by z.id;''',
+                           (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+        return render_template('_ostanov.html', data1=data1, town=town)
+
+
+@run1.route('/_ostanov_more', methods=['GET', 'POST'])
+@login_required
+def _ostanov_more():
+    company = request.args.get('company')
+    db_file = session.get('db_file', 'okmitol.json')
+    with open(f'{db_file}', 'r') as file:
+        data = json.loads(file.read())
+    host = data['db_host']
+    user = data['db_user']
+    password = data['db_password']
+    port = data['db_port']
+    database = data['db_name']
+    table_name = data['table_name']
+    # ОСТАНОВКИ БОЛЕЕ СУТОК №5
+    if request.method == 'GET':
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        print(town)
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                       di.фио,
+                       g.город,
+                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                       z.Тип_лифта,
+                       z.Причина,
+                       m.фио,
+                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                       CASE
+                           WHEN z.Дата_запуска IS NOT NULL THEN 
+                               CASE
+                                   WHEN z.Дата_запуска - z.Дата_заявки >= 86400 * 30 THEN CONCAT(ROUND((z.Дата_запуска - z.Дата_заявки) / (86400 * 30)), ' мес. ')
+                                   WHEN z.Дата_запуска - z.Дата_заявки >= 86400 THEN CONCAT(ROUND((z.Дата_запуска - z.Дата_заявки) / 86400), ' дн. ')
+                                   ELSE CONCAT(ROUND((z.Дата_запуска - z.Дата_заявки) / 3600), ' ч. ', ROUND(((z.Дата_запуска - z.Дата_заявки) % 3600) / 60), ' мин.')
+                               END
+                           ELSE 
+                               CASE
+                                   WHEN UNIX_TIMESTAMP() - z.Дата_заявки >= 86400 * 30 THEN CONCAT(ROUND((UNIX_TIMESTAMP() - z.Дата_заявки) / (86400 * 30)), ' мес. ')
+                                   WHEN UNIX_TIMESTAMP() - z.Дата_заявки >= 86400 THEN CONCAT(ROUND((UNIX_TIMESTAMP() - z.Дата_заявки) / 86400), ' дн. ')
+                                   ELSE CONCAT(ROUND((UNIX_TIMESTAMP() - z.Дата_заявки) / 3600), ' ч. ', ROUND(((UNIX_TIMESTAMP() - z.Дата_заявки) % 3600) / 60), ' мин.')
+                               END
+                       END as Время_простоя,
+                       z.Комментарий
+                       FROM {table_name} z
+                       JOIN workers di ON z.id_Диспетчер = di.id
+                       JOIN goroda g ON z.id_город = g.id
+                       JOIN street s ON z.id_улица = s.id
+                       JOIN doma d ON z.id_дом = d.id
+                       JOIN padik p ON z.id_подъезд = p.id
+                       JOIN workers m ON z.id_Механик = m.id
+                       WHERE Город='{town}' and LOWER(Комментарий) <>'ложная заявка' and Дата_запуска is NULL 
+                       and TIMESTAMPDIFF(SECOND, FROM_UNIXTIME(Дата_заявки), NOW()) >= 86400 and Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                       GROUP by z.id
+                       ORDER by z.id;''',
+                           (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+        return render_template('_ostanov_more.html', data1=data1, town=town)
+
+
+@run1.route('/_lojnie', methods=['GET', 'POST'])
+@login_required
+def _lojnie():
+    # ЛОЖНЫЕ ЗАЯВКИ №6
+    if request.method == 'GET':
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'ospmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        print(town)
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                       di.фио,
+                       g.город,
+                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                       z.Тип_лифта,
+                       z.Причина,
+                       m.фио,
+                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                       z.Комментарий
+                       FROM {table_name} z
+                       JOIN workers di ON z.id_Диспетчер = di.id
+                       JOIN goroda g ON z.id_город = g.id
+                       JOIN street s ON z.id_улица = s.id
+                       JOIN doma d ON z.id_дом = d.id
+                       JOIN padik p ON z.id_подъезд = p.id
+                       JOIN workers m ON z.id_Механик = m.id
+                       WHERE Город='{town}' and (LOWER(Комментарий)='ложная заявка' or LOWER(Комментарий)='ложная') and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                       GROUP by z.id
+                        ORDER by z.id;''',
+                           (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+        return render_template('_lojnie.html', data1=data1, town=town)
+
+
+@run1.route('/_vandalka', methods=['GET', 'POST'])
+@login_required
+def _vandalka():
+    # ВАНДАЛЬНЫЕ ЗАЯВКИ №6
+    if request.method == 'GET':
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'ospmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        print(town)
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                       di.фио,
+                       g.город,
+                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                       z.Тип_лифта,
+                       z.Причина,
+                       m.фио,
+                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                       z.Комментарий
+                       FROM {table_name} z
+                       JOIN workers di ON z.id_Диспетчер = di.id
+                       JOIN goroda g ON z.id_город = g.id
+                       JOIN street s ON z.id_улица = s.id
+                       JOIN doma d ON z.id_дом = d.id
+                       JOIN padik p ON z.id_подъезд = p.id
+                       JOIN workers m ON z.id_Механик = m.id
+                       WHERE Город='{town}' and (LOWER(Комментарий) like '%вандал%' or LOWER(Комментарий) like '%пож%')
+                        and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                       GROUP by z.id
+                        ORDER by z.id;''',
+                           (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+        return render_template('_vandalka.html', data1=data1, town=town)
+
+
+@run1.route('/_energiya', methods=['GET', 'POST'])
+@login_required
+def _energiya():
+    # ЭНЕРГИЯ ЗАЯВКИ №6
+    if request.method == 'GET':
+        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        company = request.args.get('company')
+        db_file = session.get('db_file', 'ospmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        print(town)
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                       di.фио,
+                       g.город,
+                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                       z.Тип_лифта,
+                       z.Причина,
+                       m.фио,
+                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                       z.Комментарий
+                       FROM {table_name} z
+                       JOIN workers di ON z.id_Диспетчер = di.id
+                       JOIN goroda g ON z.id_город = g.id
+                       JOIN street s ON z.id_улица = s.id
+                       JOIN doma d ON z.id_дом = d.id
+                       JOIN padik p ON z.id_подъезд = p.id
+                       JOIN workers m ON z.id_Механик = m.id
+                       WHERE Город='{town}' and (LOWER(Комментарий) like '%скачок%'  
+                       or LOWER(Комментарий) like '%напряж%' or LOWER(Комментарий) like '%фаз%'
+                       or LOWER(Комментарий) like '%электр%' or LOWER(Комментарий) like '%свет%')
+                       and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                       GROUP by z.id
+                        ORDER by z.id;''',
+                           (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+            data1 = cursor.fetchall()
+        return render_template('_energiya.html', data1=data1, town=town)
 
 
 if __name__ == '__main__':
-    run1.run(debug=True, host='10.40.1.40', port=8080)
+    run1.run(debug=True, host='10.40.1.40', port=8080, threaded=True)

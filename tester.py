@@ -125,7 +125,7 @@ def general():
             # Доступ ко всем
             return jsonify({'redirect_url': url_for('index')})
 
-        elif access in (0,1,2,3) and image_value == 'mvest':
+        elif access in (0, 1, 2, 3) and image_value == 'mvest':
             return jsonify({'redirect_url': url_for('error')})
 
         elif access == 0:
@@ -1474,6 +1474,30 @@ def _poisk():
     except Exception as e:
         print('Проблема в паспорте:', e)
         return render_template('error.html')
+
+
+def get_results_from_db(query):
+    config_file = session['config_file']
+    db_manager = DataBaseManager(config_file)
+    with closing(db_manager.connect()) as connection:
+        cursor = connection.cursor()
+        cursor.execute(f'''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес
+                      FROM passport pa
+                      JOIN lifts li ON pa.id_лифт = li.id
+                      JOIN padik p ON li.`id_подъезд` = p.id
+                      JOIN doma d ON li.id_дом = d.id
+                      JOIN street u ON d.id_улица = u.id
+                      JOIN goroda g ON u.`id_город` = g.id
+                        WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE "%{query}%"''')
+        results = cursor.fetchall()
+    return results
+
+
+@tester.route('/search', methods=['GET'])
+def search():
+    query = request.args.get('q', '')
+    results = get_results_from_db(query)
+    return jsonify(results)
 
 
 @tester.route('/_top_bad', methods=['GET', 'POST'])

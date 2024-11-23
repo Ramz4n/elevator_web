@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
+    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>Паспорт лифта</title>
+</head>
+<body>
+<script>
+function goBack() {
+  // Сохранение выбранного значения города в sessionStorage
+  sessionStorage.setItem("selectedCity", document.getElementById("cityList").value);
+  
+  window.history.back();
+}
+
+window.onload = function() {
+  // Восстановление выбранного значения города из sessionStorage
+  var selectedCity = sessionStorage.getItem("selectedCity");
+  if (selectedCity) {
+    document.getElementById("cityList").value = selectedCity;
+  }
+};
+</script>
+<h2 style="text-align: center;"> 
+<div style='margin-bottom: 5px; margin-top: 5pt;'>
+<button class="btn btn-success" onclick="goBack()">Назад</button> Паспорт лифта
+</div>
+<form action="/_poisk" method="post">
+    <label for="cityList" class="customLabel">Город:</label>
+    <select class="customSelect" name="city" id="cityList" onchange="postPoisk()">
+        {% for city in town %}
+            <option class="data" value="{{ city }}">{{ city }}</option>
+        {% endfor %}
+    </select>
+    
+    <label for="adresList" class="customLabel">Адрес:</label>
+    <select class="customSelect adres" name="adres" id="adresList" onchange="postbutton()">
+        {% for dat in data1 %}
+            <option class='data' value="{{ dat[0] }}">{{ dat[0] }}</option>
+        {% endfor %}
+    </select>
+</form>
+<script>
+function postbutton() {
+  var adresList = document.getElementById('adresList').value;
+  var cityList = document.getElementById('cityList').value;
+fetch('/_poisk', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ adresList: adresList, cityList: cityList })
+  })
+  .then(response => response.json())
+  .then(data => {
+    updateTableData(data);
+  });
+}
+
+function updateTableData(data) {
+  document.getElementById('data1').textContent = data.data1[0][0];
+  document.getElementById('data2').textContent = data.data1[0][1];
+  document.getElementById('data3').textContent = data.data1[0][2];
+  document.getElementById('data4').textContent = data.data1[0][3];
+  document.getElementById('data5').textContent = data.data1[0][4];
+  document.getElementById('data6').textContent = data.data1[0][5];
+  document.getElementById('data7').textContent = data.data1[0][6];
+  document.getElementById('data8').textContent = data.data1[0][7];
+  document.getElementById('data9').textContent = data.data1[0][8];
+  document.getElementById('data10').textContent = data.data1[0][9];
+  document.getElementById('data11').textContent = data.data1[0][10];
+  document.getElementById('data12').textContent = data.data1[0][11];
+  document.getElementById('data13').textContent = data.data1[0][12];
+  document.getElementById('data14').textContent = data.data1[0][13];
+  document.getElementById('data15').textContent = data.data1[0][14];
+  document.getElementById('data16').textContent = data.data1[0][15];
+  document.getElementById('data17').textContent = data.data1[0][16];
+  
+  document.getElementById('data18').textContent = data.data2[0][0];
+  document.getElementById('data19').textContent = data.data2[0][1];
+  document.getElementById('data20').textContent = data.data2[0][2];
+  document.getElementById('data21').textContent = data.data2[0][3];
+}
+</script>
+<script>
+function postPoisk() {
+    const city = document.getElementById('cityList').value;
+
+    fetch('/_get_city_for_poisk', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ city: city })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        throw new Error('Network response was not ok.');
+    })
+    .then(data => {
+        let adresList = document.getElementById('adresList');
+        adresList.innerHTML = ''; // Очистить текущий список адресов
+        
+        data.forEach(adres => {
+            let option = document.createElement('option');
+            option.value = adres;
+            option.textContent = adres;
+            adresList.appendChild(option);
+        });
+    })
+    .catch(error => {
+        console.error('There was a problem with your fetch operation:', error);
+    });
+}
+</script>
+</h2> 
+<style>
+.columns {
+display: flex;
+justify-content: space-around;
+}
+
+.column {
+width: 30%;
+padding: 20px;
+border: 1px solid #ccc;
+margin: 10px;
+}
+h1 {
+width: 30%;
+text-align: center;  /* Добавлен стиль центрирования заголовка */
+}
+
+body {
+font-size:14px;
+padding: 15px 20px;
+}
+table {
+border-spacing: 0;
+empty-cells: hide;
+margin: 0 auto;
+font-size: 20px;
+background-color:white;
+}
+
+tr {
+border-bottom: 1px solid #ddd;
+}
+
+th, td {
+padding: 15px;
+}
+.fixed-header {
+width: 100%; /* Ширина таблицы */
+overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
+}
+
+.fixed-header thead th {
+position: sticky; /* Фиксация заголовков */
+top: 0; /* Закрепление заголовков в верхней части окна */
+background-color: white; /* Цвет фона заголовков */
+
+}
+.float-left {
+float: left;
+margin-left: 50px;
+}
+.parent {
+display: flex;
+justify-content: center;
+}
+.card-title {
+font-size: 20px;
+}
+
+ </style>
+
+<div class="d-flex flex-wrap parent">
+  <!-- Адрес -->
+  <div class="card float-left">
+    <div class="card-body">
+      <h5 class="card-title">Адрес</h5>
+	  {% if data1 %}
+	  <p class="data card-title" id="data1">{{ data1[0][0] }} </p>
+	  {% endif %}
+      <h5 class="card-title">Управляющая компания</h5>
+	  <p class="data card-title"> - </p>
+      <h5 class="card-title">Обслуживающая компания</h5>
+	  <p class="data card-title">МиТОЛ</p>
+      <h5 class="card-title">Статус</h5>
+	  <p class="data card-title"> В работе </p>
+    </div>
+  </div>
+
+  <!-- Основная информация -->
+  <div class="card float-left">
+    <div class="card-body">
+        <h5 class="card-title">Номер</h5>
+		{% if data1 %}
+		<p class="data card-title" id="data2">{{ data1[0][1] }} </p>
+        <h5 class="card-title">Изготовитель</h5>
+		<p class="data card-title" id="data3">{{ data1[0][2] }} </p>
+        <h5 class="card-title">Модель</h5>
+		<p class="data card-title" id="data4">{{ data1[0][3] }} </p>
+        <h5 class="card-title">Год изготовления</h5>
+		<p class="data card-title" id="data6">{{ data1[0][5] }} </p>
+        <h5 class="card-title">Год ввода</h5>
+		<p class="data card-title" id="data5">{{ data1[0][4] }} </p>
+		{% endif %}
+    </div>
+  </div>
+
+  <!-- Характеристики -->
+  <div class="card float-left">
+    <div class="card-body">
+        <h5 class="card-title">Грузоподъемность</h5>
+		{% if data1 %}
+		<p class="data card-title" id="data7">{{ data1[0][6] }} </p>
+        <h5 class="card-title">Скорость</h5>
+		<p class="card-title"> 1,0 </p>
+        <h5 class="card-title">Этажность</h5>
+		<p class="data card-title" id="data8">{{ data1[0][7] }} </p>
+		{% endif %}
+    </div>
+  </div>
+
+  <!-- Механика -->
+  <div class="card float-left">
+    <div class="card-body">
+        <h5 class="card-title">Двигатель лебедки</h5>
+		{% if data1 %}
+		<p class="data card-title" id="data13">{{ data1[0][12] }} </p>
+        <h5 class="card-title">Редуктор лебедки</h5>
+		<p class="data card-title" id="data12">{{ data1[0][11] }} </p>
+        <h5 class="card-title">КВШ</h5>
+		<p class="data card-title" id="data13">{{ data1[0][13] }} </p>
+        <h5 class="card-title">Трос</h5>
+		<p> </p>
+        <h5 class="card-title">Трос огр.скор.</h5>
+		<p> </p>
+		{% endif %}
+    </div>
+  </div>
+
+  <!-- Электроника -->
+  <div class="card float-left">
+    <div class="card-body">
+		{% if data1 %}
+        <h5 class="card-title">Плата управления</h5>
+		<p> </p>
+        <h5 class="card-title">Частотный преобразователь</h5>
+		<p class="data card-title" id="data14">{{ data1[0][15] }} </p>
+        <h5 class="card-title">Частотный преобразователь ДК</h5>
+		<p class="data card-title" id="data15">{{ data1[0][16] }} </p>
+		{% endif %}
+    </div>
+  </div>
+</div>
+
+<table class="table fixed-header">
+  <thead>
+    <tr>
+      <th>№ заявки</th>
+      <th>Дата заявки</th>
+      <th>Диспетчер</th>
+      <th>Город</th>
+      <th>Адрес</th>
+      <th>Лифт</th>
+      <th>Причина</th>
+      <th>Механик</th>
+      <th>Дата устранения</th>
+      <th>Комментарий</th>
+    </tr>
+  </thead>
+  <tbody>
+    {%for dat in data0%}
+	<tr>
+        <td class="data">{{dat[0]}}</td>
+        <td class="data">{{dat[1]}}</td>
+        <td class="data">{{dat[2]}}</td>
+        <td class="data">{{dat[3]}}</td>
+        <td class="data">{{dat[4]}}</td>
+        <td class="data">{{dat[5]}}</td>
+        <td class="data">{{dat[6]}}</td>
+        <td class="data">{{dat[7]}}</td>
+        <td class="data">{{dat[8]}}</td>
+        <td class="data">{{dat[9]}}</td>
+    </tr>
+	{%endfor%}
+  </tbody>
+</table>
+</body>
+</html>

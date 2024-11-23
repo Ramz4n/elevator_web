@@ -124,6 +124,10 @@ def general():
         if access == 0 and image_value == 'okmitol':
             # Доступ ко всем
             return jsonify({'redirect_url': url_for('index')})
+
+        elif access in (0,1,2,3) and image_value == 'mvest':
+            return jsonify({'redirect_url': url_for('error')})
+
         elif access == 0:
             return jsonify({'redirect_url': url_for('base')})
 
@@ -237,11 +241,10 @@ def base():
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data11 = cursor.fetchall()
             # ТЕКУЩИЕ ЗАЯВКИ
-            # cursor.execute((f'''SELECT count(*) FROM {table_name} z
-            #                             JOIN goroda g ON z.id_город = g.id
-            #                             WHERE '''),
-            #                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
-            # data14 = cursor.fetchall()
+            cursor.execute((f'''SELECT count(*) FROM {table_name}
+                                        WHERE Дата_запуска is NULL and Дата_заявки > 100'''),
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data14 = cursor.fetchall()
             # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
             cursor.execute((f'''SELECT count(Комментарий) FROM {table_name} z
                             JOIN goroda g ON z.id_город = g.id
@@ -393,6 +396,7 @@ def base():
                                data11=data11,
                                data12=data12,
                                data13=data13,
+                               data14=data14,
                                procent1=procent1,
                                procent2=procent2,
                                procent3=procent3)
@@ -474,6 +478,11 @@ def base():
                             AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
                            (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
             data11 = cursor.fetchall()
+            # ТЕКУЩИЕ ЗАЯВКИ
+            cursor.execute((f'''SELECT count(*) FROM {table_name}
+                                                    WHERE Дата_запуска is NULL and Дата_заявки > 100'''),
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+            data14 = cursor.fetchall()
             # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
             cursor.execute((
                 f'''SELECT count(Комментарий) FROM {table_name} z
@@ -605,6 +614,7 @@ def base():
                     'data11': data11,
                     'data12': data12,
                     'data13': data13,
+                    'data14': data14,
                     'procent1': procent1,
                     'procent2': procent2,
                     'procent3': procent3})
@@ -1498,6 +1508,66 @@ def _top_bad():
         except Exception as e:
             print('Проблема в наихудших:', e)
             return render_template('error.html')
+    if request.method == 'POST':
+        table_name = session['table_name']
+        config_file = session['config_file']
+        db_manager = DataBaseManager(config_file)
+        data = request.get_json()
+        city = data['city']
+        adres = data['adres']
+        adres = adres.split(', ')
+        lift = data['lift']
+        print(city, adres, lift)
+        try:
+            with closing(db_manager.connect()) as connection:
+                cursor = connection.cursor()
+                cursor.execute(f'''SELECT z.Номер_заявки,
+                                      FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                                      di.фио,
+                                      g.город,
+                                      concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                      z.Тип_лифта,
+                                      z.Причина,
+                                      m.фио,
+                                      FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                                      z.Комментарий
+                                      FROM {table_name} z
+                                      JOIN workers di ON z.id_диспетчер = di.id
+                                      JOIN goroda g ON z.id_город = g.id
+                                      JOIN street s ON z.id_улица = s.id
+                                      JOIN doma d ON z.id_дом = d.id
+                                      JOIN padik p ON z.id_подъезд = p.id
+                                      JOIN workers m ON z.id_механик = m.id
+                                   
+                                   WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                                   and (LOWER(Комментарий) not like '%скачок%'  
+                                   and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
+                                   and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
+                                   and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
+                                   AND g.город = ? AND s.`Улица` = ?
+                                    AND d.`Номер` = ? AND p.`Номер` = ? AND z.`Тип_лифта` = ?
+                                   limit 100;''', (city, adres[0], adres[1], adres[2], lift))
+                query_bd = cursor.fetchall()
+
+                query = []
+                for row in query_bd:
+                    query.append({
+                        'Номер_заявки': row[0],
+                        'Дата_заявки': row[1],
+                        'Диспетчер': row[2],
+                        'Город': row[3],
+                        'Адрес': row[4],
+                        'Тип_лифта': row[5],
+                        'Причина': row[6],
+                        'Механик': row[7],
+                        'Дата_запуска': row[8],
+                        'Комментарий': row[9],
+                    })
+                print(query)
+            return jsonify({'query_bd': query})
+        except Exception as e:
+            print('Проблема в наихудших:', e)
+            return render_template('error.html')
 
 
 @tester.route('/_obrasch', methods=['GET', 'POST'])
@@ -1538,6 +1608,43 @@ def _obrasch():
                                (f'{month.zfill(2)}', f'{str(current_year_index)}',))
                 data1 = cursor.fetchall()
             return render_template('_obrasch.html', data1=data1, town=town)
+        except Exception as e:
+            print('Проблема в обращениях:', e)
+            return render_template('error.html')
+
+
+@tester.route('/_tekuschie', methods=['GET', 'POST'])
+@login_required
+def _tekuschie():
+    # ТЕКУЩИЕ ЗАЯВКИ
+    if request.method == 'GET':
+        config_file = session['config_file']
+        table_name = session['table_name']
+        town = request.args.get('selectedCity')
+        db_manager = DataBaseManager(config_file)
+        try:
+            with closing(db_manager.connect()) as connection:
+                cursor = connection.cursor()
+                cursor.execute(f'''SELECT z.Номер_заявки,
+                           FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                           di.фио,
+                           g.город,
+                           concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                           z.Тип_лифта,
+                           z.Причина,
+                           m.фио,
+                           FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                           z.Комментарий
+                           FROM {table_name} z
+                           JOIN workers di ON z.id_Диспетчер = di.id
+                           JOIN goroda g ON z.id_город = g.id
+                           JOIN street s ON z.id_улица = s.id
+                           JOIN doma d ON z.id_дом = d.id
+                           JOIN padik p ON z.id_подъезд = p.id
+                           JOIN workers m ON z.id_Механик = m.id
+                           WHERE Дата_запуска is NULL and Дата_заявки > 100''')
+                data1 = cursor.fetchall()
+            return render_template('_tekuschie.html', data1=data1, town=town)
         except Exception as e:
             print('Проблема в обращениях:', e)
             return render_template('error.html')

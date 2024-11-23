@@ -1,3 +1,7 @@
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 <style>
 * {
 box-sizing: border-box;
@@ -79,7 +83,7 @@ box-shadow: none;
 }
 </style>
 <body>
-  <div class="login">
+  <div class="login" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
     <div class="login-screen">
       <div class="app-title">
         <h1>Авторизация</h1>
@@ -110,35 +114,7 @@ box-shadow: none;
 
 	</form>
 </div>
-
 </div>  
-<!--
-<script>
-document.getElementById('submit').addEventListener('click', function() {
-    var username = document.getElementById('username').value;
-    var password = document.getElementById('password').value;
-    
-    var data = {
-        username: username,
-        password: password
-    };
-
-    fetch('/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if(response.ok) {
-            window.location.href = '/general'; // перенаправляем на страницу general
-        } else {
-            response.text().then(data => console.log(data)); // выводим сообщение об ошибке
-        }
-    })
-    .catch(error => console.error('Error:', error));
-});
-</script>
--->
+</div>
 </body>
+</html>

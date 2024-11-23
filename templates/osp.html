@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<script>
+.float-left {
+    float: right;
+}
+</script>
+<div class="float-left">
+	<form method="post">
+        <label for="cityList" class="customLabel">ОСП МиТОЛ:</label>
+        <select class="customSelect float-left" name="city" id="cityList" onchange="changeCity(this.value, monthList)">
+            {% for city in data8 %}
+                <option value="{{ city }}">{{ city }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+{% endblock %}
+	

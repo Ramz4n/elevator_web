@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
+    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+	<script src="C:\Server\bin\Apache24\htdocs\templates\project.js"></script>
+	<script src="C:\Server\bin\Apache24\htdocs\templates\project.css"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>Проблемные лифты</title>
+	
+</head>
+<body>
+	<style>
+		
+table {
+border-spacing: 0;
+empty-cells: hide;
+margin: 0 auto;
+font-size: 20px;
+background-color: white;
+}
+
+tr {
+  border-bottom: 1px solid #ddd;
+}
+
+th, td {
+  padding: 15px;
+}
+.fixed-header {
+overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
+}
+
+.fixed-header thead th {
+position: sticky; /* Фиксация заголовков */
+top: 0; /* Закрепление заголовков в верхней части окна */
+background-color: white; /* Цвет фона заголовков */
+.gray-row {
+    background-color: #f0f0f0; /* Серый цвет */
+}
+
+</style>
+
+<script>
+function goBack() {
+  window.history.back();
+}
+</script>
+<h2 style="text-align: center"><button class="btn btn-success" onclick="goBack()">Назад</button>Проблемные лифты за последние 30 дней</h2>
+<style>
+    .fixed-header tbody tr:hover {
+        background-color: #f0f0f0; /* Серый цвет подсветки */
+    }
+</style>
+
+<table class="fixed-header">
+    <thead>
+        <tr>
+            <th>Город</th>
+            <th>Адрес</th>
+            <th>Тип лифта</th>
+            <th>Кол-во обращений</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dat in data1 %}
+        <tr onclick="toggleDetails(this, '{{dat[0]}}', '{{dat[1]}}', '{{dat[2]}}');" style="cursor: pointer;">
+            <td class="data">{{dat[0]}}</td>
+            <td class="data">{{dat[1]}}</td>
+            <td class="data">{{dat[2]}}</td>
+            <td class="data" style='text-align: center;'>{{dat[3]}}</td>
+        </tr>
+        <tr class="details" style="display: none;">
+            <td colspan="4">
+                <div id="details-{{dat[0]}}">
+                    <table class="details-table" style="width: 100%; border-collapse: collapse; background-color: #f0f0f0;">
+                        <thead>
+                            <tr>
+                                <th>№ заявки</th>
+                                <th>Дата заявки</th>
+                                <th>Диспетчер</th>
+                                <th>Город</th>
+                                <th>Адрес</th>
+                                <th>Лифт</th>
+                                <th>Причина</th>
+                                <th>Механик</th>
+                                <th>Дата запуска</th>
+                                <th>Комментарий</th>
+                            </tr>
+                        </thead>
+                        <tbody id="details-body-{{dat[1] | replace(' ', '_') | replace(',', '_')}}"> <!-- Заменяем пробелы и запятые на символ подчеркивания -->
+                            <!-- Данные будут загружены сюда -->
+                        </tbody>
+                    </table>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+<script>
+let currentlyOpenRow = null; // Переменная для отслеживания открытой строки
+
+function toggleDetails(row, city, adres, lift) {
+    const nextRow = row.nextElementSibling; // Получаем следующую строку (выпадающую)
+
+    // Закрываем текущую открытую строку, если она не равна следующей
+    if (currentlyOpenRow && currentlyOpenRow !== nextRow) {
+        currentlyOpenRow.style.display = 'none'; // Скрываем предыдущую открытую строку
+    }
+
+    if (nextRow && nextRow.classList.contains('details')) {
+        // Переключаем видимость следующей строки
+        if (nextRow.style.display === 'none') {
+            console.log(`Fetching data for: city=${city}, adres=${adres}, lift=${lift}`); // Отладка
+            // Отправляем данные на сервер через POST-запрос
+            fetch('/_top_bad', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    city: city,
+                    adres: adres,
+                    lift: lift
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Формируем ID для tbody на основе адреса
+                const detailsBodyId = `details-body-${adres.replace(/ /g, '_').replace(/,/g, '_')}`; // Заменяем пробелы и запятые на символ подчеркивания
+                console.log(`Attempting to get element with ID: ${detailsBodyId}`); // Отладка
+                const detailsBody = document.getElementById(detailsBodyId); // Получаем элемент
+
+                if (detailsBody) {
+                    detailsBody.innerHTML = ''; // Очищаем предыдущие данные
+
+                    // Проверяем, есть ли данные в ответе
+                    if (data.query_bd && Array.isArray(data.query_bd)) {
+                        data.query_bd.forEach(item => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${item.Номер_заявки}</td>
+                                <td>${item.Дата_заявки}</td>
+                                <td>${item.Диспетчер}</td>
+                                <td>${item.Город}</td>
+                                <td>${item.Адрес}</td>
+                                <td>${item.Тип_лифта}</td>
+                                <td>${item.Причина}</td>
+                                <td>${item.Механик}</td>
+                                <td>${item.Дата_запуска}</td>
+                                <td>${item.Комментарий}</td>
+                            `;
+                            detailsBody.appendChild(row);
+                        });
+                    } else {
+                        console.error('No data found in response');
+                    }
+                } else {
+                    console.error(`Element with ID ${detailsBodyId} not found.`);
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+            nextRow.style.display = 'table-row'; // Показываем строку
+            currentlyOpenRow = nextRow; // Устанавливаем текущую открытую строку
+        } else {
+            nextRow.style.display = 'none'; // Скрываем строку
+            currentlyOpenRow = null; // Сбрасываем текущую открытую строку
+        }
+    }
+}
+
+</script>
+</body>
+</html>

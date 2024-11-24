@@ -65,6 +65,7 @@ window.onload = function() {
         .result-item {
             padding: 8px;
             cursor: pointer;
+            text-align: left;
         }
 
         .result-item:hover {
@@ -75,30 +76,48 @@ window.onload = function() {
         let results = [];
 
         async function search() {
-            const query = document.getElementById('search-input').value;
+            const addressElement = document.getElementById('search-input');
+            const city = document.getElementById('cityList').value;
 
-            if (query.length > 0) {
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
-                results = await response.json();
+            if (!addressElement.hasAttribute('data-listeners-added')) {
+                addressElement.addEventListener('click', () => {
+                    searchAddress(addressElement.value, city);
+                });
 
-                // Отображаем результаты
-                const resultsContainer = document.getElementById('results');
-                resultsContainer.innerHTML = ''; // Очистить предыдущие результаты
+                addressElement.addEventListener('input', () => {
+                    searchAddress(addressElement.value, city);
+                });
 
-                if (results.length > 0) {
-                    results.forEach(result => {
-                        const div = document.createElement('div');
-                        div.textContent = result; // Или используйте нужные поля из результата
-                        div.classList.add('result-item');
-                        div.onclick = () => selectResult(result); // Устанавливаем обработчик клика
-                        resultsContainer.appendChild(div);
-                    });
-                    resultsContainer.style.display = 'block'; // Показываем контейнер с результатами
-                } else {
-                    resultsContainer.style.display = 'none'; // Скрываем, если нет результатов
-                }
+                addressElement.setAttribute('data-listeners-added', 'true');
+            }
+        }
+
+        async function searchAddress(address, city) {
+            const response = await fetch('/search', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ address: address, city: city })
+            })
+
+            results = await response.json();
+
+            // Отображаем результаты
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = ''; // Очистить предыдущие результаты
+
+            if (results.length > 0) {
+                results.forEach(result => {
+                    const div = document.createElement('div');
+                    div.textContent = result; // Или используйте нужные поля из результата
+                    div.classList.add('result-item');
+                    div.onclick = () => selectResult(result); // Устанавливаем обработчик клика
+                    resultsContainer.appendChild(div);
+                });
+                resultsContainer.style.display = 'block'; // Показываем контейнер с результатами
             } else {
-                document.getElementById('results').style.display = 'none'; // Скрываем, если пустой запрос
+                resultsContainer.style.display = 'none'; // Скрываем, если нет результатов
             }
         }
 

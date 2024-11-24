@@ -40,13 +40,88 @@ window.onload = function() {
             <option class="data" value="{{ city }}">{{ city }}</option>
         {% endfor %}
     </select>
-    
-    <label for="adresList" class="customLabel">Адрес:</label>
-    <select class="customSelect adres" name="adres" id="adresList" onchange="postbutton()">
-        {% for dat in data1 %}
-            <option class='data' value="{{ dat[0] }}">{{ dat[0] }}</option>
-        {% endfor %}
-    </select>
+	
+	
+<style>
+        /* Стили для контейнера формы */
+        .search-container {
+            position: relative; /* Устанавливаем относительное позиционирование для контейнера */
+            display: inline-block; /* Чтобы контейнер не занимал всю ширину */
+        }
+
+        /* Стили для выпадающего списка */
+        #results {
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none; /* Скрываем по умолчанию */
+            position: absolute; /* Для позиционирования */
+            background: white;
+            z-index: 1000; /* Чтобы он был поверх других элементов */
+            width: auto; /* Автоматическая ширина */
+            min-width: 100%; /* Минимальная ширина равная ширине input */
+        }
+
+        .result-item {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .result-item:hover {
+            background-color: #f0f0f0; /* Подсветка при наведении */
+        }
+</style>
+<script>
+        let results = [];
+
+        async function search() {
+            const query = document.getElementById('search-input').value;
+
+            if (query.length > 0) {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                results = await response.json();
+
+                // Отображаем результаты
+                const resultsContainer = document.getElementById('results');
+                resultsContainer.innerHTML = ''; // Очистить предыдущие результаты
+
+                if (results.length > 0) {
+                    results.forEach(result => {
+                        const div = document.createElement('div');
+                        div.textContent = result; // Или используйте нужные поля из результата
+                        div.classList.add('result-item');
+                        div.onclick = () => selectResult(result); // Устанавливаем обработчик клика
+                        resultsContainer.appendChild(div);
+                    });
+                    resultsContainer.style.display = 'block'; // Показываем контейнер с результатами
+                } else {
+                    resultsContainer.style.display = 'none'; // Скрываем, если нет результатов
+                }
+            } else {
+                document.getElementById('results').style.display = 'none'; // Скрываем, если пустой запрос
+            }
+        }
+
+        function selectResult(result) {
+            document.getElementById('search-input').value = result; // Устанавливаем выбранное значение в input
+            document.getElementById('results').style.display = 'none'; // Скрываем результаты
+        }
+
+        // Закрытие выпадающего списка при клике вне его
+        document.addEventListener('click', function(event) {
+            const resultsContainer = document.getElementById('results');
+            if (!resultsContainer.contains(event.target) && event.target.id !== 'search-input') {
+                resultsContainer.style.display = 'none';
+            }
+        });
+</script>
+<div class="search-container">
+        <form onsubmit="event.preventDefault();">
+            <input type="search" id="search-input" oninput="search()" autocomplete="off">
+            <div id="results"></div> <!-- Контейнер для результатов поиска -->
+        </form>
+</div>
+
 </form>
 <script>
 function postbutton() {

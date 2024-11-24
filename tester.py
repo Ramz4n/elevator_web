@@ -24,6 +24,7 @@ db_user = os.getenv("DB_USER")
 db_port = os.getenv("DB_PORT")
 db_host = os.getenv("DB_HOST")
 tester = Flask(__name__, static_folder='static')
+tester.debug = True
 tester.config['ENV'] = 'production'
 tester.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 tester.config[
@@ -1325,10 +1326,10 @@ def _get_city_for_poisk():
             cursor = connection.cursor()
             cursor.execute(f'''SELECT s.улица, d.номер as дом, p.номер as Подъезд
                                 FROM lifts z
-                                JOIN goroda g ON z.id_город = g.id
-                                JOIN street s ON z.id_улица = s.id
-                                JOIN doma d ON z.id_дом = d.id
                                 JOIN padik p ON z.id_подъезд = p.id  
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN street s ON d.id_улица = s.id
+                                JOIN goroda g ON s.id_город = g.id
                                 WHERE Город='{town}' 
                                 GROUP BY s.улица, дом, Подъезд
                                 ORDER BY s.улица, дом, Подъезд''')
@@ -1423,32 +1424,34 @@ def _poisk():
             # при выборе города меняется улица дом и падик в списке select html======================================
             with closing(db_manager.connect()) as connection:
                 cursor = connection.cursor()
-                cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
-                                        pa.завод_№ as Заводской_номер,
-                                        pa.изготовитель as Изготовитель,
-                                        pa.модель as Модель,
-                                        pa.год_ввода as Год_ввода,
-                                        pa.год_изготовления as Год_изготовления,
-                                        pa.грузопод as Грузоподъемность,
-                                        pa.этажн as Этажность,
-                                        pa.кол_во_канатов as Кол_во_канатов,
-                                        pa.длина_канатов as Длина_канатов,
-                                        pa.диаметр_канатов as Диаметр_канатов,
-                                        pa.редуктор_леб as Редуктор_лебедки,
-                                        pa.двигатель_леб AS Двигатель_лебедки,
-                                        pa.шкив_канат as Шкив_канатоведущий,
-                                        pa.отводной_блок as Отводной_блок,
-                                        pa.частотник as Частотный_преобразователь,
-                                        pa.рег_привод_двер as Регулируемый_привод_дверей,
-                                        pa.нерег_привод_двер as Нерегулируемый_привод_дверей FROM passport pa
-                                        JOIN lifts li ON pa.id_лифт = li.id
-                                        JOIN goroda g ON li.id_город = g.id
-                                        JOIN street s ON li.id_улица = s.id
-                                        JOIN doma d ON li.id_дом = d.id
-                                        JOIN padik p ON li.id_подъезд = p.id
+                cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер) AS Адрес,                        
+                                    pa.завод_№ as Заводской_номер,
+                                    pa.изготовитель as Изготовитель,
+                                    pa.модель as Модель,
+                                    pa.год_ввода as Год_ввода,
+                                    pa.год_изготовления as Год_изготовления,
+                                    pa.грузопод AS Грузоподъемность,                        
+                                    pa.этажн as Этажность,
+                                    pa.кол_во_канатов as Кол_во_канатов,
+                                    pa.длина_канатов as Длина_канатов,                        
+                                    pa.диаметр_канатов as Диаметр_канатов,
+                                    pa.редуктор_леб as Редуктор_лебедки,                        
+                                    pa.двигатель_леб AS Двигатель_лебедки,
+                                    pa.шкив_канат as Шкив_канатоведущий,                        
+                                    pa.отводной_блок as Отводной_блок,
+                                    pa.частотник as Частотный_преобразователь,                        
+                                    pa.рег_привод_двер as Регулируемый_привод_дверей,
+                                    pa.нерег_привод_двер as Нерегулируемый_привод_дверей 
+                                                    FROM passport pa     
+                                                    JOIN lifts li ON pa.id_лифт = li.id
+                                                    JOIN padik p ON li.id_подъезд = p.id 
+                                                    JOIN doma d ON li.id_дом = d.id 
+                                                    JOIN street s ON d.id_улица = s.id 
+                                                    JOIN goroda g ON s.`id_город` = g.id   
                                     WHERE g.город = '{town}' and s.улица = '{address[0]}' and d.номер = '{address[1]}' and p.номер = '{address[2]}'
-                                    group by Адрес
-                                    order by Адрес''')
+                                                    group by Адрес
+                                                    order by Адрес
+                                    ''')
                 data1 = cursor.fetchall()
                 # КОЛИЧЕСТВО ВСЕГО ОБРАЩЕНИЙ ЗА МЕСЯЦ АДРЕСА
                 cursor.execute((f'''SELECT
@@ -1476,7 +1479,7 @@ def _poisk():
         return render_template('error.html')
 
 
-def get_results_from_db(query):
+def get_results_from_db(address, city):
     config_file = session['config_file']
     db_manager = DataBaseManager(config_file)
     with closing(db_manager.connect()) as connection:
@@ -1487,16 +1490,17 @@ def get_results_from_db(query):
                       JOIN padik p ON li.`id_подъезд` = p.id
                       JOIN doma d ON li.id_дом = d.id
                       JOIN street u ON d.id_улица = u.id
-                      JOIN goroda g ON u.`id_город` = g.id
-                        WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE "%{query}%"''')
+                      JOIN goroda g ON u.`id_город` = g.id AND g.Город = "{city}"
+                      WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE "%{address}%"''')
         results = cursor.fetchall()
     return results
 
 
-@tester.route('/search', methods=['GET'])
+@tester.route('/search', methods=['POST'])
 def search():
-    query = request.args.get('q', '')
-    results = get_results_from_db(query)
+    address = request.get_json()['address']
+    city = request.get_json()['city']
+    results = get_results_from_db(address, city)
     return jsonify(results)
 
 
@@ -1992,4 +1996,5 @@ if __name__ == '__main__':
     from waitress import serve
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
-    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)
+    # TODO DON'T PUSH
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

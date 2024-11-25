@@ -1416,6 +1416,7 @@ def _poisk():
             return render_template('_poisk.html', data0=data0, town=town, town_url=town_url, data1=data1, data2=data2)
         if request.method == 'POST':
             address = request.get_json()['adresList']
+            table_name = session['table_name']
             town = request.get_json()['cityList']
             address = address.split(', ')
             config_file = session['config_file']
@@ -1454,21 +1455,26 @@ def _poisk():
                                     ''')
                 data1 = cursor.fetchall()
                 # КОЛИЧЕСТВО ВСЕГО ОБРАЩЕНИЙ ЗА МЕСЯЦ АДРЕСА
-                cursor.execute((f'''SELECT
-                                      COUNT(*) AS obshie_zayavki,
-                                      SUM(CASE WHEN LOWER(Комментарий) NOT LIKE '%ложная%' and Причина = 'Застревание' THEN 1 ELSE 0 END) AS zastrevanye,
-                                      SUM(CASE WHEN (LOWER(Комментарий) NOT LIKE '%скачок%' AND LOWER(Комментарий) NOT LIKE '%электр%'
-                                                    AND LOWER(Комментарий) NOT LIKE '%вандал%' AND LOWER(Комментарий) NOT LIKE '%пож%'
-                                                    AND LOWER(Комментарий) NOT LIKE '%ложная%') AND Причина = 'Неисправность' THEN 1 ELSE 0 END) AS neispravnosti,
-                                      SUM(CASE WHEN LOWER(Комментарий) LIKE '%ложная%' THEN 1 ELSE 0 END) AS lozhnye_zayavki
-                                    FROM zayavki AS z
-                                    JOIN goroda AS g ON z.id_город = g.id
-                                    JOIN street s ON z.id_улица = s.id
-                                    JOIN doma d ON z.id_дом = d.id
-                                    JOIN padik p ON z.id_подъезд = p.id
-                                    WHERE Город = '{town}' and s.улица = '{address[0]}' and d.номер = '{address[1]}' and p.номер = '{address[2]}'
-                                      AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                                      AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
+                cursor.execute(f'''SELECT z.Номер_заявки,
+                                                       FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                                                       di.фио,
+                                                       g.город,
+                                                       concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                                       z.Тип_лифта,
+                                                       z.Причина,
+                                                       di.фио,
+                                                       FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                                                       z.Комментарий
+                                                       FROM zayavki z
+                                                       JOIN workers di ON z.id_Диспетчер = di.id
+                                                        JOIN padik p ON z.id_подъезд = p.id 
+                                                        JOIN doma d ON z.id_дом = d.id 
+                                                        JOIN street s ON d.id_улица = s.id 
+                                                        JOIN goroda g ON s.`id_город` = g.id   
+                                                       WHERE Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                                                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                                                       group by номер_заявки
+                                                       order by номер_заявки;''',
                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
                 data2 = cursor.fetchall()
             return jsonify({'data1': data1,
@@ -1491,7 +1497,7 @@ def get_results_from_db(address, city):
                       JOIN doma d ON li.id_дом = d.id
                       JOIN street u ON d.id_улица = u.id
                       JOIN goroda g ON u.`id_город` = g.id AND g.Город = "{city}"
-                      WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE "%{address}%"''')
+                      WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE LOWER("%{address}%")''')
         results = cursor.fetchall()
     return results
 

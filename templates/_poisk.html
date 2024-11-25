@@ -41,7 +41,6 @@ window.onload = function() {
         {% endfor %}
     </select>
 	
-	
 <style>
         /* Стили для контейнера формы */
         .search-container {
@@ -76,16 +75,16 @@ window.onload = function() {
         let results = [];
 
         async function search() {
-            const addressElement = document.getElementById('search-input');
+            const addressElement = document.getElementById('adresList');
             const city = document.getElementById('cityList').value;
 
             if (!addressElement.hasAttribute('data-listeners-added')) {
                 addressElement.addEventListener('click', () => {
-                    searchAddress(addressElement.value, city);
+                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);
                 });
 
                 addressElement.addEventListener('input', () => {
-                    searchAddress(addressElement.value, city);
+                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);
                 });
 
                 addressElement.setAttribute('data-listeners-added', 'true');
@@ -122,37 +121,39 @@ window.onload = function() {
         }
 
         function selectResult(result) {
-            document.getElementById('search-input').value = result; // Устанавливаем выбранное значение в input
+            document.getElementById('adresList').value = result; // Устанавливаем выбранное значение в input
             document.getElementById('results').style.display = 'none'; // Скрываем результаты
         }
 
         // Закрытие выпадающего списка при клике вне его
         document.addEventListener('click', function(event) {
             const resultsContainer = document.getElementById('results');
-            if (!resultsContainer.contains(event.target) && event.target.id !== 'search-input') {
+            if (!resultsContainer.contains(event.target) && event.target.id !== 'adresList') {
                 resultsContainer.style.display = 'none';
             }
         });
 </script>
 <div class="search-container">
         <form onsubmit="event.preventDefault();">
-            <input type="search" id="search-input" oninput="search()" autocomplete="off">
+            <input type="search" id="adresList" oninput="search()" autocomplete="off" placeholder="Введите адрес">
             <div id="results"></div> <!-- Контейнер для результатов поиска -->
         </form>
 </div>
-
+<div style='margin-bottom: 5px; margin-top: 5pt;'>
+<button class="btn btn-success" onclick="postbutton()">Поиск</button>
+</div>
 </form>
 <script>
 function postbutton() {
   var adresList = document.getElementById('adresList').value;
   var cityList = document.getElementById('cityList').value;
-fetch('/_poisk', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ adresList: adresList, cityList: cityList })
-  })
+    fetch('/_poisk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ adresList: adresList, cityList: cityList })
+    })
   .then(response => response.json())
   .then(data => {
     updateTableData(data);
@@ -177,7 +178,6 @@ function updateTableData(data) {
   document.getElementById('data15').textContent = data.data1[0][14];
   document.getElementById('data16').textContent = data.data1[0][15];
   document.getElementById('data17').textContent = data.data1[0][16];
-  
   document.getElementById('data18').textContent = data.data2[0][0];
   document.getElementById('data19').textContent = data.data2[0][1];
   document.getElementById('data20').textContent = data.data2[0][2];

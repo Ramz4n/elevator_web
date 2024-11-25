@@ -1362,7 +1362,7 @@ def _poisk():
                                     JOIN street s ON d.`id_улица` = s.id
                                     JOIN goroda g ON s.id_город = g.id''')
                 data2 = cursor.fetchall()
-                town = [city[-1] for city in data2]
+                town = [city[0] for city in data2]
 
                 cursor.execute(f'''SELECT z.Номер_заявки,
                                        FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
@@ -1412,8 +1412,7 @@ def _poisk():
                       JOIN street u ON d.id_улица = u.id
                       JOIN goroda g ON u.`id_город` = g.id''')
                 data1 = cursor.fetchall()
-                data2 = ['100', '200', '300', '400']
-            return render_template('_poisk.html', data0=data0, town=town, town_url=town_url, data1=data1, data2=data2)
+            return render_template('_poisk.html', data0=data0, town=town, town_url=town_url, data1=data1)
         if request.method == 'POST':
             address = request.get_json()['adresList']
             table_name = session['table_name']
@@ -1471,14 +1470,14 @@ def _poisk():
                                                         JOIN doma d ON z.id_дом = d.id 
                                                         JOIN street s ON d.id_улица = s.id 
                                                         JOIN goroda g ON s.`id_город` = g.id   
-                                                       WHERE Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                                                       WHERE Город="{town}" and s.улица = '{address[0]}' and d.номер = '{address[1]}' and p.номер = '{address[2]}' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
                                                        group by номер_заявки
                                                        order by номер_заявки;''',
                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
-                data2 = cursor.fetchall()
+                data0 = cursor.fetchall()
             return jsonify({'data1': data1,
-                            'data2': data2,
+                            'data2': data0,
                             'address': address})
     except Exception as e:
         print('Проблема в паспорте:', e)

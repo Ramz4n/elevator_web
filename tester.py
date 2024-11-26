@@ -1997,9 +1997,39 @@ def error():
     return render_template('error.html')
 
 
+@tester.route('/techteam', methods=['GET', 'POST'])
+def techteam():
+    return render_template('techteam.html')
+
+
+@tester.route('/maxim')
+def maxim():
+    return render_template('maxim.html')
+
+
+@tester.route('/dmitry')
+def dmitry():
+    return render_template('dmitry.html')
+
+
+@tester.route('/roman')
+def roman():
+    return render_template('roman.html')
+
+
+@tester.route('/sergey')
+def sergey():
+    return render_template('sergey.html')
+
+
+@tester.route('/alexey')
+def alexey():
+    return render_template('alexey.html')
+
+
 if __name__ == '__main__':
     from waitress import serve
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)

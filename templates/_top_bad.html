@@ -6,8 +6,6 @@
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-	<script src="C:\Server\bin\Apache24\htdocs\templates\project.js"></script>
-	<script src="C:\Server\bin\Apache24\htdocs\templates\project.css"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
       rel="stylesheet"
@@ -62,6 +60,7 @@ function goBack() {
 <table class="fixed-header">
     <thead>
         <tr>
+            <th>№</th> <!-- Новая колонка для номера -->
             <th>Город</th>
             <th>Адрес</th>
             <th>Тип лифта</th>
@@ -70,14 +69,15 @@ function goBack() {
     </thead>
     <tbody>
         {% for dat in data1 %}
-        <tr onclick="toggleDetails(this, '{{dat[0]}}', '{{dat[1]}}', '{{dat[2]}}');" style="cursor: pointer;">
+        <tr onclick="toggleDetails(this, '{{dat[0]}}', '{{dat[1]}}', '{{dat[2]}}', {{ loop.index }});" style="cursor: pointer;">
+            <td class="data">{{ loop.index }}</td> <!-- Используем loop.index для нумерации -->
             <td class="data">{{dat[0]}}</td>
             <td class="data">{{dat[1]}}</td>
             <td class="data">{{dat[2]}}</td>
             <td class="data" style='text-align: center;'>{{dat[3]}}</td>
         </tr>
         <tr class="details" style="display: none;">
-            <td colspan="4">
+            <td colspan="5"> <!-- Изменяем colspan на 5, чтобы учесть новую колонку -->
                 <div id="details-{{dat[0]}}">
                     <table class="details-table" style="width: 100%; border-collapse: collapse; background-color: #f0f0f0;">
                         <thead>
@@ -94,7 +94,7 @@ function goBack() {
                                 <th>Комментарий</th>
                             </tr>
                         </thead>
-                        <tbody id="details-body-{{dat[1] | replace(' ', '_') | replace(',', '_')}}"> <!-- Заменяем пробелы и запятые на символ подчеркивания -->
+                        <tbody id="details-body-row-{{ loop.index }}"> <!-- Используем индекс строки -->
                             <!-- Данные будут загружены сюда -->
                         </tbody>
                     </table>
@@ -105,11 +105,10 @@ function goBack() {
     </tbody>
 </table>
 
-
 <script>
 let currentlyOpenRow = null; // Переменная для отслеживания открытой строки
 
-function toggleDetails(row, city, adres, lift) {
+function toggleDetails(row, city, adres, lift, rowIndex) {
     const nextRow = row.nextElementSibling; // Получаем следующую строку (выпадающую)
 
     // Закрываем текущую открытую строку, если она не равна следующей
@@ -140,8 +139,8 @@ function toggleDetails(row, city, adres, lift) {
                 return response.json();
             })
             .then(data => {
-                // Формируем ID для tbody на основе адреса
-                const detailsBodyId = `details-body-${adres.replace(/ /g, '_').replace(/,/g, '_')}`; // Заменяем пробелы и запятые на символ подчеркивания
+                // Формируем ID для tbody на основе номера строки
+                const detailsBodyId = `details-body-row-${rowIndex}`; // Используем индекс строки
                 console.log(`Attempting to get element with ID: ${detailsBodyId}`); // Отладка
                 const detailsBody = document.getElementById(detailsBodyId); // Получаем элемент
 
@@ -184,7 +183,7 @@ function toggleDetails(row, city, adres, lift) {
         }
     }
 }
-
 </script>
+
 </body>
 </html>

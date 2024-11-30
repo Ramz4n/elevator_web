@@ -190,13 +190,6 @@ def base():
                             JOIN goroda g ON s.id_город = g.id
                             where Город="{town}"'''))
             data1 = cursor.fetchall()
-            # КОЛИЧЕСТВО ВСЕГО ОБРАЩЕНИЙ ЗА МЕСЯЦ ГОРОДА
-            cursor.execute((f'''SELECT count(z.id) FROM {table_name} z
-                            JOIN goroda g ON z.id_город = g.id
-                            where Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
-                            AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
-            data2 = cursor.fetchall()
             # ЗАСТРЕВАНИЯ В МЕСЯЦ ГОРОДА
             cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
                             JOIN goroda g ON z.id_город = g.id
@@ -222,12 +215,12 @@ def base():
             data5 = cursor.fetchall()
             # ОТСУТСТВИЕ ЭЛЕКТРОЭНЕРГИИ
             cursor.execute((f'''SELECT count(*) FROM {table_name} z
-                            JOIN goroda g ON z.id_город = g.id
-                            WHERE Город='{town}' and (LOWER(Комментарий) like '%скачок%'  
-                           or LOWER(Комментарий) like '%напряж%' or LOWER(Комментарий) like '%фаз%'
-                           or LOWER(Комментарий) like '%электр%' or LOWER(Комментарий) like '%свет%')
-                           and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                           AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
+                                        JOIN goroda g ON z.id_город = g.id
+                                        WHERE Город='{town}' and z.Причина <> 'Линейная' and (LOWER(Комментарий) like '%скачок%'  
+                                       or LOWER(Комментарий) like '%напряж%' or LOWER(Комментарий) like '%фаз%'
+                                       or LOWER(Комментарий) like '%электр%' or LOWER(Комментарий) like '%свет%')
+                                       and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data6 = cursor.fetchall()
             # ВАНДАЛЬНЫЕ ДЕЙСТВИЯ
@@ -374,7 +367,7 @@ def base():
                             COUNT(CASE WHEN Причина = 'Остановлен' THEN 1 END) AS stopped,
                             COUNT(CASE WHEN LOWER(Комментарий) LIKE '%скачок%' OR LOWER(Комментарий) LIKE '%напряж%' 
                             OR LOWER(Комментарий) LIKE '%фаз%' OR LOWER(Комментарий) LIKE '%электр%' 
-                            OR LOWER(Комментарий) LIKE '%свет%' THEN 1 END) AS electr,
+                            OR LOWER(Комментарий) LIKE '%свет%' AND z.Причина <> 'Линейная' THEN 1 END) AS electr,
                             COUNT(CASE WHEN LOWER(Комментарий) LIKE '%вандал%' 
                             OR LOWER(Комментарий) LIKE '%пож%' THEN 1 END) AS vandalism,
                             COUNT(CASE WHEN LOWER(Комментарий) LIKE '%ложная%' THEN 1 END) AS lojn
@@ -460,13 +453,13 @@ def base():
             data5 = cursor.fetchall()
             # ОТСУТСТВИЕ ЭЛЕКТРОЭНЕРГИИ
             cursor.execute((f'''SELECT count(*) FROM {table_name} z
-                                JOIN goroda g ON z.id_город = g.id
-                                WHERE Город='{town}' and (LOWER(Комментарий) like '%скачок%'
-                               or LOWER(Комментарий) like '%напряж%' or LOWER(Комментарий) like '%фаз%'
-                               or LOWER(Комментарий) like '%электр%' or LOWER(Комментарий) like '%свет%')
-                               and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
-                           (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                                        JOIN goroda g ON z.id_город = g.id
+                                        WHERE Город='{town}' and z.Причина <> 'Линейная' and (LOWER(Комментарий) like '%скачок%'  
+                                       or LOWER(Комментарий) like '%напряж%' or LOWER(Комментарий) like '%фаз%'
+                                       or LOWER(Комментарий) like '%электр%' or LOWER(Комментарий) like '%свет%')
+                                       and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;'''),
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data6 = cursor.fetchall()
             # ВАНДАЛЬНЫЕ ДЕЙСТВИЯ
             cursor.execute((f'''SELECT count(*) FROM {table_name} z
@@ -1976,7 +1969,7 @@ def _energiya():
                            JOIN doma d ON z.id_дом = d.id
                            JOIN padik p ON z.id_подъезд = p.id
                            JOIN workers m ON z.id_Механик = m.id
-                           WHERE Город='{town}' and (LOWER(Комментарий) like '%скачок%'  
+                           WHERE Город='{town}' and z.Причина <> 'Линейная' and (LOWER(Комментарий) like '%скачок%'  
                            or LOWER(Комментарий) like '%напряж%' or LOWER(Комментарий) like '%фаз%'
                            or LOWER(Комментарий) like '%электр%' or LOWER(Комментарий) like '%свет%')
                            and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?

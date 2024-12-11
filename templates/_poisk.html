@@ -299,10 +299,10 @@ font-size: 20px;
     <div class="card-body">
       <h5 class="card-title">Адрес</h5>
 	  {% if data1 %}
-	  <p class="data card-title" id="data1">{{ data1[0][0] }} </p>
+	  <p class="data card-title" id="data1">Пр-т Мира 22 п.7.2</p> <!--{{ data1[0][0] }} -->
 	  {% endif %}
       <h5 class="card-title">Управляющая компания</h5>
-	  <p class="data card-title"> - </p>
+	  <p class="data card-title"> ТСЖ </p>
       <h5 class="card-title">Обслуживающая компания</h5>
 	  <p class="data card-title">МиТОЛ</p>
       <h5 class="card-title">Статус</h5>
@@ -315,15 +315,15 @@ font-size: 20px;
     <div class="card-body">
         <h5 class="card-title">Номер</h5>
 		{% if data1 %}
-		<p class="data card-title" id="data2">{{ data1[0][1] }} </p>
+		<p class="data card-title" id="data2"></p><!--{{ data1[0][1] }}  -->
         <h5 class="card-title">Изготовитель</h5>
-		<p class="data card-title" id="data3">{{ data1[0][2] }} </p>
-        <h5 class="card-title">Модель</h5>
-		<p class="data card-title" id="data4">{{ data1[0][3] }} </p>
+		<p class="data card-title" id="data3">КМЗ</p><!--{{ data1[0][2] }}  -->
+        <!--<h5 class="card-title">Модель</h5>
+		<p class="data card-title" id="data4">{{ data1[0][3] }} </p><!--{{ data1[0][3] }}  -->
         <h5 class="card-title">Год изготовления</h5>
-		<p class="data card-title" id="data6">{{ data1[0][5] }} </p>
+		<p class="data card-title" id="data6">2008</p><!--{{ data1[0][5] }}  -->
         <h5 class="card-title">Год ввода</h5>
-		<p class="data card-title" id="data5">{{ data1[0][4] }} </p>
+		<p class="data card-title" id="data5">2009</p><!--{{ data1[0][4] }}  -->
 		{% endif %}
     </div>
   </div>
@@ -333,11 +333,11 @@ font-size: 20px;
     <div class="card-body">
         <h5 class="card-title">Грузоподъемность</h5>
 		{% if data1 %}
-		<p class="data card-title" id="data7">{{ data1[0][6] }} </p>
+		<p class="data card-title" id="data7">400</p><!--{{ data1[0][6] }}  -->
         <h5 class="card-title">Скорость</h5>
-		<p class="card-title"> 1,0 </p>
+		<p class="card-title"> 1,6 </p>
         <h5 class="card-title">Этажность</h5>
-		<p class="data card-title" id="data8">{{ data1[0][7] }} </p>
+		<p class="data card-title" id="data8">12 </p><!--{{ data1[0][7] }}  -->
 		{% endif %}
     </div>
   </div>
@@ -347,15 +347,14 @@ font-size: 20px;
     <div class="card-body">
         <h5 class="card-title">Двигатель лебедки</h5>
 		{% if data1 %}
-		<p class="data card-title" id="data13">{{ data1[0][12] }} </p>
-        <h5 class="card-title">Редуктор лебедки</h5>
-		<p class="data card-title" id="data12">{{ data1[0][11] }} </p>
+		<p class="data card-title" id="data13">АЧ160S6ЛБУХЛ4 </p><!--{{ data1[0][12] }}  -->
+        <h5 class="card-title">Редуктор</h5>
+		<p class="data card-title" id="data12">РЧ-160-40 правый</p><!--{{ data1[0][11] }}  -->
         <h5 class="card-title">КВШ</h5>
-		<p class="data card-title" id="data13">{{ data1[0][13] }} </p>
+		<p class="data card-title" id="data13">525х4х12, 0621.92.00.001В</p><!--{{ data1[0][13] }}  -->
         <h5 class="card-title">Трос</h5>
-		<p> </p>
-        <h5 class="card-title">Трос огр.скор.</h5>
-		<p> </p>
+		<p class="data card-title">Канат d - 15 мм. ГОСТ 3077-80 ГЛ-В-Н-1570 </p>
+    
 		{% endif %}
     </div>
   </div>
@@ -365,11 +364,11 @@ font-size: 20px;
     <div class="card-body">
 		{% if data1 %}
         <h5 class="card-title">Плата управления</h5>
-		<p> </p>
+		<p class="data card-title">УЛ </p>
         <h5 class="card-title">Частотный преобразователь</h5>
-		<p class="data card-title" id="data14">{{ data1[0][15] }} </p>
+		<p class="data card-title" id="data14">Altivar 312 ATV312H055N4</p><!--{{ data1[0][13] }}  -->
         <h5 class="card-title">Частотный преобразователь ДК</h5>
-		<p class="data card-title" id="data15">{{ data1[0][16] }} </p>
+		<p class="data card-title" id="data15">AF-K01 ASCEND</p><!--{{ data1[0][13] }}  -->
 		{% endif %}
     </div>
   </div>

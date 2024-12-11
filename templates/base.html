@@ -177,6 +177,33 @@ window.onload = function() {
   changeCity(defaultCity, monthList);
 }
 function changeCity(city, monthList) {
+	var displayCity = (city === 'all') ? 'Все города' : city;
+
+    var cityElements = document.querySelectorAll('.city-stop');
+    cityElements.forEach(function(element) {
+        element.innerText = 'Остановленные в ' + displayCity; // Устанавливаем текст на выбранный город
+    });
+    
+    var cityElements = document.querySelectorAll('.city-tek');
+    cityElements.forEach(function(element) {
+        element.innerText = 'Текущие заявки в ' + displayCity; // Устанавливаем текст на выбранный город
+    });
+    
+    var cityElements = document.querySelectorAll('.city-line');
+    cityElements.forEach(function(element) {
+        element.innerText = 'Линейные заявки в ' + displayCity; // Устанавливаем текст на выбранный город
+    });
+    
+    var cityElements = document.querySelectorAll('.city-ob');
+    cityElements.forEach(function(element) {
+        element.innerText = 'Обращений в месяц ' + displayCity; // Устанавливаем текст на выбранный город
+    });
+    
+    var cityElements = document.querySelectorAll('.city-kolvo');
+    cityElements.forEach(function(element) {
+        element.innerText = 'Количество лифтов ' + displayCity; // Устанавливаем текст на выбранный город
+    });
+	
 	var monthList = document.getElementById('monthList').value;
 	var selectElement = document.getElementById('cityList');
 	const urlParams = new URLSearchParams(window.location.search);
@@ -200,17 +227,20 @@ elementsToUpdate.forEach((element) => {
 	case "data1":
       element.innerText = updatedData.data1;
       break;
-    case "data2":
-      element.innerText = updatedData.data2;
+	case "vsego":
+      element.innerText = updatedData.vsego;
+      break;
+	case "stopped":
+      element.innerText = updatedData.stopped;
+      break;
+	case "lineynaya":
+      element.innerText = updatedData.lineynaya;
       break;
     case "data3":
       element.innerText = updatedData.data3;
       break;
     case "data4":
       element.innerText = updatedData.data4;
-      break;
-    case "data5":
-      element.innerText = updatedData.data5;
       break;
     case "data6":
       element.innerText = updatedData.data6;
@@ -272,7 +302,7 @@ elementsToUpdate.forEach((element) => {
 						  <div class="card-body black-ramka">
 							<div class="row">
 							  <div class="col mt-0">
-								<h5 class="card-title">Количество лифтов</h5>
+								<h5 class="card-title city-kolvo">Кол-во лифтов в {{town}}</h5>
 							  </div>
 							</div>
 							<div class="h1 mb-3">
@@ -305,13 +335,11 @@ button_kolvo.addEventListener('click', function() {
 						  <div class="card-body black-ramka">
 							<div class="row">
 							  <div class="col mt-0">
-								<h5 class="card-title">Количество обращений/в мес.</h5>
+								<h5 class="card-title city-ob">Обращений/мес. {{town}}</h5>
 							  </div>
 							</div>
 							<div class="h1 mb-3">
-							  
-								<h1 class="mt-1 mb-3 data" id="data2">{{data2[0][0]}}</h1>
-							  
+								<h1 class="mt-1 mb-3 data" id="vsego">{{data2[0][0]}}</h1>
 							</div>
 							<div class="mb-0">
 							  <span class="text-success">
@@ -335,53 +363,7 @@ button1.addEventListener('click', function() {
     window.location.href = urlToRedirect;
 });
 </script>
-					  <div class="card">
-						  <div class="card-body black-ramka">
-							<div class="row">
-							  <div class="col mt-0">
-								<h5 class="card-title" style="color: blue;">Неисправности/в мес.</h5>
-							  </div>
-							</div>
-							<div class="h1 md-3">
-								<h1 class="mt-1 mb-3 data" id="data4">{{data2[0][2]}}</h1>
-							</div>
-							<div class="mb-0">
-							  <span class="text-danger">
-								<i class="mdi mdi-arrow-bottom-right"></i>
-							  </span>
-							  <span class="text-muted"></span>
-							</div>
-							<div class="text-center">
-							  <button class="btn btn-success" id="redirectButton2">Показать</button>
-							</div>
-						  </div>
-						</div>
-<script>
-const button2 = document.getElementById('redirectButton2'); // Получаем кнопку по id
-button2.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_neispr?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
-					<div class="card">
-					  <div class="card-body black-ramka">
-						<div class="row">
-						  <div class="col mt-0">
-							<h5 class="card-title" style="color: red;">Застревания/в мес.</h5>
-						  </div>
-						</div>
-						<div class="h1 mb-3">
-							<h1 class="mt-1 mb-3 data" id="data3">{{data2[0][1]}}</h1>
-						</div>
-						<div class="text-center">
-						<button class="btn btn-success" id="redirectButton3">Показать</button>
-						</div>
-					  </div>
-					</div>
+
 
 <div class="card">
 <div class="card-body black-ramka">
@@ -391,7 +373,7 @@ button2.addEventListener('click', function() {
 </div>
 </div>
 <div class="h1 mb-3">
-<h1 class="mt-1 mb-3">Топ 100</h1>
+<h1 class="mt-1 mb-3">Топ 100 лифтов</h1>
 </div>
 <div class="text-center">
 <button class="btn btn-success" id="myButton">Показать</button>
@@ -423,11 +405,11 @@ button3.addEventListener('click', function() {
 					  <div class="card-body black-ramka">
 						<div class="row">
 						  <div class="col mt-0">
-							<h5 class="card-title">Остановленные и запущенные</h5>
+							<h5 class="card-title city-stop">Остановленные в {{town}}</h5>
 						  </div>
 						</div>
 						<div class="h1 mb-3">
-							<h1 class="mt-1 mb-3 data" id="data5">{{data2[0][3]}}</h1>
+							<h1 class="mt-1 mb-3 data" id="stopped">{{data2[0][1]}}</h1>
 						</div>
 						<div class="mb-0">
 						  <span class="text-danger">
@@ -451,113 +433,11 @@ button4.addEventListener('click', function() {
     window.location.href = urlToRedirect;
 });
 </script>
-					<div class="card">
-					  <div class="card-body black-ramka">
-						<div class="row">
-						  <div class="col mt-0">
-							<h5 class="card-title" style="color: orange;">Ложные/в мес.</h5>
-						  </div>
-						</div>
-						<div class="h1 mb-3">
-						  <h1 class="mt-1 mb-3 data" id="data7">{{data2[0][6]}}</h1>
-						</div>
-						<div class="mb-0">
-						  <span class="text-success">
-							<i class="mdi mdi-arrow-bottom-right"></i>
-						  </span>
-						  <span class="text-muted"></span>
-						</div>
-						<div class="text-center">
-						  <button class="btn btn-success" id="redirectButton6">Показать</button>
-						</div>
-					  </div>
-					</div>
-<script>
-const button6 = document.getElementById('redirectButton6'); // Получаем кнопку по id
-button6.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_lojnie?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
-					<div class="card">
-					  <div class="card-body black-ramka">
-						<div class="row">
-						  <div class="col mt-0">
-							<h5 class="card-title">
-							  Отсутствие электроэнергии
-							</h5>
-						  </div>
-						</div>
-						<div class="h1 mb-3">
-						  <h1 class="mt-1 mb-3 data" id="data6">{{data2[0][4]}}</h1>
-						</div>
-						<div class="mb-0">
-						  <span class="text-success">
-							<i class="mdi mdi-arrow-bottom-right"></i>
-						  </span>
-						  <span class="text-muted"></span>
-						</div>
-						<div class="text-center">
-						  <button class="btn btn-success" id="redirectButton5">Показать</button>
-						</div>
-					  </div>
-					</div>
-<script>
-const button5 = document.getElementById('redirectButton5'); // Получаем кнопку по id
-button5.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_energiya?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
-					<div class="card">
-					  <div class="card-body black-ramka">
-						<div class="row">
-						  <div class="col mt-0">
-							<h5 class="card-title">
-							  Вандальность/пожарная опасность
-							</h5>
-						  </div>
-						</div>
-						<div class="h1 mb-3">
-						  <h1 class="mt-1 mb-3 data" id="data11">{{data2[0][5]}}</h1>
-						</div>
-						<div class="mb-0">
-						  <span class="text-success">
-							<i class="mdi mdi-arrow-bottom-right"></i>
-						  </span>
-						  <span class="text-muted"></span>
-						</div>
-						<div class="text-center">
-						  <button class="btn btn-success" id="redirectButton8">Показать</button>
-						</div>
-					  </div>
-					</div>
-<script>
-const button8 = document.getElementById('redirectButton8'); // Получаем кнопку по id
-button8.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_vandalka?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
 <div class="card">
 <div class="card-body black-ramka">
 <div class="row">
 <div class="col mt-0">
-<h5 class="card-title">
-Текущие заявки всех городов
-</h5>
+<h5 class="card-title city-tek">Текущие заявки в {{town}}</h5>
 </div>
 </div>
 <div class="h1 mb-3">
@@ -581,6 +461,39 @@ button9.addEventListener('click', function() {
 	const monthList = document.getElementById('monthList').value;
     // Формируем URL с параметром selectedCity
     const urlToRedirect = '/_tekuschie?selectedCity=' + selectedCity + '&monthList=' + monthList;
+    // Перейти на указанную страницу
+    window.location.href = urlToRedirect;
+});
+</script>
+
+<div class="card">
+<div class="card-body black-ramka">
+<div class="row">
+<div class="col mt-0">
+<h5 class="card-title city-line">Линейные заявки в {{town}}</h5>
+</div>
+</div>
+<div class="h1 mb-3">
+	<h1 class="mt-1 mb-3 data" id="lineynaya">{{data2[0][2]}}</h1>
+</div>
+<div class="mb-0">
+<span class="text-success">
+<i class="mdi mdi-arrow-bottom-right"></i>
+</span>
+<span class="text-muted"></span>
+</div>
+<div class="text-center">
+<button class="btn btn-success" id="redirectButton10">Показать</button>
+</div>
+</div>
+</div>
+<script>
+const button10 = document.getElementById('redirectButton10'); // Получаем кнопку по id
+button10.addEventListener('click', function() {
+    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+	const monthList = document.getElementById('monthList').value;
+    // Формируем URL с параметром selectedCity
+    const urlToRedirect = '/_lineynie?selectedCity=' + selectedCity + '&monthList=' + monthList;
     // Перейти на указанную страницу
     window.location.href = urlToRedirect;
 });

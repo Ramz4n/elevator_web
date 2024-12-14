@@ -363,7 +363,6 @@ def base():
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE Город = "{town}"'''))
             query = cursor.fetchall()
-            print(query)
         return render_template(f'{image_value}.html',
                                data1=data1,
                                data2=query,
@@ -397,11 +396,12 @@ def base():
             # ВЫБОР ГОРОДА
             # ЭТО ЕСЛИ ВЫБРАЛИ НА САЙТЕ "ВСЕ ГОРОДА"
             if selected_city == 'all':
-                cursor.execute(f'''SELECT 
-                                    COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = MONTH(CURDATE()) THEN 1 END) AS vsego,
+                #ВСЕГО ЗАЯВОК, ОСТАНОВКИ, ЛИНЕЙНЫЕ
+                cursor.execute((f'''SELECT 
+                                    COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = ? THEN 1 END) AS vsego,
                                     COUNT(CASE WHEN Причина = 'Остановлен' and z.дата_запуска is Null THEN 1 END) AS stopped,
                                     COUNT(CASE WHEN Причина = 'Линейная' and z.Дата_запуска is Null THEN 1 END) AS lineynaya
-                                    FROM {table_name} z''')
+                                    FROM {table_name} z'''), (month_list,))
                 query = cursor.fetchall()
                 # КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
                 cursor.execute(f'''SELECT count(z.id)
@@ -546,12 +546,12 @@ def base():
             # ЭТО ЕСЛИ ВЫБРАЛИ НА САЙТЕ КОНКРЕТНЫЙ ГОРОД
             else:
                 cursor.execute((f'''SELECT 
-                                    COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = MONTH(CURDATE()) THEN 1 END) AS vsego,
+                                    COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = ? THEN 1 END) AS vsego,
                                     COUNT(CASE WHEN Причина = 'Остановлен' and z.дата_запуска is Null THEN 1 END) AS stopped,
                                     COUNT(CASE WHEN Причина = 'Линейная' and z.Дата_запуска is Null THEN 1 END) AS lineynaya
                                     FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Город = "{town}"'''))
+                                    WHERE Город = "{town}"'''), (month_list,))
                 query = cursor.fetchall()
                 # КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
                 cursor.execute((f'''SELECT count(z.id)
@@ -734,7 +734,6 @@ def base():
 def index():
     if request.method == 'GET':
         image_value = request.args.get('image_value')
-        print(image_value)
         with open(f'{image_value}.json', 'r') as file:
             data = json.loads(file.read())
         session['table_name'] = data['table_name']
@@ -1129,9 +1128,7 @@ def obrasch():
         table_name = data['table_name']
         current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
-        company = request.args.get('company')
         town = request.args.get('selectedCity')
-        print(town)
         with closing(mariadb.connect(
                 user=user,
                 password=password,
@@ -1175,7 +1172,6 @@ def neispr():
         database = data['db_name']
         table_name = data['table_name']
         town = request.args.get('selectedCity')
-        print(town)
         with closing(mariadb.connect(
                 user=user,
                 password=password,
@@ -1478,6 +1474,7 @@ def _get_city_for_poisk():
 @login_required
 def _poisk():
     # ОБРАЩЕНИЯ №0
+    print('_poisk')
     current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
     current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
     try:
@@ -1684,7 +1681,6 @@ def _top_bad():
         adres = data['adres']
         adres = adres.split(', ')
         lift = data['lift']
-        print(city, adres, lift)
         try:
             with closing(db_manager.connect()) as connection:
                 cursor = connection.cursor()
@@ -1730,7 +1726,6 @@ def _top_bad():
                         'Дата_запуска': row[8],
                         'Комментарий': row[9],
                     })
-                print(query)
             return jsonify({'query_bd': query})
         except Exception as e:
             print('Проблема в наихудших:', e)

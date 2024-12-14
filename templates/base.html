@@ -177,32 +177,6 @@ window.onload = function() {
   changeCity(defaultCity, monthList);
 }
 function changeCity(city, monthList) {
-	var displayCity = (city === 'all') ? 'Все города' : city;
-
-    var cityElements = document.querySelectorAll('.city-stop');
-    cityElements.forEach(function(element) {
-        element.innerText = 'Остановленные в ' + displayCity; // Устанавливаем текст на выбранный город
-    });
-    
-    var cityElements = document.querySelectorAll('.city-tek');
-    cityElements.forEach(function(element) {
-        element.innerText = 'Текущие заявки в ' + displayCity; // Устанавливаем текст на выбранный город
-    });
-    
-    var cityElements = document.querySelectorAll('.city-line');
-    cityElements.forEach(function(element) {
-        element.innerText = 'Линейные заявки в ' + displayCity; // Устанавливаем текст на выбранный город
-    });
-    
-    var cityElements = document.querySelectorAll('.city-ob');
-    cityElements.forEach(function(element) {
-        element.innerText = 'Обращений в месяц ' + displayCity; // Устанавливаем текст на выбранный город
-    });
-    
-    var cityElements = document.querySelectorAll('.city-kolvo');
-    cityElements.forEach(function(element) {
-        element.innerText = 'Количество лифтов ' + displayCity; // Устанавливаем текст на выбранный город
-    });
 	
 	var monthList = document.getElementById('monthList').value;
 	var selectElement = document.getElementById('cityList');
@@ -298,208 +272,233 @@ elementsToUpdate.forEach((element) => {
                 <div class="w-100">
                   <div class="row">
                     <div class="col-sm-6">
-					<div class="card">
-						  <div class="card-body black-ramka">
-							<div class="row">
-							  <div class="col mt-0">
-								<h5 class="card-title city-kolvo">Кол-во лифтов в {{town}}</h5>
-							  </div>
+						<div class="card">
+							<div class="card-body black-ramka">
+								<div class="row">
+								  <div class="col mt-0">
+									<h5 class="card-title">Кол-во лифтов</h5>
+								  </div>
+								</div>
+								<div class="h1 mb-3">
+								  {% for dat in data1 %}
+									<h1 class="mt-1 mb-3 data" id="data1">{{dat[0]}}</h1>
+								  {% endfor %}
+								</div>
+								<div class="mb-0">
+								  <span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								  </span>
+								  <span class="text-muted"></span>
+								</div>
+								<div class="text-center">
+								  <button class="btn btn-success" id="redirectButton_kolvo">Показать</button>
+								</div>
 							</div>
-							<div class="h1 mb-3">
-							  {% for dat in data1 %}
-								<h1 class="mt-1 mb-3 data" id="data1">{{dat[0]}}</h1>
-							  {% endfor %}
-							</div>
-							<div class="mb-0">
-							  <span class="text-success">
-								<i class="mdi mdi-arrow-bottom-right"></i>
-							  </span>
-							  <span class="text-muted"></span>
-							</div>
-							<div class="text-center">
-							  <button class="btn btn-success" id="redirectButton_kolvo">Показать</button>
-							</div>
-						  </div>
 						</div>
-<script>
-const button_kolvo = document.getElementById('redirectButton_kolvo'); // Получаем кнопку по id
-button_kolvo.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/kolvo_lifts?selectedCity=' + selectedCity;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
-                      <div class="card">
-						  <div class="card-body black-ramka">
-							<div class="row">
-							  <div class="col mt-0">
-								<h5 class="card-title city-ob">Обращений/мес. {{town}}</h5>
-							  </div>
+							<script>
+							const button_kolvo = document.getElementById('redirectButton_kolvo'); // Получаем кнопку по id
+							button_kolvo.addEventListener('click', function() {
+								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+								// Формируем URL с параметром selectedCity
+								const urlToRedirect = '/kolvo_lifts?selectedCity=' + selectedCity;
+								// Перейти на указанную страницу
+								window.location.href = urlToRedirect;
+							});
+							</script>
+                        <div class="card">
+							<div class="card-body black-ramka">
+								<div class="row">
+								  <div class="col mt-0">
+									<h5 class="card-title">Обращений/мес.</h5>
+								  </div>
+								</div>
+								<div class="h1 mb-3">
+									<h1 class="mt-1 mb-3 data" id="vsego">{{data2[0][0]}}</h1>
+								</div>
+								<div class="mb-0">
+								  <span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								  </span>
+								  <span class="text-muted"></span>
+								</div>
+								<div class="text-center">
+								  <button class="btn btn-success" id="redirectButton1">Показать</button>
+								</div>
 							</div>
-							<div class="h1 mb-3">
-								<h1 class="mt-1 mb-3 data" id="vsego">{{data2[0][0]}}</h1>
-							</div>
-							<div class="mb-0">
-							  <span class="text-success">
-								<i class="mdi mdi-arrow-bottom-right"></i>
-							  </span>
-							  <span class="text-muted"></span>
-							</div>
-							<div class="text-center">
-							  <button class="btn btn-success" id="redirectButton1">Показать</button>
-							</div>
-						  </div>
 						</div>
-<script>
-const button1 = document.getElementById('redirectButton1'); // Получаем кнопку по id
-button1.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_obrasch?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
-
-
-<div class="card">
-<div class="card-body black-ramka">
-<div class="row">
-<div class="col mt-0">
-<h5 class="card-title">Проблемные лифты за 30 дней</h5>
-</div>
-</div>
-<div class="h1 mb-3">
-<h1 class="mt-1 mb-3">Топ 100 лифтов</h1>
-</div>
-<div class="text-center">
-<button class="btn btn-success" id="myButton">Показать</button>
-</div>
-</div>
-</div>
-<script>
-  document.querySelector("#myButton").addEventListener("click", function() {
-	const urlToRedirect = '/_top_bad';
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-  });
-</script>
-<script>
-const button3 = document.getElementById('redirectButton3'); // Получаем кнопку по id
-button3.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_zastrev?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
+							<script>
+							const button1 = document.getElementById('redirectButton1'); // Получаем кнопку по id
+							button1.addEventListener('click', function() {
+								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+								const monthList = document.getElementById('monthList').value;
+								// Формируем URL с параметром selectedCity
+								const urlToRedirect = '/_obrasch?selectedCity=' + selectedCity + '&monthList=' + monthList;
+								// Перейти на указанную страницу
+								window.location.href = urlToRedirect;
+							});
+							</script>
+						<div class="card">
+							<div class="card-body black-ramka">
+								<div class="row">
+									<div class="col mt-0">
+										<h5 class="card-title">Проблемные лифты за 30 дней</h5>
+									</div>
+								</div>
+								<div class="h1 mb-3">
+									<h1 class="mt-1 mb-3">Топ 100 лифтов</h1>
+								</div>
+								<div class="text-center">
+									<button class="btn btn-success" id="myButton">Показать</button>
+								</div>
+							</div>
+						</div>
+							<script>
+							  document.querySelector("#myButton").addEventListener("click", function() {
+								const urlToRedirect = '/_top_bad';
+								// Перейти на указанную страницу
+								window.location.href = urlToRedirect;
+							  });
+							</script>
+							<script>
+							const button3 = document.getElementById('redirectButton3'); // Получаем кнопку по id
+							button3.addEventListener('click', function() {
+								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+								const monthList = document.getElementById('monthList').value;
+								// Формируем URL с параметром selectedCity
+								const urlToRedirect = '/_zastrev?selectedCity=' + selectedCity + '&monthList=' + monthList;
+								// Перейти на указанную страницу
+								window.location.href = urlToRedirect;
+							});
+							</script>
                     </div>
-                    <div class="col-sm-6">
-
-					  <div class="card">
-					  <div class="card-body black-ramka">
-						<div class="row">
-						  <div class="col mt-0">
-							<h5 class="card-title city-stop">Остановленные в {{town}}</h5>
-						  </div>
+					<div class="col-sm-6">
+						<div class="card">
+							<div class="card-body black-ramka">
+								<div class="row">
+									<div class="col mt-0">
+										<h5 class="card-title">Остановленные</h5>
+									</div>
+								</div>
+								<div class="h1 mb-3">
+									<h1 class="mt-1 mb-3 data" id="stopped">{{data2[0][1]}}</h1>
+								</div>
+								<div class="mb-0">
+									<span class="text-danger">
+										<i class="mdi mdi-arrow-bottom-right"></i>
+									</span>
+								  <span class="text-muted"></span>
+								</div>
+								<div class="text-center">
+									<button class="btn btn-success" id="redirectButton4">Показать</button>
+								</div>
+							</div>
 						</div>
-						<div class="h1 mb-3">
-							<h1 class="mt-1 mb-3 data" id="stopped">{{data2[0][1]}}</h1>
+					<script>
+					const button4 = document.getElementById('redirectButton4'); // Получаем кнопку по id
+					button4.addEventListener('click', function() {
+						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+						const monthList = document.getElementById('monthList').value;
+						// Формируем URL с параметром selectedCity
+						const urlToRedirect = '/_ostanov?selectedCity=' + selectedCity + '&monthList=' + monthList;
+						// Перейти на указанную страницу
+						window.location.href = urlToRedirect;
+					});
+					</script>
+					<div class="card">
+						<div class="card-body black-ramka">
+							<div class="row">
+								<div class="col mt-0">
+									<h5 class="card-title">Текущие заявки</h5>
+								</div>
+							</div>
+							<div class="h1 mb-3">
+								<h1 class="mt-1 mb-3 data" id="data14">{{data14[0][0]}}</h1>
+							</div>
+							<div class="mb-0">
+								<span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								</span>
+								<span class="text-muted"></span>
+							</div>
+							<div class="text-center">
+								<button class="btn btn-success" id="redirectButton9">Показать</button>
+							</div>
 						</div>
-						<div class="mb-0">
-						  <span class="text-danger">
-							<i class="mdi mdi-arrow-bottom-right"></i>
-						  </span>
-						  <span class="text-muted"></span>
-						</div>
-						<div class="text-center">
-						  <button class="btn btn-success" id="redirectButton4">Показать</button>
-						</div>
-					  </div>
 					</div>
-<script>
-const button4 = document.getElementById('redirectButton4'); // Получаем кнопку по id
-button4.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_ostanov?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
-<div class="card">
-<div class="card-body black-ramka">
-<div class="row">
-<div class="col mt-0">
-<h5 class="card-title city-tek">Текущие заявки в {{town}}</h5>
-</div>
-</div>
-<div class="h1 mb-3">
-	<h1 class="mt-1 mb-3 data" id="data14">{{data14[0][0]}}</h1>
-</div>
-<div class="mb-0">
-<span class="text-success">
-<i class="mdi mdi-arrow-bottom-right"></i>
-</span>
-<span class="text-muted"></span>
-</div>
-<div class="text-center">
-<button class="btn btn-success" id="redirectButton9">Показать</button>
-</div>
-</div>
-</div>
-<script>
-const button9 = document.getElementById('redirectButton9'); // Получаем кнопку по id
-button9.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_tekuschie?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
-
-<div class="card">
-<div class="card-body black-ramka">
-<div class="row">
-<div class="col mt-0">
-<h5 class="card-title city-line">Линейные заявки в {{town}}</h5>
-</div>
-</div>
-<div class="h1 mb-3">
-	<h1 class="mt-1 mb-3 data" id="lineynaya">{{data2[0][2]}}</h1>
-</div>
-<div class="mb-0">
-<span class="text-success">
-<i class="mdi mdi-arrow-bottom-right"></i>
-</span>
-<span class="text-muted"></span>
-</div>
-<div class="text-center">
-<button class="btn btn-success" id="redirectButton10">Показать</button>
-</div>
-</div>
-</div>
-<script>
-const button10 = document.getElementById('redirectButton10'); // Получаем кнопку по id
-button10.addEventListener('click', function() {
-    const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-	const monthList = document.getElementById('monthList').value;
-    // Формируем URL с параметром selectedCity
-    const urlToRedirect = '/_lineynie?selectedCity=' + selectedCity + '&monthList=' + monthList;
-    // Перейти на указанную страницу
-    window.location.href = urlToRedirect;
-});
-</script>
-</div>
-
+					<script>
+					const button9 = document.getElementById('redirectButton9'); // Получаем кнопку по id
+					button9.addEventListener('click', function() {
+						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+						const monthList = document.getElementById('monthList').value;
+						// Формируем URL с параметром selectedCity
+						const urlToRedirect = '/_tekuschie?selectedCity=' + selectedCity + '&monthList=' + monthList;
+						// Перейти на указанную страницу
+						window.location.href = urlToRedirect;
+					});
+					</script>
+					<div class="card">
+						<div class="card-body black-ramka">
+							<div class="row">
+								<div class="col mt-0">
+									<h5 class="card-title">Линейные заявки</h5>
+								</div>
+							</div>
+							<div class="h1 mb-3">
+								<h1 class="mt-1 mb-3 data" id="lineynaya">{{data2[0][2]}}</h1>
+							</div>
+							<div class="mb-0">
+								<span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								</span>
+							<span class="text-muted"></span>
+							</div>
+							<div class="text-center">
+								<button class="btn btn-success" id="redirectButton10">Показать</button>
+							</div>
+						</div>
+					</div>
+					<script>
+					const button10 = document.getElementById('redirectButton10'); // Получаем кнопку по id
+					button10.addEventListener('click', function() {
+						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+						const monthList = document.getElementById('monthList').value;
+						// Формируем URL с параметром selectedCity
+						const urlToRedirect = '/_lineynie?selectedCity=' + selectedCity + '&monthList=' + monthList;
+						// Перейти на указанную страницу
+						window.location.href = urlToRedirect;
+					});
+					</script>
+					<div class="card">
+						<div class="card-body black-ramka">
+							<div class="row">
+								<div class="col mt-0">
+									<h5 class="card-title">Поиск заявок</h5>
+								</div>
+							</div>
+							<div class="mb-0">
+								<span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								</span>
+							<span class="text-muted"></span>
+							</div>
+							<div class="text-center">
+								<button class="btn btn-success" id="search">Поиск</button>
+							</div>
+						</div>
+					</div>
+					<script>
+					const button_search = document.getElementById('search'); // Получаем кнопку по id
+					button_search.addEventListener('click', function() {
+						alert('Данная функция находится в разработке.')
+						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+						const monthList = document.getElementById('monthList').value;
+						// Формируем URL с параметром selectedCity
+						//const urlToRedirect = '/_search_aplications?selectedCity=' + selectedCity + '&monthList=' + monthList;
+						// Перейти на указанную страницу
+						//window.location.href = urlToRedirect;
+					});
+					</script>
+					</div>
                   </div>
                   <div class="row">
                     <div class="col-sm-6">
@@ -601,7 +600,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 </div>
 </div>
-
                 <div class="col-12 col-md-6 col-xxl-4 d-flex order-2 order-xxl-2 custom-height">
                   <div class="card flex-fill w-100">
                     <div class="card-header">

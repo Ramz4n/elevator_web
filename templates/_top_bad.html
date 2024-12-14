@@ -8,52 +8,46 @@
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
-      rel="stylesheet"
-    />
+      rel="stylesheet"/>
     <title>Проблемные лифты</title>
 	
 </head>
 <body>
-	<style>
-		
-table {
-border-spacing: 0;
-empty-cells: hide;
-margin: 0 auto;
-font-size: 20px;
-background-color: white;
-}
+<style>
+	table {
+	border-spacing: 0;
+	empty-cells: hide;
+	margin: 0 auto;
+	font-size: 20px;
+	background-color: white;
+	}
 
-tr {
-  border-bottom: 1px solid #ddd;
-}
+	tr {
+	  border-bottom: 1px solid #ddd;
+	}
 
-th, td {
-  padding: 15px;
-}
-.fixed-header {
-overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
-}
+	th, td {
+	  padding: 15px;
+	}
+	.fixed-header {
+	overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
+	}
 
-.fixed-header thead th {
-position: sticky; /* Фиксация заголовков */
-top: 0; /* Закрепление заголовков в верхней части окна */
-background-color: #63B2F3; /* Цвет фона заголовков */
-.gray-row {
-    background-color: white; /* Серый цвет */
-}
-
+	.fixed-header thead th {
+	position: sticky; /* Фиксация заголовков */
+	top: 0; /* Закрепление заголовков в верхней части окна */
+	background-color: #63B2F3; /* Цвет фона заголовков */
 </style>
 
 <script>
-function goBack() {
-  window.history.back();
-}
+	function goBack() {
+	  window.history.back();
+	}
 </script>
 <h2 style="text-align: center"><button class="btn btn-success" onclick="goBack()">Назад</button>Проблемные лифты за последние 30 дней</h2>
 <style>
     .fixed-header tbody tr:hover {
-        background-color: white; /* Серый цвет подсветки */
+        background-color: #C4C5C7; /* Серый цвет подсветки */
     }
 </style>
 
@@ -184,6 +178,6 @@ function toggleDetails(row, city, adres, lift, rowIndex) {
     }
 }
 </script>
-
 </body>
 </html>
+где тут код, который подсвечивает строки при наведении?

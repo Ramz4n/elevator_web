@@ -152,7 +152,7 @@ document.querySelector(`option[value="${new Date().getMonth()+1}"]`)
 	button0.addEventListener('click', function() {
 	const selectedCity = document.getElementById('cityList').value;
 	// Формируем URL с параметром selectedCity
-	const urlToRedirect = '/_poisk?selectedCity=' + selectedCity;
+	const urlToRedirect = '/_passport?selectedCity=' + selectedCity;
 	// Перейти на указанную страницу
 	window.location.href = urlToRedirect;
 	});
@@ -489,13 +489,12 @@ elementsToUpdate.forEach((element) => {
 					<script>
 					const button_search = document.getElementById('search'); // Получаем кнопку по id
 					button_search.addEventListener('click', function() {
-						alert('Данная функция находится в разработке.')
 						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
 						const monthList = document.getElementById('monthList').value;
 						// Формируем URL с параметром selectedCity
-						//const urlToRedirect = '/_search_aplications?selectedCity=' + selectedCity + '&monthList=' + monthList;
+						const urlToRedirect = '/_search?selectedCity=' + selectedCity + '&monthList=' + monthList;
 						// Перейти на указанную страницу
-						//window.location.href = urlToRedirect;
+						window.location.href = urlToRedirect;
 					});
 					</script>
 					</div>

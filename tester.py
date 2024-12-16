@@ -101,12 +101,6 @@ class Users(db.Model, UserMixin):
     access = db.Column(db.Integer, nullable=False, unique=True)
 
 
-@tester.route('/_passport', methods=['GET'])
-@login_required
-def _passport():
-    return render_template('_passport.html')
-
-
 @tester.route('/general', methods=['GET', 'POST'])
 @login_required
 def general():
@@ -198,7 +192,7 @@ def base():
                                 AND Причина="Застревание" AND Город="{town}" 
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data3 = cursor.fetchall()
             # НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
             cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
@@ -210,7 +204,7 @@ def base():
                                 AND not LOWER(Комментарий) like '%ложная%' and Причина='Неисправность' 
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data4 = cursor.fetchall()
             # ОСТАНОВЛЕННЫЕ ЗА МЕСЯЦ
             cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
@@ -220,7 +214,7 @@ def base():
                                 AND not lower(Комментарий) like '%ложн%' 
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data5 = cursor.fetchall()
             # ЛИНЕЙНЫЕ В МЕСЯЦ ГОРОДА
             cursor.execute(f'''SELECT COUNT(z.Причина) 
@@ -235,7 +229,7 @@ def base():
                                 WHERE Дата_запуска is NULL 
                                 AND not Причина in ("Линейная", "Остановлен") 
                                 AND Город="{town}"'''),
-                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data14 = cursor.fetchall()
             # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
             cursor.execute((f'''SELECT count(Комментарий) FROM {table_name} z
@@ -243,7 +237,7 @@ def base():
                                 WHERE Город='{town}' AND LOWER(Комментарий) like '%ложная%' 
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data7 = cursor.fetchall()
 
             if data3[0][0] + data4[0][0] + data7[0][0] != 0:
@@ -396,7 +390,7 @@ def base():
             # ВЫБОР ГОРОДА
             # ЭТО ЕСЛИ ВЫБРАЛИ НА САЙТЕ "ВСЕ ГОРОДА"
             if selected_city == 'all':
-                #ВСЕГО ЗАЯВОК, ОСТАНОВКИ, ЛИНЕЙНЫЕ
+                # ВСЕГО ЗАЯВОК, ОСТАНОВКИ, ЛИНЕЙНЫЕ
                 cursor.execute((f'''SELECT 
                                     COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = ? THEN 1 END) AS vsego,
                                     COUNT(CASE WHEN Причина = 'Остановлен' and z.дата_запуска is Null THEN 1 END) AS stopped,
@@ -440,7 +434,7 @@ def base():
                                     where not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" 
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                                    (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
                 data3 = cursor.fetchall()
                 # НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
                 cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
@@ -450,14 +444,14 @@ def base():
                                     AND not LOWER(Комментарий) like '%ложная%' and Причина='Неисправность' 
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
-                                    (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
                 data4 = cursor.fetchall()
                 # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
                 cursor.execute((f'''SELECT count(Комментарий) FROM {table_name} z
                                     WHERE LOWER(Комментарий) like '%ложная%' 
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
-                                    (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
                 data7 = cursor.fetchall()
                 # ПРОЦЕНТЫ В КРУГУ СТАТИСТИКИ
                 if data3[0][0] + data4[0][0] + data7[0][0] != 0:
@@ -593,7 +587,7 @@ def base():
                                     where not LOWER(Комментарий) like "%ложная%" and Причина="Застревание" 
                                     AND Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                                    (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
                 data3 = cursor.fetchall()
                 # НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
                 cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
@@ -604,7 +598,7 @@ def base():
                                     AND not LOWER(Комментарий) like '%ложная%' and Причина='Неисправность' 
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
-                                    (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
                 data4 = cursor.fetchall()
                 # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
                 cursor.execute((f'''SELECT count(Комментарий) FROM {table_name} z
@@ -612,7 +606,7 @@ def base():
                                     WHERE Город='{town}' and LOWER(Комментарий) like '%ложная%' 
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?'''),
-                                    (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
                 data7 = cursor.fetchall()
                 # ПРОЦЕНТЫ В КРУГУ СТАТИСТИКИ
                 if data3[0][0] + data4[0][0] + data7[0][0] != 0:
@@ -761,7 +755,7 @@ def index():
             cursor.execute((f'''SELECT count(id) FROM {table_name} where Город="{town}" 
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data2 = cursor.fetchall()
 
             # ЗАСТРЕВАНИЯ В МЕСЯЦ ГОРОДА
@@ -769,7 +763,7 @@ def index():
                                 where not LOWER(Комментарий) in ("ложная")
                                 AND Причина="Застревание" AND Город="{town}" AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data3 = cursor.fetchall()
 
             # НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
@@ -778,14 +772,14 @@ def index():
                                 AND (Причина="Неисправность" or Причина="Остановлен") 
                                 AND Город="{town}" AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data4 = cursor.fetchall()
 
             # ОСТАНОВЛЕННЫЕ ЗА МЕСЯЦ
             cursor.execute((f'''SELECT count(Причина) FROM {table_name} where Причина="Остановлен"
                                 AND Город="{town}" and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data5 = cursor.fetchall()
 
             # ОСТАНОВЛЕННЫЕ БОЛЕЕ СУТОК ТЕКУЩЕГО МЕСЯЦА
@@ -793,7 +787,7 @@ def index():
                                 AND Дата_запуска is NULL and TIMESTAMPDIFF(SECOND, FROM_UNIXTIME(Дата_заявки), NOW()) >= 86400 
                                 AND Причина='Остановлен' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?;''',
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data6 = cursor.fetchall()
 
             # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
@@ -801,7 +795,7 @@ def index():
                             AND LOWER(Комментарий) = "ложная заявка" 
                             AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                             AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ?'''),
-                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data7 = cursor.fetchall()
 
             if data3[0][0] + data4[0][0] + data7[0][0] != 0:
@@ -1470,11 +1464,10 @@ def _get_city_for_poisk():
         return render_template('error.html')
 
 
-@tester.route('/_poisk', methods=['GET', 'POST'])
+@tester.route('/_passport', methods=['GET', 'POST'])
 @login_required
-def _poisk():
+def _passport():
     # ОБРАЩЕНИЯ №0
-    print('_poisk')
     current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
     current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
     try:
@@ -1543,7 +1536,7 @@ def _poisk():
                       JOIN street u ON d.id_улица = u.id
                       JOIN goroda g ON u.`id_город` = g.id''')
                 data1 = cursor.fetchall()
-            return render_template('_poisk.html', data0=data0, town=town, town_url=town_url, data1=data1)
+            return render_template('_passport.html', data0=data0, town=town, town_url=town_url, data1=data1)
         if request.method == 'POST':
             address = request.get_json()['adresList']
             table_name = session['table_name']
@@ -2051,6 +2044,12 @@ def _lineynie():
             except Exception as e:
                 print('Проблема в остановках:', e)
                 return render_template('error.html')
+
+
+@tester.route('/_search', methods=['GET', 'POST'])
+@login_required
+def _search():
+    return render_template('_search.html')
 
 
 @tester.route('/error', methods=['GET', 'POST'])

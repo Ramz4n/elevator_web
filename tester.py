@@ -171,7 +171,6 @@ def base():
             cursor = connection.cursor()
             cursor.execute(f'''SELECT g.Город FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                where DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = {str(current_month_index + 1).zfill(2)}
                                 group by Город 
                                 order by Город''')
             data8 = cursor.fetchall()
@@ -2049,6 +2048,77 @@ def _lineynie():
 @tester.route('/_search', methods=['GET', 'POST'])
 @login_required
 def _search():
+    if request.method == 'GET':
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT id, Город FROM goroda group by Город order by Город")
+            cities_by_id = cursor.fetchall()
+            town = [city[-1] for city in cities_by_id]
+
+            cursor.execute(f"SELECT Улица FROM street where id_город='{cities_by_id[0][0]}' group by Улица order by Улица")
+            address = cursor.fetchall()
+
+        return render_template('_search.html', town=town, adres=address)
+
+    if request.method == 'POST':
+        db_file = session.get('db_file', 'okmitol.json')
+        with open(f'{db_file}', 'r') as file:
+            data = json.loads(file.read())
+
+        host = data['db_host']
+        user = data['db_user']
+        password = data['db_password']
+        port = data['db_port']
+        database = data['db_name']
+        table_name = data['table_name']
+
+        town = request.get_json()['cityList']
+        with closing(mariadb.connect(
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+                database=database)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''select z.Номер_заявки,
+                               FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                               di.фио,
+                               g.город,
+                               concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                               z.Тип_лифта,
+                               z.Причина,
+                               m.фио,
+                               FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                               z.Комментарий
+                               FROM {table_name} z
+                               JOIN workers di ON z.id_Диспетчер = di.id
+                               JOIN goroda g ON z.id_город = g.id
+                               JOIN street s ON z.id_улица = s.id
+                               JOIN doma d ON z.id_дом = d.id
+                               JOIN padik p ON z.id_подъезд = p.id
+                               JOIN workers m ON z.id_Механик = m.id
+                               WHERE Город='{town}'
+                                GROUP by z.id
+                                ORDER by z.id;''')
+            tickets = cursor.fetchall()
+
+        return jsonify({'data1': tickets})
+
     return render_template('_search.html')
 
 
@@ -2093,4 +2163,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

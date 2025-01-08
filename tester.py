@@ -2045,6 +2045,25 @@ def _lineynie():
                 return render_template('error.html')
 
 
+@tester.route('/get_cities_by_address', methods=['POST'])
+@login_required
+def get_cities_by_address():
+    if request.method == 'POST':
+        config_file = session.get('config_file')
+        db_manager = DataBaseManager(config_file)
+
+        town = request.get_json()['cityList']
+        with closing(db_manager.connect()) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f"SELECT id, Город FROM goroda where Город='{town}' group by Город order by Город")
+            cities_by_id = cursor.fetchall()
+
+            cursor.execute(f"SELECT Улица FROM street where id_город='{cities_by_id[0][0]}' group by Улица order by Улица")
+            address = cursor.fetchall()
+
+        return jsonify(({'adresList': address}))
+
+
 @tester.route('/_search', methods=['GET', 'POST'])
 @login_required
 def _search():
@@ -2064,24 +2083,11 @@ def _search():
         return render_template('_search.html', town=town, adres=address)
 
     if request.method == 'POST':
-        db_file = session.get('db_file', 'okmitol.json')
-        with open(f'{db_file}', 'r') as file:
-            data = json.loads(file.read())
-
-        host = data['db_host']
-        user = data['db_user']
-        password = data['db_password']
-        port = data['db_port']
-        database = data['db_name']
-        table_name = data['table_name']
+        config_file = session.get('config_file')
+        db_manager = DataBaseManager(config_file)
 
         town = request.get_json()['cityList']
-        with closing(mariadb.connect(
-                user=user,
-                password=password,
-                host=host,
-                port=port,
-                database=database)) as connection:
+        with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
             cursor.execute(f'''select z.Номер_заявки,
                                FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
@@ -2108,8 +2114,6 @@ def _search():
         return jsonify({'data1': tickets})
 
     return render_template('_search.html')
-
-
 @tester.route('/error', methods=['GET', 'POST'])
 @login_required
 def error():
@@ -2151,4 +2155,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

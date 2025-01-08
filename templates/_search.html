@@ -217,13 +217,97 @@ window.onload = function() {
                 resultsContainer.style.display = 'none';
             }
         });
+
+        await function get_cities_by_address() {
+            const city = document.getElementById('cityList').value;
+
+            fetch('/get_cities_by_address', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ cityList: city })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(data => {
+                results = await response.json()
+                let adresList = document.getElementById('results');
+                adresList.innerHTML = ''; // Очистить текущий список адресов
+
+                data.forEach(adres => {
+                    let option = document.createElement('option');
+                    option.value = adres;
+                    option.textContent = adres;
+                    adresList.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('There was a problem with your fetch operation:', error);
+            });
+        }
+
+        function postbutton() {
+          var adresList = document.getElementById('adresList').value;
+          var cityList = document.getElementById('cityList').value;
+            fetch('/_search', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ adresList: adresList, cityList: cityList })
+            })
+          .then(response => response.json())
+          .then(data => {
+            updateTableData(data);
+          });
+        }
+
+        function updateTableData(data) {
+          document.getElementById('data1').textContent = data.data1[0][0];
+          document.getElementById('data2').textContent = data.data1[0][1];
+          document.getElementById('data3').textContent = data.data1[0][2];
+          document.getElementById('data4').textContent = data.data1[0][3];
+          document.getElementById('data5').textContent = data.data1[0][4];
+          document.getElementById('data6').textContent = data.data1[0][5];
+          document.getElementById('data7').textContent = data.data1[0][6];
+
+           const tbody = document.getElementById('data-table-body');
+            tbody.innerHTML = '';
+
+            if (!data || !Array.isArray(data.data2)) {
+                console.error("Invalid data format:", data);
+                return;
+            }
+
+            data.data2.forEach((row) => {
+                if (!Array.isArray(row)) {
+                    console.error("Invalid row:", row);
+                    return;
+                }
+
+                const tr = document.createElement('tr'); // Создаем строку таблицы
+
+                row.forEach((cell) => {
+                    const td = document.createElement('td'); // Создаем ячейку
+                    td.textContent = cell; // Добавляем данные
+                    tr.appendChild(td); // Добавляем ячейку в строку
+                });
+
+                tbody.appendChild(tr); // Добавляем строку в таблицу
+            });
+        }
 </script>
 <div class="search-container">
     <form action="/_search" method="post" class="form-horizontal">
 
         <div class="form-group">
             <label for="cityList" class="customLabel">Город:</label>
-            <select class="customSelect" name="city" id="cityList" onchange="postPoisk()">
+            <select class="customSelect" name="city" id="cityList" onchange="get_cities_by_address()">
                 {% for city in town %}
                     <option class="data" value="{{ city }}">{{ city }}</option>
                 {% endfor %}
@@ -232,7 +316,7 @@ window.onload = function() {
 
         <div class="form-group">
             <label for="adresList" class="customLabel">Адрес:</label>
-            <input type="search" id="adresList" oninput="search()" autocomplete="off" placeholder="Ввод">
+            <input type="search" id="adresList" onclick="search()" autocomplete="off" placeholder="Ввод">
             <div id="results"></div> 
         </div>
 
@@ -253,93 +337,6 @@ window.onload = function() {
     </form>
 </div>
 
-
-
-<script>
-function postbutton() {
-  var adresList = document.getElementById('adresList').value;
-  var cityList = document.getElementById('cityList').value;
-    fetch('/_search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ adresList: adresList, cityList: cityList })
-    })
-  .then(response => response.json())
-  .then(data => {
-    updateTableData(data);
-  });
-}
-
-function updateTableData(data) {
-  document.getElementById('data1').textContent = data.data1[0][0];
-  document.getElementById('data2').textContent = data.data1[0][1];
-  document.getElementById('data3').textContent = data.data1[0][2];
-  document.getElementById('data4').textContent = data.data1[0][3];
-  document.getElementById('data5').textContent = data.data1[0][4];
-  document.getElementById('data6').textContent = data.data1[0][5];
-  document.getElementById('data7').textContent = data.data1[0][6];
-
-   const tbody = document.getElementById('data-table-body');
-    tbody.innerHTML = '';
-
-    if (!data || !Array.isArray(data.data2)) {
-        console.error("Invalid data format:", data);
-        return;
-    }
-
-    data.data2.forEach((row) => {
-        if (!Array.isArray(row)) {
-            console.error("Invalid row:", row);
-            return;
-        }
-
-        const tr = document.createElement('tr'); // Создаем строку таблицы
-
-        row.forEach((cell) => {
-            const td = document.createElement('td'); // Создаем ячейку
-            td.textContent = cell; // Добавляем данные
-            tr.appendChild(td); // Добавляем ячейку в строку
-        });
-
-        tbody.appendChild(tr); // Добавляем строку в таблицу
-    });
-}
-</script>
-<script>
-function postPoisk() {
-    const city = document.getElementById('cityList').value;
-
-    fetch('/_get_city_for_poisk', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ city: city })
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        }
-        throw new Error('Network response was not ok.');
-    })
-    .then(data => {
-        let adresList = document.getElementById('adresList');
-        adresList.innerHTML = ''; // Очистить текущий список адресов
-        
-        data.forEach(adres => {
-            let option = document.createElement('option');
-            option.value = adres;
-            option.textContent = adres;
-            adresList.appendChild(option);
-        });
-    })
-    .catch(error => {
-        console.error('There was a problem with your fetch operation:', error);
-    });
-}
-</script>
 </h2> 
 <table class="table fixed-header">
   <thead>

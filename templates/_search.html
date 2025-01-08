@@ -159,25 +159,10 @@ window.onload = function() {
 <script>
         let results = [];
 
-        async function search() {
-            const addressElement = document.getElementById('adresList');
-            const city = document.getElementById('cityList').value;
-
-            if (!addressElement.hasAttribute('data-listeners-added')) {
-                addressElement.addEventListener('click', () => {
-                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);
-                });
-
-                addressElement.addEventListener('input', () => {
-                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);
-                });
-
-                addressElement.setAttribute('data-listeners-added', 'true');
-            }
-        }
+        
 
         async function searchAddress(address, city) {
-            const response = await fetch('/search', {
+            fetch('/_search', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
@@ -302,6 +287,24 @@ window.onload = function() {
             });
         }
 </script>
+<script>
+function search() {
+            const addressElement = document.getElementById('adresList');
+            const city = document.getElementById('cityList').value;
+
+            if (!addressElement.hasAttribute('data-listeners-added')) {
+                addressElement.addEventListener('click', () => {
+                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);
+                });
+
+                addressElement.addEventListener('input', () => {
+                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);
+                });
+
+                addressElement.setAttribute('data-listeners-added', 'true');
+            }
+        }
+</script>
 <div class="search-container">
     <form action="/_search" method="post" class="form-horizontal">
 
@@ -336,6 +339,8 @@ window.onload = function() {
 
     </form>
 </div>
+
+
 
 </h2> 
 <table class="table fixed-header">

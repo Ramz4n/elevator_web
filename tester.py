@@ -2049,22 +2049,10 @@ def _lineynie():
 @login_required
 def _search():
     if request.method == 'GET':
-        db_file = session.get('db_file', 'okmitol.json')
-        with open(f'{db_file}', 'r') as file:
-            data = json.loads(file.read())
+        config_file = session.get('config_file')
+        db_manager = DataBaseManager(config_file)
 
-        host = data['db_host']
-        user = data['db_user']
-        password = data['db_password']
-        port = data['db_port']
-        database = data['db_name']
-
-        with closing(mariadb.connect(
-                user=user,
-                password=password,
-                host=host,
-                port=port,
-                database=database)) as connection:
+        with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
             cursor.execute(f"SELECT id, Город FROM goroda group by Город order by Город")
             cities_by_id = cursor.fetchall()
@@ -2163,4 +2151,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)

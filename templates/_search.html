@@ -159,37 +159,6 @@ window.onload = function() {
 <script>
         let results = [];
 
-        
-
-        async function searchAddress(address, city) {
-            fetch('/_search', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ address: address, city: city })
-            })
-
-            results = await response.json();
-
-            // Отображаем результаты
-            const resultsContainer = document.getElementById('results');
-            resultsContainer.innerHTML = ''; // Очистить предыдущие результаты
-
-            if (results.length > 0) {
-                results.forEach(result => {
-                    const div = document.createElement('div');
-                    div.textContent = result; // Или используйте нужные поля из результата
-                    div.classList.add('result-item');
-                    div.onclick = () => selectResult(result); // Устанавливаем обработчик клика
-                    resultsContainer.appendChild(div);
-                });
-                resultsContainer.style.display = 'block'; // Показываем контейнер с результатами
-            } else {
-                resultsContainer.style.display = 'none'; // Скрываем, если нет результатов
-            }
-        }
-
         function selectResult(result) {
             document.getElementById('adresList').value = result; // Устанавливаем выбранное значение в input
             document.getElementById('results').style.display = 'none'; // Скрываем результаты
@@ -202,39 +171,6 @@ window.onload = function() {
                 resultsContainer.style.display = 'none';
             }
         });
-
-        await function get_cities_by_address() {
-            const city = document.getElementById('cityList').value;
-
-            fetch('/get_cities_by_address', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ cityList: city })
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Network response was not ok.');
-            })
-            .then(data => {
-                results = await response.json()
-                let adresList = document.getElementById('results');
-                adresList.innerHTML = ''; // Очистить текущий список адресов
-
-                data.forEach(adres => {
-                    let option = document.createElement('option');
-                    option.value = adres;
-                    option.textContent = adres;
-                    adresList.appendChild(option);
-                });
-            })
-            .catch(error => {
-                console.error('There was a problem with your fetch operation:', error);
-            });
-        }
 
         function postbutton() {
           var adresList = document.getElementById('adresList').value;
@@ -287,30 +223,91 @@ window.onload = function() {
             });
         }
 </script>
+<!--<script>-->
+<!--function search() {-->
+<!--            const addressElement = document.getElementById('adresList');-->
+<!--            const city = document.getElementById('cityList').value;-->
+
+<!--            if (!addressElement.hasAttribute('data-listeners-added')) {-->
+<!--                addressElement.addEventListener('click', () => {-->
+<!--                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);-->
+<!--                });-->
+
+<!--                addressElement.addEventListener('input', () => {-->
+<!--                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);-->
+<!--                });-->
+
+<!--                addressElement.setAttribute('data-listeners-added', 'true');-->
+<!--            }-->
+<!--        }-->
+<!--async function searchAddress(address, city) {-->
+<!--    fetch('/_search', {-->
+<!--        method: 'POST',-->
+<!--        headers: {-->
+<!--          'Content-Type': 'application/json'-->
+<!--        },-->
+<!--        body: JSON.stringify({ address: address, city: city })-->
+<!--    })-->
+
+<!--    results = await response.json();-->
+
+<!--    // Отображаем результаты-->
+<!--    const resultsContainer = document.getElementById('results');-->
+<!--    resultsContainer.innerHTML = ''; // Очистить предыдущие результаты-->
+
+<!--    if (results.length > 0) {-->
+<!--        results.forEach(result => {-->
+<!--            const div = document.createElement('div');-->
+<!--            div.textContent = result; // Или используйте нужные поля из результата-->
+<!--            div.classList.add('result-item');-->
+<!--            div.onclick = () => selectResult(result); // Устанавливаем обработчик клика-->
+<!--            resultsContainer.appendChild(div);-->
+<!--        });-->
+<!--        resultsContainer.style.display = 'block'; // Показываем контейнер с результатами-->
+<!--    } else {-->
+<!--        resultsContainer.style.display = 'none'; // Скрываем, если нет результатов-->
+<!--    }-->
+<!--}-->
+<!--</script>-->
 <script>
-function search() {
-            const addressElement = document.getElementById('adresList');
-            const city = document.getElementById('cityList').value;
+function get_addresses_by_city() {
+    const city = document.getElementById('cityList').value;
 
-            if (!addressElement.hasAttribute('data-listeners-added')) {
-                addressElement.addEventListener('click', () => {
-                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);
-                });
+    fetch('/get_addresses_by_city', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cityList: city })
+    })
+    .then(response =>
+        results = response.json();
 
-                addressElement.addEventListener('input', () => {
-                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);
-                });
+        // Отображаем результаты
+        const resultsContainer = document.getElementById('results');
+        resultsContainer.innerHTML = ''; // Очистить предыдущие результаты
 
-                addressElement.setAttribute('data-listeners-added', 'true');
-            }
+        if (results.length > 0) {
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.textContent = result; // Или используйте нужные поля из результата
+                div.classList.add('result-item');
+                div.onclick = () => selectResult(result); // Устанавливаем обработчик клика
+                resultsContainer.appendChild(div);
+            });
+            resultsContainer.style.display = 'block'; // Показываем контейнер с результатами
+        } else {
+            resultsContainer.style.display = 'none'; // Скрываем, если нет результатов
         }
+    )
+}
 </script>
 <div class="search-container">
     <form action="/_search" method="post" class="form-horizontal">
 
         <div class="form-group">
             <label for="cityList" class="customLabel">Город:</label>
-            <select class="customSelect" name="city" id="cityList" onchange="get_cities_by_address()">
+            <select class="customSelect" name="city" id="cityList" onchange="get_addresses_by_city()">
                 {% for city in town %}
                     <option class="data" value="{{ city }}">{{ city }}</option>
                 {% endfor %}
@@ -319,7 +316,7 @@ function search() {
 
         <div class="form-group">
             <label for="adresList" class="customLabel">Адрес:</label>
-            <input type="search" id="adresList" onclick="search()" autocomplete="off" placeholder="Ввод">
+            <input type="search" id="adresList" onclick="get_addresses_by_city()" autocomplete="off" placeholder="Ввод">
             <div id="results"></div> 
         </div>
 

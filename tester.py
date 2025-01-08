@@ -2045,9 +2045,9 @@ def _lineynie():
                 return render_template('error.html')
 
 
-@tester.route('/get_cities_by_address', methods=['POST'])
+@tester.route('/get_addresses_by_city', methods=['POST'])
 @login_required
-def get_cities_by_address():
+def get_addresses_by_city():
     if request.method == 'POST':
         config_file = session.get('config_file')
         db_manager = DataBaseManager(config_file)

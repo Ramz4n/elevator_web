@@ -129,6 +129,7 @@ font-size: 20px;
 .btn1 {
     margin-top: 30px; /* Добавляем отступ сверху для кнопки */
 }
+
  </style>
 </head>
 <script>
@@ -173,20 +174,22 @@ window.onload = function() {
         });
 
         function postbutton() {
-          var addressesList = document.getElementById('addressesList').value;
-          var cityList = document.getElementById('cityList').value;
-            fetch('/_search', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ addressesList: addressesList, cityList: cityList })
-            })
-          .then(response => response.json())
-          .then(data => {
-            updateTableData(data);
-          });
-        }
+			var addressesList = document.getElementById('addressesList').value;
+			var cityList = document.getElementById('cityList').value;
+
+			fetch('/search', { // Измените на правильный маршрут
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ address: addressesList, city: cityList }) // Измените ключи
+			})
+			.then(response => response.json())
+			.then(data => {
+				updateTableData(data); // Обновляем таблицу с полученными данными
+			});
+		}
+
 
         function updateTableData(data) {
           document.getElementById('data1').textContent = data.data1[0][0];
@@ -319,13 +322,15 @@ function get_addresses_by_city() {
         </div>
 
         <div class="form-group">
-            <label for="addressesList" class="customLabel">Адрес:</label>
-             <select class="customSelect" name="addresses" id="addressesList">
-                {% for address in addresses %}
-                    <option class="data" value="{{ address }}">{{ address }}</option>
-                {% endfor %}
-            </select>
-        </div>
+			<label for="addressesList" class="customLabel">Адрес:</label>
+			<input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" style="width: 600px;">
+			<datalist id="addresses">
+				{% for address in addresses %}
+					<option value="{{ address }}">{{ address }}</option>
+				{% endfor %}
+			</datalist>
+		</div>
+
 
         <div class="form-group">
             <label for="start_calendar" class="customLabel">Дата начала:</label>
@@ -343,7 +348,30 @@ function get_addresses_by_city() {
 
     </form>
 </div>
+<script>
+function updateTableData(data) {
+    var tableBody = document.getElementById('data1');
+    tableBody.innerHTML = ''; // Очищаем таблицу перед добавлением новых данных
 
+    data.forEach(item => {
+        var row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.number}</td>
+            <td>${item.date}</td>
+            <td>${item.dispatcher}</td>
+            <td>${item.city}</td>
+            <td>${item.address}</td>
+            <td>${item.lift}</td>
+            <td>${item.reason}</td>
+            <td>${item.mechanic}</td>
+            <td>${item.repair_date}</td>
+            <td>${item.comment}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+</script>
 
 
 </h2> 

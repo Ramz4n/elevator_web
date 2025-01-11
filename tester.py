@@ -1510,6 +1510,7 @@ def _passport():
                                        order by номер_заявки;''',
                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
                 data0 = cursor.fetchall()
+                print(data0)
                 cursor.execute(f'''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес,
                         pa.завод_№ as Заводской_номер,
                           pa.изготовитель as Изготовитель,
@@ -2044,6 +2045,7 @@ def _lineynie():
                 print('Проблема в остановках:', e)
                 return render_template('error.html')
 
+
 @tester.route('/_search', methods=['GET', 'POST'])
 @login_required
 def _search():
@@ -2065,6 +2067,7 @@ def _search():
                                   WHERE s.id_город = {cities_by_id[0][0]}
                                 ''')
             addresses = cursor.fetchall()
+            addresses = [address[0] for address in addresses]
 
         return render_template('_search.html', town=town, addresses=addresses)
 
@@ -2100,6 +2103,8 @@ def _search():
         return jsonify({'data1': tickets})
 
     return render_template('_search.html')
+
+
 @tester.route('/error', methods=['GET', 'POST'])
 @login_required
 def error():
@@ -2141,4 +2146,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)

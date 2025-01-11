@@ -160,27 +160,27 @@ window.onload = function() {
         let results = [];
 
         function selectResult(result) {
-            document.getElementById('adresList').value = result; // Устанавливаем выбранное значение в input
+            document.getElementById('addressesList').value = result; // Устанавливаем выбранное значение в input
             document.getElementById('results').style.display = 'none'; // Скрываем результаты
         }
 
         // Закрытие выпадающего списка при клике вне его
         document.addEventListener('click', function(event) {
             const resultsContainer = document.getElementById('results');
-            if (!resultsContainer.contains(event.target) && event.target.id !== 'adresList') {
+            if (!resultsContainer.contains(event.target) && event.target.id !== 'addressesList') {
                 resultsContainer.style.display = 'none';
             }
         });
 
         function postbutton() {
-          var adresList = document.getElementById('adresList').value;
+          var addressesList = document.getElementById('addressesList').value;
           var cityList = document.getElementById('cityList').value;
             fetch('/_search', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ adresList: adresList, cityList: cityList })
+                body: JSON.stringify({ addressesList: addressesList, cityList: cityList })
             })
           .then(response => response.json())
           .then(data => {
@@ -225,16 +225,16 @@ window.onload = function() {
 </script>
 <!--<script>-->
 <!--function search() {-->
-<!--            const addressElement = document.getElementById('adresList');-->
+<!--            const addressElement = document.getElementById('addressesList');-->
 <!--            const city = document.getElementById('cityList').value;-->
 
 <!--            if (!addressElement.hasAttribute('data-listeners-added')) {-->
 <!--                addressElement.addEventListener('click', () => {-->
-<!--                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);-->
+<!--                    searchAddress(document.getElementById('addressesList').value, document.getElementById('cityList').value);-->
 <!--                });-->
 
 <!--                addressElement.addEventListener('input', () => {-->
-<!--                    searchAddress(document.getElementById('adresList').value, document.getElementById('cityList').value);-->
+<!--                    searchAddress(document.getElementById('addressesList').value, document.getElementById('cityList').value);-->
 <!--                });-->
 
 <!--                addressElement.setAttribute('data-listeners-added', 'true');-->
@@ -311,7 +311,7 @@ function get_addresses_by_city() {
 
         <div class="form-group">
             <label for="cityList" class="customLabel">Город:</label>
-            <select class="customSelect" name="city" id="cityList" onchange="get_addresses_by_city()">
+            <select class="customSelect" name="city" id="cityList">
                 {% for city in town %}
                     <option class="data" value="{{ city }}">{{ city }}</option>
                 {% endfor %}
@@ -319,9 +319,12 @@ function get_addresses_by_city() {
         </div>
 
         <div class="form-group">
-            <label for="adresList" class="customLabel">Адрес:</label>
-            <input type="search" id="adresList" onclick="get_addresses_by_city()" autocomplete="off" placeholder="Ввод">
-            <div id="results"></div> 
+            <label for="addressesList" class="customLabel">Адрес:</label>
+             <select class="customSelect" name="addresses" id="addressesList">
+                {% for address in addresses %}
+                    <option class="data" value="{{ address }}">{{ address }}</option>
+                {% endfor %}
+            </select>
         </div>
 
         <div class="form-group">

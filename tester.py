@@ -2044,26 +2044,6 @@ def _lineynie():
                 print('Проблема в остановках:', e)
                 return render_template('error.html')
 
-
-@tester.route('/get_addresses_by_city', methods=['POST'])
-@login_required
-def get_addresses_by_city():
-    if request.method == 'POST':
-        config_file = session.get('config_file')
-        db_manager = DataBaseManager(config_file)
-
-        town = request.get_json()['cityList']
-        with closing(db_manager.connect()) as connection:
-            cursor = connection.cursor()
-            cursor.execute(f"SELECT id, Город FROM goroda where Город='{town}' group by Город order by Город")
-            cities_by_id = cursor.fetchall()
-
-            cursor.execute(f"SELECT Улица FROM street where id_город='{cities_by_id[0][0]}' group by Улица order by Улица")
-            address = cursor.fetchall()
-
-        return jsonify(({'adresList': address}))
-
-
 @tester.route('/_search', methods=['GET', 'POST'])
 @login_required
 def _search():
@@ -2084,9 +2064,9 @@ def _search():
                                   JOIN street s ON d.`id_улица` = s.id
                                   WHERE s.id_город = {cities_by_id[0][0]}
                                 ''')
-            address = cursor.fetchall()
-            print(address)
-        return render_template('_search.html', town=town, adres=address)
+            addresses = cursor.fetchall()
+
+        return render_template('_search.html', town=town, addresses=addresses)
 
     if request.method == 'POST':
         config_file = session.get('config_file')
@@ -2161,4 +2141,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

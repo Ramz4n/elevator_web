@@ -2077,9 +2077,15 @@ def _search():
             cities_by_id = cursor.fetchall()
             town = [city[-1] for city in cities_by_id]
 
-            cursor.execute(f"SELECT Улица FROM street where id_город='{cities_by_id[0][0]}' group by Улица order by Улица")
+            cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
+                                  FROM lifts l 
+                                  JOIN padik p ON l.`id_подъезд` = p.id
+                                  JOIN doma d ON l.`id_дом` = d.id
+                                  JOIN street s ON d.`id_улица` = s.id
+                                  WHERE s.id_город = {cities_by_id[0][0]}
+                                ''')
             address = cursor.fetchall()
-
+            print(address)
         return render_template('_search.html', town=town, adres=address)
 
     if request.method == 'POST':
@@ -2099,7 +2105,7 @@ def _search():
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
                                z.Комментарий
-                               FROM {table_name} z
+                               FROM zayavki z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
                                JOIN street s ON z.id_улица = s.id
@@ -2155,4 +2161,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)

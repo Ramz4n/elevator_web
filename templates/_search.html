@@ -280,28 +280,32 @@ function get_addresses_by_city() {
         },
         body: JSON.stringify({ cityList: city })
     })
-    .then(response =>
-        results = response.json();
-
+    .then(response => response.json())
+    .then(results => {
         // Отображаем результаты
         const resultsContainer = document.getElementById('results');
-        resultsContainer.innerHTML = ''; // Очистить предыдущие результаты
+        resultsContainer.innerHTML = '';
 
         if (results.length > 0) {
             results.forEach(result => {
                 const div = document.createElement('div');
-                div.textContent = result; // Или используйте нужные поля из результата
+                div.textContent = result;
                 div.classList.add('result-item');
-                div.onclick = () => selectResult(result); // Устанавливаем обработчик клика
+                div.onclick = () => selectResult(result);
                 resultsContainer.appendChild(div);
             });
-            resultsContainer.style.display = 'block'; // Показываем контейнер с результатами
+            resultsContainer.style.display = 'block';
         } else {
-            resultsContainer.style.display = 'none'; // Скрываем, если нет результатов
+            resultsContainer.style.display = 'none';
         }
-    )
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+    });
 }
 </script>
+
+
 <div class="search-container">
     <form action="/_search" method="post" class="form-horizontal">
 

@@ -2146,4 +2146,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

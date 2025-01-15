@@ -173,7 +173,7 @@ window.onload = function() {
         });
 
         function postbutton() {
-          var addressesList = document.getElementById('addressesList').value;
+          var addressesList = document.getElementById('addressesInput').value;
           var cityList = document.getElementById('cityList').value;
           const data = { addressesList: addressesList, cityList: cityList };
 
@@ -284,6 +284,7 @@ function get_addresses_by_city() {
         </div>
 
         <div class="form-group">
+            <label for="addressesInput" class="customLabel">Город:</label>
 			<input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" style="width: 600px;">
 			<datalist id="addresses">
 				{% for address in addresses %}

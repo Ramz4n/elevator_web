@@ -175,17 +175,27 @@ window.onload = function() {
         function postbutton() {
           var addressesList = document.getElementById('addressesList').value;
           var cityList = document.getElementById('cityList').value;
+          const data = { addressesList: addressesList, cityList: cityList };
+
             fetch('/_search', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ addressesList: addressesList, cityList: cityList })
+                body: JSON.stringify(data)
             })
-          .then(response => response.json())
-          .then(data => {
-            updateTableData(data);
-          });
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                updateTableData(data);
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
         }
 
         function updateTableData(data) {
@@ -223,52 +233,7 @@ window.onload = function() {
             });
         }
 </script>
-<!--<script>-->
-<!--function search() {-->
-<!--            const addressElement = document.getElementById('addressesList');-->
-<!--            const city = document.getElementById('cityList').value;-->
 
-<!--            if (!addressElement.hasAttribute('data-listeners-added')) {-->
-<!--                addressElement.addEventListener('click', () => {-->
-<!--                    searchAddress(document.getElementById('addressesList').value, document.getElementById('cityList').value);-->
-<!--                });-->
-
-<!--                addressElement.addEventListener('input', () => {-->
-<!--                    searchAddress(document.getElementById('addressesList').value, document.getElementById('cityList').value);-->
-<!--                });-->
-
-<!--                addressElement.setAttribute('data-listeners-added', 'true');-->
-<!--            }-->
-<!--        }-->
-<!--async function searchAddress(address, city) {-->
-<!--    fetch('/_search', {-->
-<!--        method: 'POST',-->
-<!--        headers: {-->
-<!--          'Content-Type': 'application/json'-->
-<!--        },-->
-<!--        body: JSON.stringify({ address: address, city: city })-->
-<!--    })-->
-
-<!--    results = await response.json();-->
-
-<!--    // Отображаем результаты-->
-<!--    const resultsContainer = document.getElementById('results');-->
-<!--    resultsContainer.innerHTML = ''; // Очистить предыдущие результаты-->
-
-<!--    if (results.length > 0) {-->
-<!--        results.forEach(result => {-->
-<!--            const div = document.createElement('div');-->
-<!--            div.textContent = result; // Или используйте нужные поля из результата-->
-<!--            div.classList.add('result-item');-->
-<!--            div.onclick = () => selectResult(result); // Устанавливаем обработчик клика-->
-<!--            resultsContainer.appendChild(div);-->
-<!--        });-->
-<!--        resultsContainer.style.display = 'block'; // Показываем контейнер с результатами-->
-<!--    } else {-->
-<!--        resultsContainer.style.display = 'none'; // Скрываем, если нет результатов-->
-<!--    }-->
-<!--}-->
-<!--</script>-->
 <script>
 function get_addresses_by_city() {
     const city = document.getElementById('cityList').value;

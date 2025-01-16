@@ -201,37 +201,6 @@ window.onload = function() {
                 console.error('There was a problem with the fetch operation:', error);
             });
         }
-
-        function updateTableData(data) {
-            // Получаем tbody для добавления данных
-            const tbody = document.getElementById('data1');
-            tbody.innerHTML = ''; // Очищаем текущее содержимое
-
-            // Проверяем, есть ли данные и являются ли они массивом
-            if (!data || !Array.isArray(data.data1)) {
-                console.error("Invalid data format:", data);
-                return;
-            }
-
-            // Проходим по каждой строке данных
-            data.data1.forEach((row) => {
-                if (!Array.isArray(row)) {
-                    console.error("Invalid row:", row);
-                    return;
-                }
-
-                const tr = document.createElement('tr'); // Создаем новую строку
-
-                row.forEach((cell) => {
-                    const td = document.createElement('td'); // Создаем новую ячейку
-                    td.textContent = cell; // Устанавливаем текст ячейки
-                    tr.appendChild(td); // Добавляем ячейку в строку
-                });
-
-                tbody.appendChild(tr); // Добавляем строку в tbody
-            });
-            }
-
 </script>
 
 <script>
@@ -270,66 +239,129 @@ function get_addresses_by_city() {
 }
 </script>
 
-
 <div class="search-container">
-    <form action="/_search" method="post" class="form-horizontal">
-        <div class="form-group">
-            <label for="cityList" class="customLabel">Город:</label>
-            <select class="customSelect" name="city" id="cityList">
-                {% for city in town %}
-                    <option class="data" value="{{ city }}">{{ city }}</option>
-                {% endfor %}
-            </select>
-        </div>
+        <form id="searchForm" action="/_search" method="post" class="form-horizontal">
+            <div class="form-group">
+                <label for="cityList" class="customLabel">Город:</label>
+                <select class="customSelect" name="city" id="cityList">
+                    {% for city in town %}
+                        <option class="data" value="{{ city }}">{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label for="addressesInput" class="customLabel">Адрес:</label>
-            <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" style="width: 600px;">
-            <datalist id="addresses">
-                {% for address in addresses %}
-                    <option value="{{ address }}">{{ address }}</option>
-                {% endfor %}
-            </datalist>
-        </div>
+            <div class="form-group">
+                <label for="addressesInput" class="customLabel">Адрес:</label>
+                <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" style="width: 600px;">
+                <datalist id="addresses">
+                    {% for address in addresses %}
+                        <option value="{{ address }}">{{ address }}</option>
+                    {% endfor %}
+                </datalist>
+            </div>
 
-        <div class="form-group">
-            <label for="start_calendar" class="customLabel">Дата начала:</label>
-            <input type="date" name="start_calendar" id="start_calendar">
-        </div>
-        <div class="form-group">
-            <label for="end_calendar" class="customLabel">Дата окончания:</label>
-            <input type="date" name="end_calendar" id="end_calendar">
-        </div>
+            <div class="form-group">
+                <label for="start_calendar" class="customLabel">Дата начала:</label>
+                <input type="date" name="start_calendar" id="start_calendar">
+            </div>
+            <div class="form-group">
+                <label for="end_calendar" class="customLabel">Дата окончания:</label>
+                <input type="date" name="end_calendar" id="end_calendar">
+            </div>
 
-        <div class="form-group">
-            <label for="button_search" class="customLabel"></label>
-            <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search">Поиск</button>
-        </div>
-    </form>
-</div>
+            <div class="form-group">
+                <label for="button_search" class="customLabel"></label>
+                <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search">Поиск</button>
+            </div>
+        </form>
+    </div>
 
+    <table class="table fixed-header">
+        <thead>
+            <tr>
+                <th>№ заявки</th>
+                <th>Дата заявки</th>
+                <th>Диспетчер</th>
+                <th>Город</th>
+                <th>Адрес</th>
+                <th>Лифт</th>
+                <th>Причина</th>
+                <th>Механик</th>
+                <th>Дата устранения</th>
+                <th>Комментарий</th>
+            </tr>
+        </thead>
+        <tbody id="data1">
+        </tbody>
+    </table>
 
+    <script>
+        document.getElementById('searchForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Предотвращаем стандартное поведение формы
 
+            var formData = new FormData(this);
 
-</h2>
-<table class="table fixed-header">
-  <thead>
-    <tr>
-      <th>№ заявки</th>
-      <th>Дата заявки</th>
-      <th>Диспетчер</th>
-      <th>Город</th>
-      <th>Адрес</th>
-      <th>Лифт</th>
-      <th>Причина</th>
-      <th>Механик</th>
-      <th>Дата устранения</th>
-      <th>Комментарий</th>
-    </tr>
-  </thead>
-   <tbody id="data1">
-    <!-- Данные будут добавляться сюда -->
-  </tbody>
-</table>
+            fetch('/_search', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                var tbody = document.getElementById('data1');
+                tbody.innerHTML = ''; // Очищаем текущее содержимое таблицы
+
+                if (Array.isArray(data.data1)) {
+                    data.data1.forEach(function(item) {
+                        var row = document.createElement('tr');
+
+                        var cell1 = document.createElement('td');
+                        cell1.textContent = item[0]; // № заявки
+                        row.appendChild(cell1);
+
+                        var cell2 = document.createElement('td');
+                        cell2.textContent = item[1]; // Дата заявки
+                        row.appendChild(cell2);
+
+                        var cell3 = document.createElement('td');
+                        cell3.textContent = item[2]; // Диспетчер
+                        row.appendChild(cell3);
+
+                        var cell4 = document.createElement('td');
+                        cell4.textContent = item[3]; // Город
+                        row.appendChild(cell4);
+
+                        var cell5 = document.createElement('td');
+                        cell5.textContent = item[4]; // Адрес
+                        row.appendChild(cell5);
+
+                        var cell6 = document.createElement('td');
+                        cell6.textContent = item[5]; // Лифт
+                        row.appendChild(cell6);
+
+                        var cell7 = document.createElement('td');
+                        cell7.textContent = item[6]; // Причина
+                        row.appendChild(cell7);
+
+                        var cell8 = document.createElement('td');
+                        cell8.textContent = item[7]; // Механик
+                        row.appendChild(cell8);
+
+                        var cell9 = document.createElement('td');
+                        cell9.textContent = item[8]; // Дата устранения
+                        row.appendChild(cell9);
+
+                        var cell10 = document.createElement('td');
+                        cell10.textContent = item[9]; // Комментарий
+                        row.appendChild(cell10);
+
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    console.error('Unexpected data format:', data);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
 </body>
 </html>

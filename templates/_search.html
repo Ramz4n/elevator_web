@@ -173,10 +173,14 @@ window.onload = function() {
         });
 
         function postbutton() {
-          var addressesList = document.getElementById('addressesList').value;
-          var cityList = document.getElementById('cityList').value;
-          const data = { addressesList: addressesList, cityList: cityList };
+            var addressesList = document.getElementById('addressesInput').value;
+            var cityList = document.getElementById('cityList').value;
 
+            // Создаем объект с данными
+            const data = {
+                addresses: addressesList,
+                city: cityList
+            };
             fetch('/_search', {
                 method: 'POST',
                 headers: {
@@ -199,39 +203,35 @@ window.onload = function() {
         }
 
         function updateTableData(data) {
-          document.getElementById('data1').textContent = data.data1[0][0];
-          document.getElementById('data2').textContent = data.data1[0][1];
-          document.getElementById('data3').textContent = data.data1[0][2];
-          document.getElementById('data4').textContent = data.data1[0][3];
-          document.getElementById('data5').textContent = data.data1[0][4];
-          document.getElementById('data6').textContent = data.data1[0][5];
-          document.getElementById('data7').textContent = data.data1[0][6];
+            // Получаем tbody для добавления данных
+            const tbody = document.getElementById('data1');
+            tbody.innerHTML = ''; // Очищаем текущее содержимое
 
-           const tbody = document.getElementById('data-table-body');
-            tbody.innerHTML = '';
-
-            if (!data || !Array.isArray(data.data2)) {
+            // Проверяем, есть ли данные и являются ли они массивом
+            if (!data || !Array.isArray(data.data1)) {
                 console.error("Invalid data format:", data);
                 return;
             }
 
-            data.data2.forEach((row) => {
+            // Проходим по каждой строке данных
+            data.data1.forEach((row) => {
                 if (!Array.isArray(row)) {
                     console.error("Invalid row:", row);
                     return;
                 }
 
-                const tr = document.createElement('tr'); // Создаем строку таблицы
+                const tr = document.createElement('tr'); // Создаем новую строку
 
                 row.forEach((cell) => {
-                    const td = document.createElement('td'); // Создаем ячейку
-                    td.textContent = cell; // Добавляем данные
+                    const td = document.createElement('td'); // Создаем новую ячейку
+                    td.textContent = cell; // Устанавливаем текст ячейки
                     tr.appendChild(td); // Добавляем ячейку в строку
                 });
 
-                tbody.appendChild(tr); // Добавляем строку в таблицу
+                tbody.appendChild(tr); // Добавляем строку в tbody
             });
-        }
+            }
+
 </script>
 
 <script>
@@ -273,7 +273,6 @@ function get_addresses_by_city() {
 
 <div class="search-container">
     <form action="/_search" method="post" class="form-horizontal">
-
         <div class="form-group">
             <label for="cityList" class="customLabel">Город:</label>
             <select class="customSelect" name="city" id="cityList">
@@ -284,13 +283,14 @@ function get_addresses_by_city() {
         </div>
 
         <div class="form-group">
-			<input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" style="width: 600px;">
-			<datalist id="addresses">
-				{% for address in addresses %}
-					<option value="{{ address }}">{{ address }}</option>
-				{% endfor %}
-			</datalist>
-		</div>
+            <label for="addressesInput" class="customLabel">Адрес:</label>
+            <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" style="width: 600px;">
+            <datalist id="addresses">
+                {% for address in addresses %}
+                    <option value="{{ address }}">{{ address }}</option>
+                {% endfor %}
+            </datalist>
+        </div>
 
         <div class="form-group">
             <label for="start_calendar" class="customLabel">Дата начала:</label>
@@ -303,11 +303,11 @@ function get_addresses_by_city() {
 
         <div class="form-group">
             <label for="button_search" class="customLabel"></label>
-            <button class="btn btn1 btn-success" onclick="postbutton()" name="button_search" id="button_search">Поиск</button>
+            <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search">Поиск</button>
         </div>
-
     </form>
 </div>
+
 
 
 

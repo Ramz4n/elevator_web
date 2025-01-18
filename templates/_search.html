@@ -171,38 +171,18 @@ window.onload = function() {
 </script>
 
 <script>
-function get_addresses_by_city() {
-    const city = document.getElementById('cityList').value;
+function updateData() {
+    setTimeout(function() {
+        var city = document.getElementById('cityList').value;
 
-    fetch('/get_addresses_by_city', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ cityList: city })
-    })
-    .then(response => response.json())
-    .then(results => {
-        // Отображаем результаты
-        const resultsContainer = document.getElementById('results');
-        resultsContainer.innerHTML = '';
-
-        if (results.length > 0) {
-            results.forEach(result => {
-                const div = document.createElement('div');
-                div.textContent = result;
-                div.classList.add('result-item');
-                div.onclick = () => selectResult(result);
-                resultsContainer.appendChild(div);
-            });
-            resultsContainer.style.display = 'block';
-        } else {
-            resultsContainer.style.display = 'none';
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка:', error);
-    });
+        fetch('/updateData', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cityList: city })
+        })
+    }, 0);
 }
 </script>
 
@@ -210,7 +190,7 @@ function get_addresses_by_city() {
         <form id="searchForm" action="/_search" method="get" class="form-horizontal">
             <div class="form-group">
                 <label for="cityList" class="customLabel">Город:</label>
-                <select class="customSelect" name="city" id="cityList">
+                <select class="customSelect" name="city" id="cityList" onchange="updateData()">
                     {% for city in town %}
                         <option class="data" value="{{ city }}">{{ city }}</option>
                     {% endfor %}

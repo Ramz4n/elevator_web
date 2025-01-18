@@ -131,9 +131,6 @@ font-size: 20px;
 }
  </style>
 </head>
-<script>
-alert('Внимание, эта страница находится на стадии разработки!')
-</script>
 <body>
 <script>
 function goBack() {
@@ -171,36 +168,6 @@ window.onload = function() {
                 resultsContainer.style.display = 'none';
             }
         });
-
-        function postbutton() {
-            var addressesList = document.getElementById('addressesInput').value;
-            var cityList = document.getElementById('cityList').value;
-
-            // Создаем объект с данными
-            const data = {
-                addresses: addressesList,
-                city: cityList
-            };
-            fetch('/_search', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
-                return response.json();
-            })
-            .then(data => {
-                updateTableData(data);
-            })
-            .catch(error => {
-                console.error('There was a problem with the fetch operation:', error);
-            });
-        }
 </script>
 
 <script>
@@ -240,7 +207,7 @@ function get_addresses_by_city() {
 </script>
 
 <div class="search-container">
-        <form id="searchForm" action="/_search" method="post" class="form-horizontal">
+        <form id="searchForm" action="/_search" method="get" class="form-horizontal">
             <div class="form-group">
                 <label for="cityList" class="customLabel">Город:</label>
                 <select class="customSelect" name="city" id="cityList">
@@ -271,7 +238,7 @@ function get_addresses_by_city() {
 
             <div class="form-group">
                 <label for="button_search" class="customLabel"></label>
-                <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search">Поиск</button>
+                <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search" onclick="postbutton()">Поиск</button>
             </div>
         </form>
     </div>
@@ -292,8 +259,56 @@ function get_addresses_by_city() {
             </tr>
         </thead>
         <tbody id="data1">
+            {% for ticket in tickets %}
+            <tr>
+                    <td>{{ ticket[0] }}</td>
+                    <td>{{ ticket[1] }}</td>
+                    <td>{{ ticket[2] }}</td>
+                    <td>{{ ticket[3] }}</td>
+                    <td>{{ ticket[4] }}</td>
+                    <td>{{ ticket[5] }}</td>
+                    <td>{{ ticket[6] }}</td>
+                    <td>{{ ticket[7] }}</td>
+                    <td>{{ ticket[8] }}</td>
+                    <td>{{ ticket[9] }}</td>
+                </tr>
+            {% endfor %}
         </tbody>
     </table>
+
+    <script>
+        function postbutton() {
+            var addressesList = document.getElementById('addressesInput').value;
+            var cityList = document.getElementById('cityList').value;
+
+            // Создаем объект с данными
+            const data = {
+                addresses: addressesList,
+                city: cityList
+            };
+            fetch('/_search', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                updateTableData(data);
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+        }
+
+        window.onload = onPageLoad;
+    </script>
 
     <script>
         document.getElementById('searchForm').addEventListener('submit', function(event) {

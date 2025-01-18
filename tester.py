@@ -2045,6 +2045,26 @@ def _lineynie():
                 print('Проблема в остановках:', e)
                 return render_template('error.html')
 
+# config_file = session.get('config_file')
+#         db_manager = DataBaseManager(config_file)
+#
+#         with closing(db_manager.connect()) as connection:
+#             cursor = connection.cursor()
+#             cursor.execute(f"SELECT id, Город FROM goroda group by Город order by Город")
+#             cities_by_id = cursor.fetchall()
+#             town = [city[-1] for city in cities_by_id]
+#
+#             cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
+#                                   FROM lifts l
+#                                   JOIN padik p ON l.`id_подъезд` = p.id
+#                                   JOIN doma d ON l.`id_дом` = d.id
+#                                   JOIN street s ON d.`id_улица` = s.id
+#                                   WHERE s.id_город = {cities_by_id[0][0]}
+#                                 ''')
+#             addresses = cursor.fetchall()
+#             addresses = [address[0] for address in addresses]
+#
+#         return render_template('_search.html', town=town, addresses=addresses)
 
 @tester.route('/_search', methods=['GET', 'POST'])
 @login_required
@@ -2055,21 +2075,43 @@ def _search():
 
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
+
             cursor.execute(f"SELECT id, Город FROM goroda group by Город order by Город")
             cities_by_id = cursor.fetchall()
             town = [city[-1] for city in cities_by_id]
 
             cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
-                                  FROM lifts l 
-                                  JOIN padik p ON l.`id_подъезд` = p.id
-                                  JOIN doma d ON l.`id_дом` = d.id
-                                  JOIN street s ON d.`id_улица` = s.id
-                                  WHERE s.id_город = {cities_by_id[0][0]}
-                                ''')
+                                             FROM lifts l 
+                                             JOIN padik p ON l.`id_подъезд` = p.id
+                                             JOIN doma d ON l.`id_дом` = d.id
+                                             JOIN street s ON d.`id_улица` = s.id
+                                             WHERE s.id_город = {cities_by_id[0][0]}
+                                           ''')
             addresses = cursor.fetchall()
             addresses = [address[0] for address in addresses]
 
-        return render_template('_search.html', town=town, addresses=addresses)
+            cursor.execute(f'''SELECT 
+                                        z.Номер_заявки,
+                                        FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') AS Дата_заявки,
+                                        di.фио,
+                                        g.город,
+                                        CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) AS Адрес,
+                                        z.Причина,
+                                        m.фио AS Механик,
+                                        FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') AS Дата_запуска,
+                                        z.Комментарий
+                                    FROM zayavki z
+                                    JOIN workers di ON z.id_Диспетчер = di.id
+                                    JOIN goroda g ON z.id_город = g.id
+                                    JOIN street s ON z.id_улица = s.id
+                                    JOIN doma d ON z.id_дом = d.id
+                                    JOIN padik p ON z.id_подъезд = p.id
+                                    JOIN workers m ON z.id_Механик = m.id
+                                    WHERE g.город = '{town[0]}'
+                                    ORDER BY z.id;''')
+            tickets = cursor.fetchall()
+
+            return render_template('_search.html', tickets=tickets, town=town, addresses=addresses)
 
     if request.method == 'POST':
         config_file = session.get('config_file')
@@ -2097,8 +2139,7 @@ def _search():
                             JOIN doma d ON z.id_дом = d.id
                             JOIN padik p ON z.id_подъезд = p.id
                             JOIN workers m ON z.id_Механик = m.id
-                            WHERE g.город = '{city}' 
-                            AND CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) = '{addresses}'
+                            WHERE g.город = '{city}' AND ('{addresses}' = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) = '{addresses}')
                             ORDER BY z.id;''')
             tickets = cursor.fetchall()
 
@@ -2148,4 +2189,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

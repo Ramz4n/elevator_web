@@ -2045,103 +2045,107 @@ def _lineynie():
                 print('Проблема в остановках:', e)
                 return render_template('error.html')
 
-# config_file = session.get('config_file')
-#         db_manager = DataBaseManager(config_file)
-#
-#         with closing(db_manager.connect()) as connection:
-#             cursor = connection.cursor()
-#             cursor.execute(f"SELECT id, Город FROM goroda group by Город order by Город")
-#             cities_by_id = cursor.fetchall()
-#             town = [city[-1] for city in cities_by_id]
-#
-#             cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
-#                                   FROM lifts l
-#                                   JOIN padik p ON l.`id_подъезд` = p.id
-#                                   JOIN doma d ON l.`id_дом` = d.id
-#                                   JOIN street s ON d.`id_улица` = s.id
-#                                   WHERE s.id_город = {cities_by_id[0][0]}
-#                                 ''')
-#             addresses = cursor.fetchall()
-#             addresses = [address[0] for address in addresses]
-#
-#         return render_template('_search.html', town=town, addresses=addresses)
 
-@tester.route('/_search', methods=['GET', 'POST'])
+# ---------------------------------------------------------------------------------------------------------------------#
+# ---------------------------------------------------------------------------------------------------------------------#
+# ---------------------------------------------------------------------------------------------------------------------#
+# -----------------------------------------------!!!ALARM!!!-----------------------------------------------------------#
+def get_db_manager(config_file):
+    return DataBaseManager(config_file)
+
+
+def fetch_addresses(cursor, city):
+    cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
+                        FROM lifts l
+                        JOIN padik p ON l.`id_подъезд` = p.id
+                        JOIN doma d ON l.`id_дом` = d.id
+                        JOIN street s ON d.`id_улица` = s.id
+                        JOIN goroda g ON s.`id_город` = g.id
+                        WHERE g.город = '{city}'
+                    ''')
+    addresses = cursor.fetchall()
+
+    return [address[0] for address in addresses]
+
+
+def fetch_tickets(cursor, city, addresses=None):
+    query = f'''SELECT
+                    z.Номер_заявки,
+                    FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') AS Дата_заявки,
+                    di.фио,
+                    g.город,
+                    CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) AS Адрес,
+                    z.Причина,
+                    m.фио AS Механик,
+                    FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') AS Дата_запуска,
+                    z.Комментарий
+                FROM zayavki z
+                JOIN workers di ON z.id_Диспетчер = di.id
+                JOIN goroda g ON z.id_город = g.id
+                JOIN street s ON z.id_улица = s.id
+                JOIN doma d ON z.id_дом = d.id
+                JOIN padik p ON z.id_подъезд = p.id
+                JOIN workers m ON z.id_Механик = m.id
+                WHERE g.город = '{city}'
+            '''
+    if addresses:
+        query += f" AND ('{addresses}' = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) = '{addresses}')"
+    query += " ORDER BY z.id;"
+
+    cursor.execute(query)
+
+    return cursor.fetchall()
+
+
+def fetch_cities(cursor):
+    cursor.execute("SELECT id, Город FROM goroda GROUP BY Город ORDER BY Город")
+    cities_by_id = cursor.fetchall()
+
+    return [city[-1] for city in cities_by_id]
+
+
+@tester.route('/updateData', methods=['POST'])
 @login_required
-def _search():
-    if request.method == 'GET':
+def updateData():
+    if request.method == 'POST':
         config_file = session.get('config_file')
-        db_manager = DataBaseManager(config_file)
+        db_manager = get_db_manager(config_file)
+
+        city = request.get_json()['cityList']
 
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
 
-            cursor.execute(f"SELECT id, Город FROM goroda group by Город order by Город")
-            cities_by_id = cursor.fetchall()
-            town = [city[-1] for city in cities_by_id]
+            addresses = fetch_addresses(cursor, city)
+            tickets = fetch_tickets(cursor, city)
 
-            cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
-                                             FROM lifts l 
-                                             JOIN padik p ON l.`id_подъезд` = p.id
-                                             JOIN doma d ON l.`id_дом` = d.id
-                                             JOIN street s ON d.`id_улица` = s.id
-                                             WHERE s.id_город = {cities_by_id[0][0]}
-                                           ''')
-            addresses = cursor.fetchall()
-            addresses = [address[0] for address in addresses]
+        return jsonify({'tickets': tickets, 'town': city, 'addresses': addresses})
 
-            cursor.execute(f'''SELECT 
-                                        z.Номер_заявки,
-                                        FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') AS Дата_заявки,
-                                        di.фио,
-                                        g.город,
-                                        CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) AS Адрес,
-                                        z.Причина,
-                                        m.фио AS Механик,
-                                        FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') AS Дата_запуска,
-                                        z.Комментарий
-                                    FROM zayavki z
-                                    JOIN workers di ON z.id_Диспетчер = di.id
-                                    JOIN goroda g ON z.id_город = g.id
-                                    JOIN street s ON z.id_улица = s.id
-                                    JOIN doma d ON z.id_дом = d.id
-                                    JOIN padik p ON z.id_подъезд = p.id
-                                    JOIN workers m ON z.id_Механик = m.id
-                                    WHERE g.город = '{town[0]}'
-                                    ORDER BY z.id;''')
-            tickets = cursor.fetchall()
 
-            return render_template('_search.html', tickets=tickets, town=town, addresses=addresses)
+@tester.route('/_search', methods=['GET', 'POST'])
+@login_required
+def _search():
+    config_file = session.get('config_file')
+    db_manager = get_db_manager(config_file)
+
+    if request.method == 'GET':
+        with closing(db_manager.connect()) as connection:
+            cursor = connection.cursor()
+
+            town = fetch_cities(cursor)
+            addresses = fetch_addresses(cursor, town[0])
+            tickets = fetch_tickets(cursor, town[0])
+
+        return render_template('_search.html', tickets=tickets, town=town, addresses=addresses)
 
     if request.method == 'POST':
-        config_file = session.get('config_file')
-        db_manager = DataBaseManager(config_file)
-
         city = request.form.get('city')
         addresses = request.form.get('addresses')
 
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
-            cursor.execute(f'''SELECT 
-                                z.Номер_заявки,
-                                FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') AS Дата_заявки,
-                                di.фио,
-                                g.город,
-                                CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) AS Адрес,
-                                z.Причина,
-                                m.фио AS Механик,
-                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') AS Дата_запуска,
-                                z.Комментарий
-                            FROM zayavki z
-                            JOIN workers di ON z.id_Диспетчер = di.id
-                            JOIN goroda g ON z.id_город = g.id
-                            JOIN street s ON z.id_улица = s.id
-                            JOIN doma d ON z.id_дом = d.id
-                            JOIN padik p ON z.id_подъезд = p.id
-                            JOIN workers m ON z.id_Механик = m.id
-                            WHERE g.город = '{city}' AND ('{addresses}' = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) = '{addresses}')
-                            ORDER BY z.id;''')
-            tickets = cursor.fetchall()
+
+            tickets = fetch_tickets(cursor, city, addresses)
 
         return jsonify({'data1': tickets})
 

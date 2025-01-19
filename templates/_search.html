@@ -260,11 +260,16 @@ function updateData() {
         function postbutton() {
             var addressesList = document.getElementById('addressesInput').value;
             var cityList = document.getElementById('cityList').value;
+            var start_calendar = document.getElementById('start_calendar').value;
+            var end_calendar = document.getElementById('end_calendar').value;
+
 
             // Создаем объект с данными
             const data = {
                 addresses: addressesList,
                 city: cityList
+                start_calendar: start_calendar
+                end_calendar: end_calendar
             };
             fetch('/_search', {
                 method: 'POST',

@@ -15,6 +15,7 @@ from flask_ipban import IpBan
 import pymemcache
 from flask_caching import Cache
 from db_manager import DataBaseManager
+from datetime import datetime
 
 UPLOAD_FOLDER = 'static'
 load_dotenv()
@@ -163,8 +164,8 @@ def base():
         session['table_name'] = data['table_name']
         session['config_file'] = image_value
         table_name = session.get('table_name')
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         config_file = session.get('config_file')
         db_manager = DataBaseManager(config_file)
         with closing(db_manager.connect()) as connection:
@@ -2068,7 +2069,7 @@ def fetch_addresses(cursor, city):
     return [address[0] for address in addresses]
 
 
-def fetch_tickets(cursor, city, addresses=None):
+def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
     query = f'''SELECT
                     z.Номер_заявки,
                     FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') AS Дата_заявки,
@@ -2088,8 +2089,16 @@ def fetch_tickets(cursor, city, addresses=None):
                 JOIN workers m ON z.id_Механик = m.id
                 WHERE g.город = '{city}'
             '''
+
     if addresses:
         query += f" AND ('{addresses}' = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) = '{addresses}')"
+    if start_date:
+        query += f" AND z.Дата_заявки BETWEEN {start_date}"
+        if end_date:
+            query += f" AND {end_date}"
+        else:
+            end_date = int(datetime.now().timestamp())
+            query += f" AND {end_date}"
     query += " ORDER BY z.id;"
 
     cursor.execute(query)
@@ -2141,11 +2150,29 @@ def _search():
     if request.method == 'POST':
         city = request.form.get('city')
         addresses = request.form.get('addresses')
+        start_calendar = request.form.get('start_calendar')
+        end_calendar = request.form.get('end_calendar')
+
+        start_date = None
+        end_date = None
+        if start_calendar:
+            try:
+                date_obj_start = datetime.strptime(start_calendar, '%Y-%m-%d')
+                start_date = int(date_obj_start.timestamp())
+            except ValueError:
+                start_date = None
+
+        if end_calendar:
+            try:
+                date_obj_end = datetime.strptime(end_calendar, '%Y-%m-%d')
+                end_date = int(date_obj_end.timestamp())
+            except ValueError:
+                end_date = None
 
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
 
-            tickets = fetch_tickets(cursor, city, addresses)
+            tickets = fetch_tickets(cursor, city, addresses, start_date, end_date)
 
         return jsonify({'data1': tickets})
 

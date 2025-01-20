@@ -260,6 +260,12 @@ window.onload = function() {
         const addressesInput = document.getElementById('addressesInput');
         addressesInput.value = '';
 
+        const start_calendar = document.getElementById('start_calendar');
+        start_calendar.value = '';
+
+        const end_calendar = document.getElementById('end_calendar');
+        end_calendar.value = '';
+
         addresses.forEach(address => {
             const option = document.createElement('option');
             option.value = address;

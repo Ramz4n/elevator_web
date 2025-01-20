@@ -170,46 +170,6 @@ window.onload = function() {
         });
 </script>
 
-<script>
-function updateData() {
-    setTimeout(function() {
-        var city = document.getElementById('cityList').value;
-
-        fetch('/updateData', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ cityList: city })
-        })
-        .then(response => response.json())
-        .then(data => {
-            var addressesDatalist = document.getElementById('addresses');
-            addressesDatalist.innerHTML = '';
-            data.addresses.forEach(address => {
-                var option = document.createElement('option');
-                option.value = address;
-                addressesDatalist.appendChild(option);
-            });
-
-            var tbody = document.getElementById('data1');
-            tbody.innerHTML = '';
-            data.tickets.forEach(ticket => {
-                var row = document.createElement('tr');
-                ticket.forEach(cellData => {
-                    var cell = document.createElement('td');
-                    cell.textContent = cellData;
-                    row.appendChild(cell);
-                });
-                tbody.appendChild(row);
-            });
-        })
-        .catch(error => {
-            console.error('There was a problem with the fetch operation:', error);
-        })}, 0);
-}
-</script>
-
 <div class="search-container">
         <form id="searchForm" action="/_search" method="get" class="form-horizontal">
             <div class="form-group">
@@ -247,145 +207,197 @@ function updateData() {
         </form>
     </div>
 
-    <table class="table fixed-header">
-        <thead>
+<table class="table fixed-header">
+    <thead>
+        <tr>
+            <th>№ заявки</th>
+            <th>Дата заявки</th>
+            <th>Диспетчер</th>
+            <th>Город</th>
+            <th>Адрес</th>
+            <th>Лифт</th>
+            <th>Причина</th>
+            <th>Механик</th>
+            <th>Дата устранения</th>
+            <th>Комментарий</th>
+        </tr>
+    </thead>
+    <tbody id="data1">
+        {% for ticket in tickets %}
             <tr>
-                <th>№ заявки</th>
-                <th>Дата заявки</th>
-                <th>Диспетчер</th>
-                <th>Город</th>
-                <th>Адрес</th>
-                <th>Лифт</th>
-                <th>Причина</th>
-                <th>Механик</th>
-                <th>Дата устранения</th>
-                <th>Комментарий</th>
+                {% for item in ticket %}
+                    <td>{{ item }}</td>
+                {% endfor %}
             </tr>
-        </thead>
-        <tbody id="data1">
-            {% for ticket in tickets %}
-            <tr>
-                    <td>{{ ticket[0] }}</td>
-                    <td>{{ ticket[1] }}</td>
-                    <td>{{ ticket[2] }}</td>
-                    <td>{{ ticket[3] }}</td>
-                    <td>{{ ticket[4] }}</td>
-                    <td>{{ ticket[5] }}</td>
-                    <td>{{ ticket[6] }}</td>
-                    <td>{{ ticket[7] }}</td>
-                    <td>{{ ticket[8] }}</td>
-                    <td>{{ ticket[9] }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        {% endfor %}
+    </tbody>
+</table>
 
-    <script>
-        function postbutton() {
-            var addressesList = document.getElementById('addressesInput').value;
-            var cityList = document.getElementById('cityList').value;
-            var start_calendar = document.getElementById('start_calendar').value;
-            var end_calendar = document.getElementById('end_calendar').value;
+<script>
+    function updateData() {
+        const city = document.getElementById('cityList').value;
 
-
-            // Создаем объект с данными
-            const data = {
-                addresses: addressesList,
-                city: cityList
-                start_calendar: start_calendar
-                end_calendar: end_calendar
-            };
-            fetch('/_search', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
-                return response.json();
-            })
-            .then(data => {
-                updateTableData(data);
-            })
-            .catch(error => {
-                console.error('There was a problem with the fetch operation:', error);
-            });
-        }
-
-        window.onload = onPageLoad;
-    </script>
-
-    <script>
-        document.getElementById('searchForm').addEventListener('submit', function(event) {
-            event.preventDefault(); // Предотвращаем стандартное поведение формы
-
-            var formData = new FormData(this);
-
-            fetch('/_search', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                var tbody = document.getElementById('data1');
-                tbody.innerHTML = ''; // Очищаем текущее содержимое таблицы
-
-                if (Array.isArray(data.data1)) {
-                    data.data1.forEach(function(item) {
-                        var row = document.createElement('tr');
-
-                        var cell1 = document.createElement('td');
-                        cell1.textContent = item[0]; // № заявки
-                        row.appendChild(cell1);
-
-                        var cell2 = document.createElement('td');
-                        cell2.textContent = item[1]; // Дата заявки
-                        row.appendChild(cell2);
-
-                        var cell3 = document.createElement('td');
-                        cell3.textContent = item[2]; // Диспетчер
-                        row.appendChild(cell3);
-
-                        var cell4 = document.createElement('td');
-                        cell4.textContent = item[3]; // Город
-                        row.appendChild(cell4);
-
-                        var cell5 = document.createElement('td');
-                        cell5.textContent = item[4]; // Адрес
-                        row.appendChild(cell5);
-
-                        var cell6 = document.createElement('td');
-                        cell6.textContent = item[5]; // Лифт
-                        row.appendChild(cell6);
-
-                        var cell7 = document.createElement('td');
-                        cell7.textContent = item[6]; // Причина
-                        row.appendChild(cell7);
-
-                        var cell8 = document.createElement('td');
-                        cell8.textContent = item[7]; // Механик
-                        row.appendChild(cell8);
-
-                        var cell9 = document.createElement('td');
-                        cell9.textContent = item[8]; // Дата устранения
-                        row.appendChild(cell9);
-
-                        var cell10 = document.createElement('td');
-                        cell10.textContent = item[9]; // Комментарий
-                        row.appendChild(cell10);
-
-                        tbody.appendChild(row);
-                    });
-                } else {
-                    console.error('Unexpected data format:', data);
-                }
-            })
-            .catch(error => console.error('Error:', error));
+        fetch('/updateData', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cityList: city })
+        })
+        .then(response => response.json())
+        .then(data => {
+            updateAddresses(data.addresses);
+            updateTickets(data.tickets);
+        })
+        .catch(error => {
+            console.error('There was a problem with the fetch operation:', error);
         });
-    </script>
+    }
+
+    function updateAddresses(addresses) {
+        const addressesDatalist = document.getElementById('addresses');
+        addressesDatalist.innerHTML = '';
+        addresses.forEach(address => {
+            const option = document.createElement('option');
+            option.value = address;
+            addressesDatalist.appendChild(option);
+        });
+    }
+
+    function updateTickets(tickets) {
+        const tbody = document.getElementById('data1');
+        tbody.innerHTML = '';
+        tickets.forEach(ticket => {
+            const row = document.createElement('tr');
+            ticket.forEach(cellData => {
+                const cell = document.createElement('td');
+                cell.textContent = cellData;
+                row.appendChild(cell);
+            });
+            tbody.appendChild(row);
+        });
+    }
+
+    function postbutton(event) {
+        event.preventDefault();
+
+        const data = {
+            addresses: document.getElementById('addressesInput').value,
+            city: document.getElementById('cityList').value,
+            start_calendar: document.getElementById('start_calendar').value,
+            end_calendar: document.getElementById('end_calendar').value
+        };
+
+        fetch('/_search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            updateTableData(data);
+        })
+        .catch(error => {
+            console.error('There was a problem with the fetch operation:', error);
+        });
+    }
+
+    function updateTableData(data) {
+        const tbody = document.getElementById('data1');
+        tbody.innerHTML = '';
+
+        if (Array.isArray(data.data1)) {
+            data.data1.forEach(item => {
+                const row = document.createElement('tr');
+                item.forEach(cellData => {
+                    const cell = document.createElement('td');
+                    cell.textContent = cellData;
+                    row.appendChild(cell);
+                });
+                tbody.appendChild(row);
+            });
+        } else {
+            console.error('Unexpected data format:', data);
+        }
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', postbutton);
+</script>
+
+<script>
+    document.getElementById('searchForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Предотвращаем стандартное поведение формы
+
+        var formData = new FormData(this);
+
+        fetch('/_search', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            var tbody = document.getElementById('data1');
+            tbody.innerHTML = ''; // Очищаем текущее содержимое таблицы
+
+            if (Array.isArray(data.data1)) {
+                data.data1.forEach(function(item) {
+                    var row = document.createElement('tr');
+
+                    var cell1 = document.createElement('td');
+                    cell1.textContent = item[0]; // № заявки
+                    row.appendChild(cell1);
+
+                    var cell2 = document.createElement('td');
+                    cell2.textContent = item[1]; // Дата заявки
+                    row.appendChild(cell2);
+
+                    var cell3 = document.createElement('td');
+                    cell3.textContent = item[2]; // Диспетчер
+                    row.appendChild(cell3);
+
+                    var cell4 = document.createElement('td');
+                    cell4.textContent = item[3]; // Город
+                    row.appendChild(cell4);
+
+                    var cell5 = document.createElement('td');
+                    cell5.textContent = item[4]; // Адрес
+                    row.appendChild(cell5);
+
+                    var cell6 = document.createElement('td');
+                    cell6.textContent = item[5]; // Лифт
+                    row.appendChild(cell6);
+
+                    var cell7 = document.createElement('td');
+                    cell7.textContent = item[6]; // Причина
+                    row.appendChild(cell7);
+
+                    var cell8 = document.createElement('td');
+                    cell8.textContent = item[7]; // Механик
+                    row.appendChild(cell8);
+
+                    var cell9 = document.createElement('td');
+                    cell9.textContent = item[8]; // Дата устранения
+                    row.appendChild(cell9);
+
+                    var cell10 = document.createElement('td');
+                    cell10.textContent = item[9]; // Комментарий
+                    row.appendChild(cell10);
+
+                    tbody.appendChild(row);
+                });
+            } else {
+                console.error('Unexpected data format:', data);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script>
 </body>
 </html>

@@ -288,7 +288,9 @@ window.onload = function() {
     }
 
     function postbutton(event) {
-        event.preventDefault();
+        if (event !== null && event !== undefined) {
+            event.preventDefault();
+        }
 
         const data = {
             addresses: document.getElementById('addressesInput').value,

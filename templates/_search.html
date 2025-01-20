@@ -164,8 +164,10 @@ window.onload = function() {
         // Закрытие выпадающего списка при клике вне его
         document.addEventListener('click', function(event) {
             const resultsContainer = document.getElementById('results');
-            if (!resultsContainer.contains(event.target) && event.target.id !== 'addressesList') {
-                resultsContainer.style.display = 'none';
+             if (resultsContainer) {
+                if (!resultsContainer.contains(event.target) && event.target.id !== 'addressesList') {
+                    resultsContainer.style.display = 'none';
+                }
             }
         });
 </script>

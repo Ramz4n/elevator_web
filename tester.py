@@ -2091,7 +2091,7 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
             '''
 
     if addresses:
-        query += f" AND ('{addresses}' = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) = '{addresses}')"
+        query += f" AND ('{addresses}' = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) like '%{addresses}%')"
     if start_date:
         query += f" AND z.Дата_заявки BETWEEN {start_date}"
         if end_date:
@@ -2220,4 +2220,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)

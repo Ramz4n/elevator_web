@@ -2128,7 +2128,7 @@ def updateData():
             addresses = fetch_addresses(cursor, city)
             tickets = fetch_tickets(cursor, city)
 
-        return jsonify({'tickets': tickets, 'town': city, 'addresses': addresses})
+        return jsonify({'tickets': tickets, 'addresses': addresses})
 
 
 @tester.route('/_search', methods=['GET', 'POST'])

@@ -290,10 +290,6 @@ window.onload = function() {
     }
 
     function postbutton(event) {
-        if (event !== null && event !== undefined) {
-            event.preventDefault();
-        }
-
         const data = {
             addresses: document.getElementById('addressesInput').value,
             city: document.getElementById('cityList').value,
@@ -340,8 +336,6 @@ window.onload = function() {
             console.error('Unexpected data format:', data);
         }
     }
-
-    document.getElementById('searchForm').addEventListener('submit', postbutton);
 </script>
 
 <script>

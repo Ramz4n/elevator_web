@@ -182,7 +182,31 @@ function updateData() {
             },
             body: JSON.stringify({ cityList: city })
         })
-    }, 0);
+        .then(response => response.json())
+        .then(data => {
+            var addressesDatalist = document.getElementById('addresses');
+            addressesDatalist.innerHTML = '';
+            data.addresses.forEach(address => {
+                var option = document.createElement('option');
+                option.value = address;
+                addressesDatalist.appendChild(option);
+            });
+
+            var tbody = document.getElementById('data1');
+            tbody.innerHTML = '';
+            data.tickets.forEach(ticket => {
+                var row = document.createElement('tr');
+                ticket.forEach(cellData => {
+                    var cell = document.createElement('td');
+                    cell.textContent = cellData;
+                    row.appendChild(cell);
+                });
+                tbody.appendChild(row);
+            });
+        })
+        .catch(error => {
+            console.error('There was a problem with the fetch operation:', error);
+        })}, 0);
 }
 </script>
 

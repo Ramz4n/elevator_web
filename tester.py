@@ -383,8 +383,8 @@ def base():
         selected_city = data.get('selectedCity')
         month_list = data.get('monthList')
         town = selected_city
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
             # ВЫБОР ГОРОДА
@@ -733,8 +733,8 @@ def index():
         session['table_name'] = data['table_name']
         session['config_file'] = image_value
         table_name = session.get('table_name')
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         config_file = session.get('config_file')
         db_manager = DataBaseManager(config_file)
         with closing(db_manager.connect()) as connection:
@@ -882,8 +882,8 @@ def index():
         db_manager = DataBaseManager(config_file)
         selected_city = request.json.get('selectedCity')
         town = selected_city
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
 
@@ -1016,8 +1016,8 @@ def poisk():
         port = data['db_port']
         database = data['db_name']
         table_name = data['table_name']
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town_url = request.args.get('selectedCity')
         with closing(mariadb.connect(
                 user=user,
@@ -1120,8 +1120,8 @@ def obrasch():
         port = data['db_port']
         database = data['db_name']
         table_name = data['table_name']
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         with closing(mariadb.connect(
                 user=user,
@@ -1153,8 +1153,8 @@ def obrasch():
 def neispr():
     # НЕИСПРАВНОСТИ №2
     if request.method == 'GET':
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         company = request.args.get('company')
         db_file = session.get('db_file', 'okmitol.json')
         with open(f'{db_file}', 'r') as file:
@@ -1196,8 +1196,8 @@ def neispr():
 def zastrev():
     # ЗАСТРЕВАНИЯ №3
     if request.method == 'GET':
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         db_file = session.get('db_file', 'okmitol.json')
         with open(f'{db_file}', 'r') as file:
             data = json.loads(file.read())
@@ -1238,8 +1238,8 @@ def zastrev():
 def ostanov():
     # ОСТАНОВКИ №4
     if request.method == 'GET':
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         db_file = session.get('db_file', 'okmitol.json')
         with open(f'{db_file}', 'r') as file:
             data = json.loads(file.read())
@@ -1289,8 +1289,8 @@ def ostanov_more():
     table_name = data['table_name']
     # ОСТАНОВКИ БОЛЕЕ СУТОК №5
     if request.method == 'GET':
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         with closing(mariadb.connect(
                 user=user,
@@ -1323,8 +1323,8 @@ def ostanov_more():
 def lojnie():
     # ЛОЖНЫЕ ЗАЯВКИ №6
     if request.method == 'GET':
-        current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         db_file = session.get('db_file', 'okmitol.json')
         with open(f'{db_file}', 'r') as file:
             data = json.loads(file.read())
@@ -1468,8 +1468,8 @@ def _get_city_for_poisk():
 @login_required
 def _passport():
     # ОБРАЩЕНИЯ №0
-    current_month_index = int((datetime.datetime.now(tz=None)).strftime("%m")) - 1
-    current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+    current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
+    current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
     try:
         if request.method == 'GET':
             config_file = session['config_file']
@@ -1544,7 +1544,7 @@ def _passport():
             town = request.get_json()['cityList']
             address = address.split(', ')
             config_file = session['config_file']
-            current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+            current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
             db_manager = DataBaseManager(config_file)
             # при выборе города меняется улица дом и падик в списке select html======================================
             with closing(db_manager.connect()) as connection:
@@ -1733,7 +1733,7 @@ def _obrasch():
     if request.method == 'GET':
         config_file = session['config_file']
         table_name = session['table_name']
-        current_year_index = int((datetime.datetime.now(tz=None)).strftime("%Y"))
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         month = request.args.get('monthList')
         db_manager = DataBaseManager(config_file)
@@ -2220,4 +2220,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="10.40.1.40", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='10.40.1.40', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

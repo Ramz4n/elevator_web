@@ -185,7 +185,7 @@ def base():
             cursor.execute((f'''SELECT count(*) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE Дата_запуска is NULL 
-                                AND not Причина in ("Линейная", "Остановлен") 
+                                AND not Причина in ("Линейная", "Остановлен", "Связь") 
                                 AND Город="{town}" AND NOT pc_id is NULL'''),
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data14 = cursor.fetchall()
@@ -309,8 +309,9 @@ def base():
             data13 = cursor.fetchall()
             cursor.execute((f'''SELECT 
                                 COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = MONTH(CURDATE()) THEN 1 END) AS vsego,
-                                COUNT(CASE WHEN Причина = 'Остановлен' and z.дата_запуска is Null THEN 1 END) AS stopped,
-                                COUNT(CASE WHEN Причина = 'Линейная' and z.Дата_запуска is Null THEN 1 END) AS lineynaya
+                                COUNT(CASE WHEN Причина = 'Остановлен' AND z.дата_запуска is Null THEN 1 END) AS stopped,
+                                COUNT(CASE WHEN Причина = 'Линейная' AND z.Дата_запуска is Null THEN 1 END) AS lineynaya,
+                                COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска is Null THEN 1 END) AS svyaz
                                 FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE Город = "{town}" AND NOT pc_id is NULL'''))
@@ -352,7 +353,8 @@ def base():
                 cursor.execute((f'''SELECT 
                                     COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = ? THEN 1 END) AS vsego,
                                     COUNT(CASE WHEN Причина = 'Остановлен' and z.дата_запуска is Null THEN 1 END) AS stopped,
-                                    COUNT(CASE WHEN Причина = 'Линейная' and z.Дата_запуска is Null THEN 1 END) AS lineynaya
+                                    COUNT(CASE WHEN Причина = 'Линейная' and z.Дата_запуска is Null THEN 1 END) AS lineynaya,
+                                    COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска is Null THEN 1 END) AS svyaz
                                     FROM {table_name} z WHERE NOT pc_id IS NULL'''), (month_list,))
                 query = cursor.fetchall()
                 # КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
@@ -365,7 +367,7 @@ def base():
                 # ТЕКУЩИЕ ЗАЯВКИ
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                     WHERE Дата_запуска is NULL 
-                                    AND not Причина in ("Линейная", "Остановлен") AND NOT pc_id IS NULL''')
+                                    AND not Причина in ("Линейная", "Остановлен", "Связь") AND NOT pc_id IS NULL''')
                 data14 = cursor.fetchall()
                 # ГОДОВАЯ СТАТИСТИКА
                 cursor.execute(f'''SELECT
@@ -500,7 +502,8 @@ def base():
                 cursor.execute((f'''SELECT 
                                     COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = ? THEN 1 END) AS vsego,
                                     COUNT(CASE WHEN Причина = 'Остановлен' and z.дата_запуска is Null THEN 1 END) AS stopped,
-                                    COUNT(CASE WHEN Причина = 'Линейная' and z.Дата_запуска is Null THEN 1 END) AS lineynaya
+                                    COUNT(CASE WHEN Причина = 'Линейная' and z.Дата_запуска is Null THEN 1 END) AS lineynaya,
+                                    COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска is Null THEN 1 END) AS svyaz
                                     FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
                                     WHERE Город = "{town}" AND NOT pc_id IS NULL'''), (month_list,))
@@ -517,7 +520,7 @@ def base():
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
                                     WHERE Дата_запуска is NULL 
-                                    AND not Причина in ("Линейная", "Остановлен") and Город="{town}" AND NOT pc_id is NULL''')
+                                    AND not Причина in ("Линейная", "Остановлен", "Связь") and Город="{town}" AND NOT pc_id is NULL''')
                 data14 = cursor.fetchall()
                 # ГОДОВАЯ СТАТИСТИКА
                 cursor.execute(f'''SELECT
@@ -667,6 +670,7 @@ def base():
                     'vsego': query[0][0],
                     'stopped': query[0][1],
                     'lineynaya': query[0][2],
+                    'svyaz': query[0][3],
                     'data3': data3,
                     'data4': data4,
                     'data6': data6,
@@ -1072,6 +1076,81 @@ def _obrasch():
                 print('Проблема в обращениях:', e)
                 return render_template('error.html')
 
+@tester.route('/_svyaz', methods=['GET', 'POST'])
+@login_required
+def _svyaz():
+    # ОБРАЩЕНИЯ №1
+    if request.method == 'GET':
+        config_file = session['config_file']
+        table_name = session['table_name']
+        current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
+        town = request.args.get('selectedCity')
+        month = request.args.get('monthList')
+        db_manager = DataBaseManager(config_file)
+        if town == 'all':
+            try:
+                with closing(db_manager.connect()) as connection:
+                    cursor = connection.cursor()
+                    cursor.execute(f'''SELECT z.Номер_заявки,
+                               FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                               di.фио,
+                               g.город,
+                               concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                               z.Тип_лифта,
+                               z.Причина,
+                               m.фио,
+                               FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                               z.Комментарий
+                               FROM {table_name} z
+                               JOIN workers di ON z.id_Диспетчер = di.id
+                               JOIN goroda g ON z.id_город = g.id
+                               JOIN street s ON z.id_улица = s.id
+                               JOIN doma d ON z.id_дом = d.id
+                               JOIN padik p ON z.id_подъезд = p.id
+                               JOIN workers m ON z.id_Механик = m.id
+                               WHERE DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? AND NOT pc_id is NULL
+                               AND z.Причина = "Связь" AND z.Дата_запуска is Null
+                               group by z.id
+                               order by z.id;''',
+                                   (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+                    data1 = cursor.fetchall()
+                return render_template('_svyaz.html', data1=data1, town=town)
+            except Exception as e:
+                print('Проблема в обращениях:', e)
+                return render_template('error.html')
+        else:
+            try:
+                with closing(db_manager.connect()) as connection:
+                    cursor = connection.cursor()
+                    cursor.execute(f'''SELECT z.Номер_заявки,
+                               FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                               di.фио,
+                               g.город,
+                               concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                               z.Тип_лифта,
+                               z.Причина,
+                               m.фио,
+                               FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                               z.Комментарий
+                               FROM {table_name} z
+                               JOIN workers di ON z.id_Диспетчер = di.id
+                               JOIN goroda g ON z.id_город = g.id
+                               JOIN street s ON z.id_улица = s.id
+                               JOIN doma d ON z.id_дом = d.id
+                               JOIN padik p ON z.id_подъезд = p.id
+                               JOIN workers m ON z.id_Механик = m.id
+                               WHERE Город='{town}' and DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? AND NOT pc_id is NULL
+                               AND z.Причина = "Связь" AND z.Дата_запуска is Null
+                               group by z.id
+                               order by z.id;''',
+                                   (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+                    data1 = cursor.fetchall()
+                return render_template('_svyaz.html', data1=data1, town=town)
+            except Exception as e:
+                print('Проблема в обращениях:', e)
+                return render_template('error.html')
 
 @tester.route('/_tekuschie', methods=['GET', 'POST'])
 @login_required
@@ -1103,7 +1182,7 @@ def _tekuschie():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Дата_запуска is NULL and not z.Причина in ("Линейная", "Остановлен") AND NOT pc_id is NULL''')
+                               WHERE Дата_запуска is NULL and not z.Причина in ("Линейная", "Остановлен", "Связь") AND NOT pc_id is NULL''')
                     data1 = cursor.fetchall()
                 return render_template('_tekuschie.html', data1=data1, town=town)
             except Exception as e:
@@ -1130,7 +1209,7 @@ def _tekuschie():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Дата_запуска is NULL and not z.Причина in ("Линейная", "Остановлен") and Город="{town}" AND NOT pc_id is NULL''')
+                               WHERE Дата_запуска is NULL and not z.Причина in ("Линейная", "Остановлен", "Связь") and Город="{town}" AND NOT pc_id is NULL''')
                     data1 = cursor.fetchall()
                 return render_template('_tekuschie.html', data1=data1, town=town)
             except Exception as e:

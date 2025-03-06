@@ -1508,11 +1508,6 @@ def techteam():
     return render_template('techteam.html')
 
 
-@tester.route('/maxim')
-def maxim():
-    return render_template('maxim.html')
-
-
 @tester.route('/dmitry')
 def dmitry():
     return render_template('dmitry.html')

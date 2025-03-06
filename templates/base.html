@@ -216,6 +216,9 @@ elementsToUpdate.forEach((element) => {
 	case "vsego":
       element.innerText = updatedData.vsego;
       break;
+	case "svyaz":
+      element.innerText = updatedData.svyaz;
+      break;
 	case "stopped":
       element.innerText = updatedData.stopped;
       break;
@@ -345,6 +348,38 @@ elementsToUpdate.forEach((element) => {
 								const monthList = document.getElementById('monthList').value;
 								// Формируем URL с параметром selectedCity
 								const urlToRedirect = '/_obrasch?selectedCity=' + selectedCity + '&monthList=' + monthList;
+								// Перейти на указанную страницу
+								window.location.href = urlToRedirect;
+							});
+							</script>
+						<div class="card">
+							<div class="card-body black-ramka">
+								<div class="row">
+								  <div class="col mt-0">
+									<h5 class="card-title">Связь</h5>
+								  </div>
+								</div>
+								<div class="h1 mb-3">
+									<h1 class="mt-1 mb-3 data" id="svyaz">{{data2[0][3]}}</h1>
+								</div>
+								<div class="mb-0">
+								  <span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								  </span>
+								  <span class="text-muted"></span>
+								</div>
+								<div class="text-center">
+								  <button class="btn btn-success" id="redirectButton_svyaz">Показать</button>
+								</div>
+							</div>
+						</div>
+							<script>
+							const button_svyaz = document.getElementById('redirectButton_svyaz'); // Получаем кнопку по id
+							button_svyaz.addEventListener('click', function() {
+								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+								const monthList = document.getElementById('monthList').value;
+								// Формируем URL с параметром selectedCity
+								const urlToRedirect = '/_svyaz?selectedCity=' + selectedCity + '&monthList=' + monthList;
 								// Перейти на указанную страницу
 								window.location.href = urlToRedirect;
 							});

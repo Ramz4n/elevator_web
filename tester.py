@@ -168,11 +168,11 @@ def base():
             cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
                                 where Причина="Остановлен" and z.дата_запуска is Null 
-                                AND Город="{town}" 
+                                AND Город = ?
                                 AND not lower(Комментарий) like '%ложн%' 
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%m") = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), "%Y") = ? AND NOT pc_id is NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           (f'{town}',f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data5 = cursor.fetchall()
             # ЛИНЕЙНЫЕ В МЕСЯЦ ГОРОДА
             cursor.execute(f'''SELECT COUNT(z.Причина) 
@@ -928,7 +928,8 @@ def _top_bad():
                                     and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
                                     and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
                                     and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
-                                    AND NOT pc_id is NULL
+                                    and LOWER(Комментарий) not like '%в работе%'
+                                    AND NOT pc_id is NULL AND NOT z.Причина in ("Линейная", "Связь")
                                     GROUP BY Адрес, Тип_лифта
                                     ORDER BY address_count DESC
                                     limit 100;''')
@@ -972,7 +973,7 @@ def _top_bad():
                                    and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
                                    and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
                                    and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
-                                   AND g.город = ? AND s.`Улица` = ?
+                                   AND g.город = ? AND s.`Улица` = ? AND NOT z.Причина in ("Линейная", "Связь")
                                     AND d.`Номер` = ? AND p.`Номер` = ? AND z.`Тип_лифта` = ? AND NOT pc_id is NULL
                                    limit 100;''', (city, adres[0], adres[1], adres[2], lift))
                 query_bd = cursor.fetchall()
@@ -1531,6 +1532,6 @@ def alexey():
 if __name__ == '__main__':
     from waitress import serve
 
-    # serve(tester, host="10.40.1.40", port=8080, threads=100)
+    # serve(tester, host="192.168.10.204", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='192.168.10.204', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

@@ -8,7 +8,7 @@
 </script>
 <div class="float-left">
 	<form method="post">
-        <label for="cityList" class="customLabel">ОСП МиТОЛ:</label>
+        <label for="cityList" class="customLabel">Город:</label>
         <select class="customSelect float-left" name="city" id="cityList" onchange="changeCity(this.value, monthList)">
             {% for city in data8 %}
                 <option value="{{ city }}">{{ city }}</option>	

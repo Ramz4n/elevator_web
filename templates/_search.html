@@ -176,12 +176,14 @@ window.onload = function() {
         <form id="searchForm" action="/_search" method="get" class="form-horizontal">
             <div class="form-group">
                 <label for="cityList" class="customLabel">Город:</label>
-                <select class="customSelect" name="city" id="cityList" onchange="updateData()">
+                <select class="customSelect" style="width:300px" name="city" id="cityList" onchange="updateData()">
+                    <option value="" disabled selected>Выберите город</option>
                     {% for city in town %}
                         <option class="data" value="{{ city }}">{{ city }}</option>
                     {% endfor %}
                 </select>
             </div>
+
 
             <div class="form-group">
                 <label for="addressesInput" class="customLabel">Адрес:</label>

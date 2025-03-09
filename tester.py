@@ -141,7 +141,7 @@ def base():
                                 JOIN doma d ON z.id_дом = d.id
                                 JOIN street s ON d.id_улица = s.id
                                 JOIN goroda g ON s.id_город = g.id
-                                where Город="{town}"'''))
+                                where Город="{town}" AND d.is_active = 1'''))
             data1 = cursor.fetchall()
             # ЗАСТРЕВАНИЯ В МЕСЯЦ ГОРОДА
             cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
@@ -362,7 +362,8 @@ def base():
                                     FROM lifts z
                                     JOIN doma d ON z.id_дом = d.id
                                     JOIN street s ON d.id_улица = s.id
-                                    JOIN goroda g ON s.id_город = g.id''')
+                                    JOIN goroda g ON s.id_город = g.id
+                                    where d.is_active = 1''')
                 data1 = cursor.fetchall()
                 # ТЕКУЩИЕ ЗАЯВКИ
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
@@ -514,7 +515,7 @@ def base():
                                     JOIN doma d ON z.id_дом = d.id
                                     JOIN street s ON d.id_улица = s.id
                                     JOIN goroda g ON s.id_город = g.id
-                                    where Город="{town}"'''))
+                                    where Город="{town}" and d.is_active = 1'''))
                 data1 = cursor.fetchall()
                 # ТЕКУЩИЕ ЗАЯВКИ
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
@@ -1419,7 +1420,8 @@ def kolvo_lifts():
                                JOIN padik p ON l.id_подъезд = p.id
                                JOIN doma d ON l.id_дом = d.id
                                JOIN street s ON d.id_улица = s.id
-                               JOIN goroda g ON s.id_город = g.id''')
+                               JOIN goroda g ON s.id_город = g.id
+                                where d.is_active = 1''')
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)
             except Exception as e:
@@ -1439,7 +1441,7 @@ def kolvo_lifts():
                                JOIN doma d ON l.id_дом = d.id
                                JOIN street s ON d.id_улица = s.id
                                JOIN goroda g ON s.id_город = g.id
-                               WHERE город="{town}"''')
+                               WHERE город="{town}" AND d.is_active = 1''')
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)
             except Exception as e:

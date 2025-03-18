@@ -1421,7 +1421,9 @@ def kolvo_lifts():
                                JOIN doma d ON l.id_дом = d.id
                                JOIN street s ON d.id_улица = s.id
                                JOIN goroda g ON s.id_город = g.id
-                                where d.is_active = 1''')
+                                where d.is_active = 1
+                                group BY g.город, s.улица, d.номер, p.`Номер`
+                                ORDER BY g.город, s.улица, d.номер, p.`Номер`''')
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)
             except Exception as e:
@@ -1441,7 +1443,9 @@ def kolvo_lifts():
                                JOIN doma d ON l.id_дом = d.id
                                JOIN street s ON d.id_улица = s.id
                                JOIN goroda g ON s.id_город = g.id
-                               WHERE город="{town}" AND d.is_active = 1''')
+                               WHERE город="{town}" AND d.is_active = 1
+                                group BY s.улица, d.номер, p.`Номер`
+                                ORDER BY s.улица, d.номер, p.`Номер`''')
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)
             except Exception as e:
@@ -1464,8 +1468,7 @@ def fetch_addresses(cursor, city):
                         JOIN doma d ON l.`id_дом` = d.id
                         JOIN street s ON d.`id_улица` = s.id
                         JOIN goroda g ON s.`id_город` = g.id
-                        WHERE g.город = '{city}'
-                    ''')
+                        WHERE g.город = "{city}"''')
     addresses = cursor.fetchall()
 
     return [address[0] for address in addresses]

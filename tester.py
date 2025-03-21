@@ -36,7 +36,7 @@ tester.config['SQLALCHEMY_MAX_OVERFLOW'] = 0  # Запретить перепо�
 tester.config['SQLALCHEMY_CONNECT_TIMEOUT'] = 30  # Установить время ожидания соединения
 tester.config['SQLALCHEMY_POOL_RECYCLE'] = 3600  # Сбрасывать соединения каждые 3600 секунд (1 час)
 
-client = pymemcache.Client('192.168.10.204:8080')
+client = pymemcache.Client('192.168.10.214:8080')
 
 login_manager = LoginManager(tester)
 login_manager.init_app(tester)
@@ -928,12 +928,12 @@ def _top_bad():
                                     JOIN street s ON z.id_улица = s.id
                                     JOIN doma d ON z.id_дом = d.id
                                     JOIN padik p ON z.id_подъезд = p.id
-                                    WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                                    WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
                                     and (LOWER(Комментарий) not like '%скачок%'  
                                     and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
                                     and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
                                     and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
-                                    and LOWER(Комментарий) not like '%в работе%'
+                                    and LOWER(Комментарий) not like '%на момент осмотра%'
                                     AND NOT pc_id is NULL AND NOT z.Причина in ("Линейная", "Связь")
                                     GROUP BY Адрес, Тип_лифта
                                     ORDER BY address_count DESC
@@ -973,13 +973,15 @@ def _top_bad():
                                       JOIN padik p ON z.id_подъезд = p.id
                                       JOIN workers m ON z.id_механик = m.id
                                    
-                                   WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 30 DAY))
+                                   WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
                                    and (LOWER(Комментарий) not like '%скачок%'  
                                    and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
                                    and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
                                    and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
+                                   and LOWER(Комментарий) not like '%на момент осмотра%'
                                    AND g.город = ? AND s.`Улица` = ? AND NOT z.Причина in ("Линейная", "Связь")
                                     AND d.`Номер` = ? AND p.`Номер` = ? AND z.`Тип_лифта` = ? AND NOT pc_id is NULL
+                                    GROUP BY z.Дата_заявки desc
                                    limit 100;''', (city, adres[0], adres[1], adres[2], lift))
                 query_bd = cursor.fetchall()
 
@@ -1616,6 +1618,6 @@ def alexey():
 if __name__ == '__main__':
     from waitress import serve
 
-    # serve(tester, host="192.168.10.204", port=8080, threads=100)
+    # serve(tester, host="192.168.10.214", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    tester.run(debug=True, host='192.168.10.214', port=8080, threaded=True)

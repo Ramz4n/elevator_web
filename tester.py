@@ -36,7 +36,7 @@ tester.config['SQLALCHEMY_MAX_OVERFLOW'] = 0  # Запретить перепо�
 tester.config['SQLALCHEMY_CONNECT_TIMEOUT'] = 30  # Установить время ожидания соединения
 tester.config['SQLALCHEMY_POOL_RECYCLE'] = 3600  # Сбрасывать соединения каждые 3600 секунд (1 час)
 
-client = pymemcache.Client('192.168.10.214:8080')
+client = pymemcache.Client('localhost')
 
 login_manager = LoginManager(tester)
 login_manager.init_app(tester)
@@ -1470,7 +1470,7 @@ def fetch_addresses(cursor, city):
                         JOIN doma d ON l.`id_дом` = d.id
                         JOIN street s ON d.`id_улица` = s.id
                         JOIN goroda g ON s.`id_город` = g.id
-                        WHERE g.город = "{city}"''')
+                        WHERE g.город = "{city}" AND d.is_active = 1''')
     addresses = cursor.fetchall()
 
     return [address[0] for address in addresses]
@@ -1505,7 +1505,7 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
         else:
             end_date = int(datetime.now().timestamp())
             query += f" AND {end_date}"
-    query += " ORDER BY z.id;"
+    query += " ORDER BY z.id desc;"
 
     cursor.execute(query)
 
@@ -1620,4 +1620,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="192.168.10.214", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='192.168.10.214', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

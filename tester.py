@@ -1424,8 +1424,8 @@ def kolvo_lifts():
                                JOIN street s ON d.id_улица = s.id
                                JOIN goroda g ON s.id_город = g.id
                                 where d.is_active = 1
-                                group BY g.город, s.улица, d.номер, p.`Номер`
-                                ORDER BY g.город, s.улица, d.номер, p.`Номер`''')
+                                group BY g.город, s.улица, d.номер, p.`Номер`, Тип_лифта
+                                ORDER BY g.город, s.улица, d.номер, p.`Номер`,  Тип_лифта''')
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)
             except Exception as e:
@@ -1446,8 +1446,8 @@ def kolvo_lifts():
                                JOIN street s ON d.id_улица = s.id
                                JOIN goroda g ON s.id_город = g.id
                                WHERE город="{town}" AND d.is_active = 1
-                                group BY s.улица, d.номер, p.`Номер`
-                                ORDER BY s.улица, d.номер, p.`Номер`''')
+                                group BY s.улица, d.номер, p.`Номер`, Тип_лифта
+                                ORDER BY s.улица, d.номер, p.`Номер`, Тип_лифта''')
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)
             except Exception as e:
@@ -1620,4 +1620,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="192.168.10.214", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    tester.run(debug=True, host='192.168.10.214', port=8080, threaded=True)

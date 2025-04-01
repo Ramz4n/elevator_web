@@ -1111,12 +1111,10 @@ def _svyaz():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? AND NOT pc_id is NULL
+                               WHERE NOT pc_id is NULL
                                AND z.Причина = "Связь" AND z.Дата_запуска is Null
                                group by z.id
-                               order by z.id;''',
-                                   (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+                               order by z.id;''')
                     data1 = cursor.fetchall()
                 return render_template('_svyaz.html', data1=data1, town=town)
             except Exception as e:
@@ -1620,4 +1618,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="192.168.10.214", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='192.168.10.214', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

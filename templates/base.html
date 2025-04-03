@@ -401,7 +401,8 @@ elementsToUpdate.forEach((element) => {
 						</div>
 							<script>
 							  document.querySelector("#myButton").addEventListener("click", function() {
-								const urlToRedirect = '/_top_bad';
+							  	const selectedCity = document.getElementById('cityList').value;
+								const urlToRedirect = '/_top_bad?selectedCity=' + selectedCity;
 								// Перейти на указанную страницу
 								window.location.href = urlToRedirect;
 							  });

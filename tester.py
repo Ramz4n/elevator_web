@@ -913,36 +913,66 @@ def search():
 @login_required
 def _top_bad():
     if request.method == 'GET':
+        town = request.args.get('selectedCity')
         table_name = session['table_name']
         config_file = session['config_file']
         db_manager = DataBaseManager(config_file)
-        try:
-            with closing(db_manager.connect()) as connection:
-                cursor = connection.cursor()
-                cursor.execute(f'''SELECT g.город, 
-                                    concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес, 
-                                    z.Тип_лифта, 
-                                    COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
-                                    FROM {table_name} z
-                                    JOIN goroda g ON z.id_город = g.id
-                                    JOIN street s ON z.id_улица = s.id
-                                    JOIN doma d ON z.id_дом = d.id
-                                    JOIN padik p ON z.id_подъезд = p.id
-                                    WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
-                                    and (LOWER(Комментарий) not like '%скачок%'  
-                                    and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
-                                    and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
-                                    and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
-                                    and LOWER(Комментарий) not like '%на момент осмотра%'
-                                    AND NOT pc_id is NULL AND NOT z.Причина in ("Линейная", "Связь")
-                                    GROUP BY Адрес, Тип_лифта
-                                    ORDER BY address_count DESC
-                                    limit 100;''')
-                data1 = cursor.fetchall()
-            return render_template('_top_bad.html', data1=data1)
-        except Exception as e:
-            print('Проблема в наихудших:', e)
-            return render_template('error.html')
+        if town == 'all':
+            try:
+                with closing(db_manager.connect()) as connection:
+                    cursor = connection.cursor()
+                    cursor.execute(f'''SELECT g.город, 
+                                        concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес, 
+                                        z.Тип_лифта, 
+                                        COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                        FROM {table_name} z
+                                        JOIN goroda g ON z.id_город = g.id
+                                        JOIN street s ON z.id_улица = s.id
+                                        JOIN doma d ON z.id_дом = d.id
+                                        JOIN padik p ON z.id_подъезд = p.id
+                                        WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                        and (LOWER(Комментарий) not like '%скачок%'  
+                                        and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
+                                        and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
+                                        and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
+                                        and LOWER(Комментарий) not like '%на момент осмотра%'
+                                        AND NOT pc_id is NULL AND NOT z.Причина in ("Линейная", "Связь")
+                                        GROUP BY Адрес, Тип_лифта
+                                        ORDER BY address_count DESC
+                                        limit 100;''')
+                    data1 = cursor.fetchall()
+                return render_template('_top_bad.html', data1=data1)
+            except Exception as e:
+                print('Проблема в наихудших:', e)
+                return render_template('error.html')
+        else:
+            try:
+                with closing(db_manager.connect()) as connection:
+                    cursor = connection.cursor()
+                    cursor.execute(f'''SELECT g.город, 
+                                        concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес, 
+                                        z.Тип_лифта, 
+                                        COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                        FROM {table_name} z
+                                        JOIN goroda g ON z.id_город = g.id
+                                        JOIN street s ON z.id_улица = s.id
+                                        JOIN doma d ON z.id_дом = d.id
+                                        JOIN padik p ON z.id_подъезд = p.id
+                                        WHERE Город='{town}' AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                        and (LOWER(Комментарий) not like '%скачок%'  
+                                        and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
+                                        and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
+                                        and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
+                                        and LOWER(Комментарий) not like '%на момент осмотра%'
+                                        AND NOT pc_id is NULL AND NOT z.Причина in ("Линейная", "Связь")
+                                        GROUP BY Адрес, Тип_лифта
+                                        ORDER BY address_count DESC
+                                        limit 100;''')
+                    data1 = cursor.fetchall()
+                return render_template('_top_bad.html', data1=data1)
+            except Exception as e:
+                print('Проблема в наихудших:', e)
+                return render_template('error.html')
     if request.method == 'POST':
         table_name = session['table_name']
         config_file = session['config_file']

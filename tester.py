@@ -46,7 +46,13 @@ login_manager.login_message = 'Введите Логин и Пароль'
 secret_key = os.urandom(24)
 tester.config['SECRET_KEY'] = secret_key
 db = SQLAlchemy(tester)
-ip_ban = IpBan(tester)
+# ip_ban = IpBan(tester)
+# ip_ban.ip_whitelist_add('178.173.43.202')
+# ip_ban.ip_whitelist_add('93.123.174.71')
+# ip_ban.ip_whitelist_add('192.168.10.1')
+# ip_ban.ip_whitelist_add('31.173.87.110')
+# ip_ban.ip_whitelist_add('176.59.54.127')
+# ip_ban.ip_whitelist_add('217.144.190.196')
 
 # Настройки блокировки IP
 tester.config['BANNED_IPS'] = set()
@@ -81,12 +87,12 @@ def login():
             else:
                 ip_address = request.remote_addr
                 tester.config['BANNED_IPS'].add(ip_address)
-                ip_ban.add(ip_address)
+                # ip_ban.add(ip_address)
                 return 'Ошибка входа. Ваш IP-адрес заблокирован'
         else:
             ip_address = request.remote_addr
             tester.config['BANNED_IPS'].add(ip_address)
-            ip_ban.add(ip_address)
+            # ip_ban.add(ip_address)
             print(request.remote_addr)
             print('Неверно х2')
             flash("Неверный Логин или Пароль")
@@ -1648,4 +1654,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="192.168.10.214", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    tester.run(debug=True, host='192.168.10.214', port=8080, threaded=True)

@@ -117,7 +117,6 @@ def logout():
 
 
 @tester.route('/base', methods=['GET', 'POST'])
-# @cache.cached(timeout=10)
 @login_required
 def base():
     if request.method == 'GET':
@@ -1281,11 +1280,20 @@ def _stat():
                                     WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'December' THEN 'Декабрь'
                                     END AS месяц,
                                     COUNT(*) as всего_заявок,
-                                    SUM(CASE WHEN Причина IN ('Остановлен', 'Неисправность') AND not LOWER(Комментарий) like '%ложная%' AND not LOWER(Комментарий) like '%вандал%' AND not LOWER(Комментарий) like '%пож%' THEN 1 ELSE 0 END) as Остановки,
-                                    SUM(CASE WHEN Причина = 'Застревание' AND not LOWER(Комментарий) like '%ложная%' AND not LOWER(Комментарий) like '%вандал%' AND not LOWER(Комментарий) like '%пож%' THEN 1 ELSE 0 END) as Застревание,
-                                    SUM(CASE WHEN LOWER(Комментарий) like '%ложная%' THEN 1 ELSE 0 END) as всего_ложные,
-                                    SUM(CASE WHEN LOWER(Комментарий) like '%вандал%' THEN 1 ELSE 0 END) as вандалка,
-                                    SUM(CASE WHEN LOWER(Комментарий) like '%пож%' THEN 1 ELSE 0 END) as пожарка
+                                    
+                                    SUM(CASE WHEN Причина IN ('Остановлен', 'Неисправность') AND NOT LOWER(Комментарий) like '%на момент осмотра%' 
+                                    AND NOT LOWER(Комментарий) like '%ложн%' AND not LOWER(Комментарий) like '%вандал%' 
+                                    AND not LOWER(Комментарий) like '%пож%' THEN 1 ELSE 0 END) as Неисправность,
+                                    
+                                    SUM(CASE WHEN Причина = 'Застревание' AND not LOWER(Комментарий) like '%на момент осмотра%' AND not LOWER(Комментарий) like '%ложн%'
+                                    AND not LOWER(Комментарий) like '%вандал%' AND not LOWER(Комментарий) like '%пож%' THEN 1 ELSE 0 END) as Застревание,
+                                    
+                                    SUM(CASE WHEN Причина = 'Линейная' AND not LOWER(Комментарий) like '%на момент осмотра%'
+                                    AND not LOWER(Комментарий) like '%ложн%' THEN 1 ELSE 0 END) as Линейные,
+                                    
+                                    SUM(CASE WHEN Причина = 'Связь' AND LOWER(Комментарий) like '%пож%' AND LOWER(Комментарий) like '%ложн%'
+                                    AND LOWER(Комментарий) like '%на момент осмотра%' AND LOWER(Комментарий) like '%вандал%'
+                                    THEN 1 ELSE 0 END) as Прочее
                                 FROM {table_name} z 
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE NOT pc_id is NULL
@@ -1654,4 +1662,4 @@ if __name__ == '__main__':
 
     # serve(tester, host="192.168.10.214", port=8080, threads=100)
     # TODO DON'T PUSH
-    tester.run(debug=True, host='192.168.10.214', port=8080, threaded=True)
+    tester.run(debug=True, host='localhost', port=8080, threaded=True)

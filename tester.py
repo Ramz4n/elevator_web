@@ -1281,18 +1281,29 @@ def _stat():
                                     END AS месяц,
                                     COUNT(*) as всего_заявок,
                                     
-                                    SUM(CASE WHEN Причина IN ('Остановлен', 'Неисправность') AND NOT LOWER(Комментарий) like '%на момент осмотра%' 
-                                    AND NOT LOWER(Комментарий) like '%ложн%' AND not LOWER(Комментарий) like '%вандал%' 
-                                    AND not LOWER(Комментарий) like '%пож%' THEN 1 ELSE 0 END) as Неисправность,
+                                    SUM(CASE WHEN Причина IN ('Остановлен', 'Неисправность') 
+                                    AND NOT LOWER(Комментарий) LIKE '%на момент осмотра%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%ложн%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%вандал%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%пож%' THEN 1 ELSE 0 END) as Неисправность,
                                     
-                                    SUM(CASE WHEN Причина = 'Застревание' AND not LOWER(Комментарий) like '%на момент осмотра%' AND not LOWER(Комментарий) like '%ложн%'
-                                    AND not LOWER(Комментарий) like '%вандал%' AND not LOWER(Комментарий) like '%пож%' THEN 1 ELSE 0 END) as Застревание,
+                                    SUM(CASE WHEN Причина = 'Застревание' 
+                                    AND NOT LOWER(Комментарий) LIKE '%на момент осмотра%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%ложн%'
+                                    AND NOT LOWER(Комментарий) LIKE '%вандал%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%пож%' THEN 1 ELSE 0 END) as Застревание,
                                     
-                                    SUM(CASE WHEN Причина = 'Линейная' AND not LOWER(Комментарий) like '%на момент осмотра%'
-                                    AND not LOWER(Комментарий) like '%ложн%' THEN 1 ELSE 0 END) as Линейные,
+                                    SUM(CASE WHEN Причина = 'Линейная' 
+                                    AND NOT LOWER(Комментарий) LIKE '%на момент осмотра%'
+                                    AND NOT LOWER(Комментарий) LIKE '%ложн%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%пож%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%вандал%' THEN 1 ELSE 0 END) as Линейные,
                                     
-                                    SUM(CASE WHEN Причина = 'Связь' AND LOWER(Комментарий) like '%пож%' AND LOWER(Комментарий) like '%ложн%'
-                                    AND LOWER(Комментарий) like '%на момент осмотра%' AND LOWER(Комментарий) like '%вандал%'
+                                    SUM(CASE WHEN Причина = 'Связь' 
+                                    OR LOWER(Комментарий) LIKE '%пож%' 
+                                    OR LOWER(Комментарий) LIKE '%ложн%'
+                                    OR LOWER(Комментарий) LIKE '%на момент осмотра%' 
+                                    OR LOWER(Комментарий) LIKE '%вандал%'
                                     THEN 1 ELSE 0 END) as Прочее
                                 FROM {table_name} z 
                                 JOIN goroda g ON z.id_город = g.id

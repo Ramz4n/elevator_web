@@ -936,15 +936,15 @@ def _top_bad():
                                         JOIN doma d ON z.id_дом = d.id
                                         JOIN padik p ON z.id_подъезд = p.id
                                         WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
-                                        and (LOWER(Комментарий) not like '%скачок%'  
-                                        and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
-                                        and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
-                                        and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
-                                        and LOWER(Комментарий) not like '%на момент осмотра%'
-                                        AND NOT pc_id is NULL AND NOT z.Причина in ("Линейная", "Связь")
+                                        AND (LOWER(Комментарий) NOT LIKE '%скачок%'  
+                                        AND LOWER(Комментарий) NOT LIKE '%напряж%' AND LOWER(Комментарий) NOT LIKE '%фаз%'
+                                        AND LOWER(Комментарий) NOT LIKE '%электр%' AND LOWER(Комментарий) NOT LIKE '%свет%')
+                                        AND (LOWER(Комментарий) NOT LIKE '%пож%' AND LOWER(Комментарий) NOT LIKE '%вандал%')
+                                        AND LOWER(Комментарий) NOT LIKE '%на момент осмотра%'
+                                        AND NOT pc_id is NULL AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.")
                                         GROUP BY Адрес, Тип_лифта
                                         ORDER BY address_count DESC
-                                        limit 100;''')
+                                        LIMIT 100;''')
                     data1 = cursor.fetchall()
                 return render_template('_top_bad.html', data1=data1)
             except Exception as e:
@@ -964,15 +964,15 @@ def _top_bad():
                                         JOIN doma d ON z.id_дом = d.id
                                         JOIN padik p ON z.id_подъезд = p.id
                                         WHERE Город='{town}' AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
-                                        and (LOWER(Комментарий) not like '%скачок%'  
-                                        and LOWER(Комментарий) not like '%напряж%' and LOWER(Комментарий) not like '%фаз%'
-                                        and LOWER(Комментарий) not like '%электр%' and LOWER(Комментарий) not like '%свет%')
-                                        and (LOWER(Комментарий) not like '%пож%' and LOWER(Комментарий) not LIKE '%вандал%')
-                                        and LOWER(Комментарий) not like '%на момент осмотра%'
-                                        AND NOT pc_id is NULL AND NOT z.Причина in ("Линейная", "Связь")
+                                        AND (LOWER(Комментарий) NOT LIKE '%скачок%'  
+                                        AND LOWER(Комментарий) NOT LIKE '%напряж%' AND LOWER(Комментарий) NOT LIKE '%фаз%'
+                                        AND LOWER(Комментарий) NOT LIKE '%электр%' AND LOWER(Комментарий) NOT LIKE '%свет%')
+                                        AND (LOWER(Комментарий) NOT LIKE '%пож%' AND LOWER(Комментарий) NOT LIKE '%вандал%')
+                                        AND LOWER(Комментарий) NOT LIKE '%на момент осмотра%'
+                                        AND NOT pc_id IS NULL AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.")
                                         GROUP BY Адрес, Тип_лифта
                                         ORDER BY address_count DESC
-                                        limit 100;''')
+                                        LIMIT 100;''')
                     data1 = cursor.fetchall()
                 return render_template('_top_bad.html', data1=data1)
             except Exception as e:
@@ -1631,6 +1631,7 @@ def _search():
             cursor = connection.cursor()
 
             tickets = fetch_tickets(cursor, city, addresses, start_date, end_date)
+        print(tickets)
 
         return jsonify({'data1': tickets})
 

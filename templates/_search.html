@@ -2,8 +2,6 @@
 <html>
 <head>
 <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
-    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
@@ -86,7 +84,6 @@ overflow-x: auto; /* Позволяет прокручивать таблицу 
 position: sticky; /* Фиксация заголовков */
 top: 0; /* Закрепление заголовков в верхней части окна */
 background-color: white; /* Цвет фона заголовков */
-
 }
 .float-left {
 float: left;
@@ -134,7 +131,7 @@ font-size: 20px;
 <body>
 <script>
 function goBack() {
-  // Сохранение выбранного значения города в sessionStorage
+  // Сохранение выбранного значения города в sessionStorag
   sessionStorage.setItem("selectedCity", document.getElementById("cityList").value);
   
   window.history.back();
@@ -210,6 +207,7 @@ window.onload = function() {
             </div>
         </form>
     </div>
+    </h2>
 
 <table class="table fixed-header">
     <thead>

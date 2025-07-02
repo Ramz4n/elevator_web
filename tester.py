@@ -1477,7 +1477,6 @@ def kolvo_lifts():
                                JOIN street s ON d.id_улица = s.id
                                JOIN goroda g ON s.id_город = g.id
                                 where d.is_active = 1
-                                group BY g.город, s.улица, d.номер, p.`Номер`, Тип_лифта
                                 ORDER BY g.город, s.улица, d.номер, p.`Номер`,  Тип_лифта''')
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)
@@ -1499,7 +1498,6 @@ def kolvo_lifts():
                                JOIN street s ON d.id_улица = s.id
                                JOIN goroda g ON s.id_город = g.id
                                WHERE город="{town}" AND d.is_active = 1
-                                group BY s.улица, d.номер, p.`Номер`, Тип_лифта
                                 ORDER BY s.улица, d.номер, p.`Номер`, Тип_лифта''')
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)

@@ -1,53 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-	  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-		<meta charset="utf-8" />
-		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-		<meta name="author" content="Roman Kuznetsov" />
-    	<link rel="preconnect" href="https://fonts.gstatic.com" />
-
-    <title>Аналитика данных</title>
-	<style>
-    #cityList li {
-      display: inline;
-      margin-right: 20px;
-	  text-decoration: underline;
-    }
-	.centered {
-      text-align: center;}
-
-	.bold {
-	font-weight: bold;}
-
-	.selected {
+<head>
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+	<meta name="author" content="Roman Kuznetsov" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
+	<title>Аналитика данных</title>
+</head>
+<style>
+#cityList li {
+	display: inline;
+	margin-right: 20px;
 	text-decoration: underline;
-	}
-
-	#data4 {
+}
+.centered {
+    text-align: center;
+}
+.bold {
+	font-weight: bold;
+}
+.selected {
+	text-decoration: underline;
+}
+#data4 {
 	color: blue; /* Неисправности синим цветом */
-	}
-	#data7 {
+}
+#data7 {
 	color: orange; /* Ложные обращения жёлтым цветом */
-	}
-	#data3 {
+}
+#data3 {
 	color: red; /* Застревания красным цветом */
-	}
-
-	.color-blue {
-	color: blue;}
-	.color-red {
-	color: red;}
-	.color-orange {
-	color: orange;}
-	.sizeName {
+}
+.color-blue {
+	color: blue;
+}
+.color-red {
+	color: red;
+}
+.color-orange {
+	color: orange;
+}
+.sizeName {
 	font-size: 22px;
-	}
-	.black-ramka {
-	border: 1px solid black;}
-
-	.custom-button {
+}
+.black-ramka {
+	border: 1px solid black;
+}
+.custom-button {
     background-color: #4CAF50; /* Зеленый цвет кнопки */
     color: white;  /* Белый текст */
     padding: 10px 20px; /* Отступы вокруг текста */
@@ -57,38 +61,33 @@
     margin: 0 auto; /* Центрирование кнопки */
     font-size: 16px; /* Размер шрифта */
     cursor: pointer; /* Изменение вида курсора при наведении */
-	}
-	.custom-button:hover {
-    background-color: #45a049; /* Темнозеленый цвет кнопки при наведении */
-	}
-	.customSelectWrapper {
-  display: flex;
-  flex-wrap: wrap; /* ➕ добавляем перенос */
-  justify-content: center;
-  align-items: center;
-  gap: 20px; /* ➕ чтобы элементы не слипались */
 }
-
+.custom-button:hover {
+    background-color: #45a049; /* Темнозеленый цвет кнопки при наведении */
+}
+.customSelectWrapper {
+	display: flex;
+	flex-wrap: wrap; /* ➕ добавляем перенос */
+	justify-content: center;
+	align-items: center;
+	gap: 20px; /* ➕ чтобы элементы не слипались */
+}
 @media (max-width: 768px) {
-  .customSelectWrapper {
+.customSelectWrapper {
     flex-direction: column; /* 🔁 Ставим вертикально на телефонах */
-    align-items: stretch;   /* ⬅️⬅️ Растягиваем по ширине */
-  }
-
-  .customSelectItem,
-  .center-block {
+    align-items: center;}
+.customSelectItem,
+.center-block {
     width: 100%;
     text-align: center;
-  }
+    align-items: center;}
 }
 .center-block img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 0 auto;
+	max-width: 100%;
+	height: auto;
+	display: block;
+	margin: 0 auto;
 }
-
-
 .customLabel {
     font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 30px;
@@ -97,41 +96,33 @@
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     font-weight: 700; /* Используем полужирный вариант шрифта */
 }
-
-
 .customSelect {
-  width: 220px;
-  height: 40px;
-  font-size: 16px;
-  border: 2px solid #336699;
-  border-radius: 5px;
-  padding: 5px;
-  background-color: #f2f2f2;
-  color: #333;
+	width: 220px;
+	height: 40px;
+	font-size: 16px;
+	border: 2px solid #336699;
+	border-radius: 5px;
+	padding: 5px;
+	background-color: #f2f2f2;
+	color: #333;
 }
-
 .customSelect:focus {
-  outline: none;
-  border-color: #0099cc;
-  box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
+	outline: none;
+	border-color: #0099cc;
+	box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
 }
 .float-left {
-    float: right;
+    float: none !important;
 }
 .body {
-background-color: #FFF;
+	background-color: #FFF;
 }
 </style>
-    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
-  </head>
 <body>
-
 <div class="customSelectWrapper">
-        <div class="center-block">
-            <img src="{{ url_for('static', filename='vostok.jpg') }}" alt="Изображение">
-        </div>
+	<div class="center-block">
+		<img src="{{ url_for('static', filename='vostok.jpg') }}" alt="Изображение">
+	</div>
 
 <div class="customSelectItem float-left">
 
@@ -144,10 +135,10 @@ background-color: #FFF;
 document.querySelector(`option[value="${new Date().getMonth()+1}"]`)
     .setAttribute('selected', 'true')
 </script>
-					<div>
-					<!--<button class="btn btn-success float-left" id="redirectButton0">Паспорт лифта</button>-->
-					<button class="btn btn-success float-left" id="ButtonStat">Статистика</button>
-					</div>
+	<div>
+	<!--<button class="btn btn-success float-left" id="redirectButton0">Паспорт лифта</button>-->
+	<button class="btn btn-success float-left" id="ButtonStat">Статистика</button>
+	</div>
 <script>
 	const button0 = document.getElementById('redirectButton0'); // Получаем кнопку по id
 	button0.addEventListener('click', function() {

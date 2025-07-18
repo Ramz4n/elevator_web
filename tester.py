@@ -54,7 +54,7 @@ cache = Cache(tester, config={'CACHE_TYPE': 'simple'})
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Users.query.get(int(user_id))
+    return db.session.get(Users, int(user_id))
 
 
 class LoginForm(FlaskForm):
@@ -75,19 +75,14 @@ def login():
                 login_user(user)
                 print(form.username.data)
                 session['access'] = user.access
-                # return render_template('general.html')
                 return redirect(url_for('base'))
             else:
                 ip_address = request.remote_addr
                 tester.config['BANNED_IPS'].add(ip_address)
-                # ip_ban.add(ip_address)
-                return 'Ошибка входа. Ваш IP-адрес заблокирован'
+                return 'Ошибка входа. Неправильный логин или пароль.'
         else:
             ip_address = request.remote_addr
             tester.config['BANNED_IPS'].add(ip_address)
-            # ip_ban.add(ip_address)
-            print(request.remote_addr)
-            print('Неверно х2')
             flash("Неверный Логин или Пароль")
 
     return render_template('login.html', form=form)

@@ -2,43 +2,78 @@
 <html>
 <head>
 <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
-	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/app.css') }}">
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
-      rel="stylesheet"
-    />
-    <title>{%block title%} {%endblock%}</title>
+    <!-- Bootstrap 5 CDN -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/app.css') }}">
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+  rel="stylesheet"/>
+<title>{%block title%} {%endblock%}</title>
     <style>
-        table {
-            border-spacing: 0;
-            empty-cells: hide;
-            margin: 0 auto;
-            font-size: 20px;
-            background-color: white;
-        }
+        .table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+  font-size: 20px;
+}
 
-        tr {
-            border-bottom: 1px solid #ddd;
-        }
+/* Адаптация таблицы под телефоны */
+@media (max-width: 768px) {
+  table.fixed-header thead {
+    display: none;
+  }
 
-        th, td {
-            padding: 15px;
-            text-align: center;
-            cursor: pointer; /* Курсор указывает на возможность клика */
-        }
+  table.fixed-header,
+  table.fixed-header tbody,
+  table.fixed-header tr,
+  table.fixed-header td {
+    display: block;
+    width: 100%;
+  }
 
-        .fixed-header {
-            width: 100%; /* Ширина таблицы */
-            overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
-        }
+  table.fixed-header tr {
+    margin-bottom: 15px;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
 
-        .fixed-header thead th {
-            position: sticky; /* Фиксация заголовков */
-            top: 0; /* Закрепление заголовков в верхней части окна */
-            background-color: #63B2F3; /* Цвет фона заголовков */
-        }
+  table.fixed-header td {
+    text-align: left;
+    padding: 10px;
+    border: none;
+    border-bottom: 1px solid #eee;
+  }
+
+  table.fixed-header td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+    color: #444;
+  }
+}
+table {
+        border-spacing: 0;
+        empty-cells: hide;
+        margin: 0 auto;
+        background-color: white;
+        font-size: 20px; /* ✅ основной размер */
+    }
+
+    th, td {
+        padding: 15px;
+        text-align: center;
+        font-size: 20px; /* ✅ на всякий случай явно */
+    }
+
+    .fixed-header thead th {
+        position: sticky;
+        top: 0;
+        background-color: #63B2F3;
+    }
+
     </style>
 </head>
 <body>
@@ -92,38 +127,41 @@ function sortTable(n) {
     <button class="btn btn-success" onclick="goBack()">Назад</button>
     {% block content %}{% endblock %}
 </h2>
-
-<table class="fixed-header">
-    <thead>
-        <tr>
-            <th onclick="sortTable(0)">№ заявки</th>
-            <th onclick="sortTable(1)">Дата заявки</th>
-            <th onclick="sortTable(2)">Диспетчер</th>
-            <th onclick="sortTable(3)">Город</th>
-            <th onclick="sortTable(4)">Адрес</th>
-            <th onclick="sortTable(5)">Лифт</th>
-            <th onclick="sortTable(6)">Причина</th>
-            <th onclick="sortTable(7)">Механик</th>
-            <th onclick="sortTable(8)">Дата запуска</th>
-            <th onclick="sortTable(9)">Комментарий</th>
-        </tr>
+<div class="table-responsive">
+  <table class="table table-bordered table-hover">
+    <thead class="table-primary">
+      <tr>
+        <th>№ заявки</th>
+        <th>Дата заявки</th>
+        <th>Диспетчер</th>
+        <th>Город</th>
+        <th>Адрес</th>
+        <th>Лифт</th>
+        <th>Причина</th>
+        <th>Механик</th>
+        <th>Дата запуска</th>
+        <th>Комментарий</th>
+      </tr>
     </thead>
     <tbody>
-        {% for dat in data1 %}
-        <tr {% if dat[6] == "Остановлен" and dat[8] == None %}style="background-color: #FF9999;"{% endif %}>
-            <td class="data">{{ dat[0] }}</td>
-            <td class="data">{{ dat[1] }}</td>
-            <td class="data">{{ dat[2] }}</td>
-            <td class="data">{{ dat[3] }}</td>
-            <td class="data">{{ dat[4] }}</td>
-            <td class="data">{{ dat[5] }}</td>
-            <td class="data">{{ dat[6] }}</td>
-            <td class="data">{{ dat[7] }}</td>
-            <td class="data">{{ dat[8] }}</td>
-            <td class="data">{{ dat[9] }}</td>
-        </tr>
-        {% endfor %}
+      {% for dat in data1 %}
+      <tr {% if dat[6] == "Остановлен" and dat[8] == None %} class="table-danger" {% endif %}>
+        <td>{{ dat[0] }}</td>
+        <td>{{ dat[1] }}</td>
+        <td>{{ dat[2] }}</td>
+        <td>{{ dat[3] }}</td>
+        <td>{{ dat[4] }}</td>
+        <td>{{ dat[5] }}</td>
+        <td>{{ dat[6] }}</td>
+        <td>{{ dat[7] }}</td>
+        <td>{{ dat[8] }}</td>
+        <td>{{ dat[9] }}</td>
+      </tr>
+      {% endfor %}
     </tbody>
-</table>
+  </table>
+</div>
+
+
 </body>
 </html>

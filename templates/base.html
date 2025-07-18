@@ -2,22 +2,11 @@
 <html lang="en">
   <head>
 	  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<!--    <meta charset="utf-8" />-->
-<!--    <meta http-equiv="X-UA-Compatible" content="IE=edge" />-->
-<!--    <meta-->
-<!--      name="viewport"-->
-<!--      content="width=device-width, initial-scale=1, shrink-to-fit=no"/>-->
-<!--    <meta-->
-<!--      name="description"-->
-<!--      content="Responsive Admin &amp; Dashboard Template based on Bootstrap 5"/>-->
-<!--    <meta name="author" content="AdminKit" />-->
-<!--    <meta-->
-<!--      name="keywords"-->
-<!--      content="adminkit, bootstrap, bootstrap 5, admin, dashboard, template, responsive, css, sass, html, theme, front-end, ui kit, web"/>-->
-<!--	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>-->
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
-<!--    <link rel="canonical" href="https://demo-basic.adminkit.io/" />-->
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+		<meta name="author" content="Roman Kuznetsov" />
+    	<link rel="preconnect" href="https://fonts.gstatic.com" />
 
     <title>Аналитика данных</title>
 	<style>
@@ -74,14 +63,31 @@
 	}
 	.customSelectWrapper {
   display: flex;
+  flex-wrap: wrap; /* ➕ добавляем перенос */
   justify-content: center;
   align-items: center;
+  gap: 20px; /* ➕ чтобы элементы не слипались */
 }
 
-.customSelectItem {
-  margin-right: 20px;
-  text-align: left;
+@media (max-width: 768px) {
+  .customSelectWrapper {
+    flex-direction: column; /* 🔁 Ставим вертикально на телефонах */
+    align-items: stretch;   /* ⬅️⬅️ Растягиваем по ширине */
+  }
+
+  .customSelectItem,
+  .center-block {
+    width: 100%;
+    text-align: center;
+  }
 }
+.center-block img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 
 .customLabel {
     font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -116,7 +122,6 @@
 background-color: #FFF;
 }
 </style>
-<!--<link rel="stylesheet" href="../static/css/app.css">-->
     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
@@ -130,31 +135,16 @@ background-color: #FFF;
 
 <div class="customSelectItem float-left">
 
+<!--В этом блоке находятся Город и Месяц-->
 {% block content %}{% endblock %}
-	<form action="/base" method="post">
-        <label for="monthList" class="customLabel">Месяц:</label>
-        <select class="customSelect float-left" name="monthList" id="monthList" onchange="changeCity(document.getElementById('cityList').value, this.value)">
-            <OPTION value=1>Январь
-			<OPTION value=2>Февраль
-			<OPTION value=3>Март
-			<OPTION value=4>Апрель
-			<OPTION value=5>Май
-			<OPTION value=6>Июнь
-			<OPTION value=7>Июль
-			<OPTION value=8>Август
-			<OPTION value=9>Сентябрь
-			<OPTION value=10>Октябрь
-			<OPTION value=11>Ноябрь
-			<OPTION value=12>Декабрь</OPTION>
-        </select>
-    </form>
+
 </div>
+
 <script>
 document.querySelector(`option[value="${new Date().getMonth()+1}"]`)
     .setAttribute('selected', 'true')
 </script>
-
-					<div class="">
+					<div>
 					<!--<button class="btn btn-success float-left" id="redirectButton0">Паспорт лифта</button>-->
 					<button class="btn btn-success float-left" id="ButtonStat">Статистика</button>
 					</div>

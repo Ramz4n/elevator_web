@@ -203,7 +203,7 @@ window.onload = function() {
 
             <div class="form-group">
                 <label for="button_search" class="customLabel"></label>
-                <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search" onclick="postbutton()">Поиск</button>
+                <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search">Поиск</button>
             </div>
         </form>
     </div>
@@ -286,35 +286,6 @@ window.onload = function() {
                 row.appendChild(cell);
             });
             tbody.appendChild(row);
-        });
-    }
-
-    function postbutton(event) {
-        const data = {
-            addresses: document.getElementById('addressesInput').value,
-            city: document.getElementById('cityList').value,
-            start_calendar: document.getElementById('start_calendar').value,
-            end_calendar: document.getElementById('end_calendar').value
-        };
-
-        fetch('/_search', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            updateTableData(data);
-        })
-        .catch(error => {
-            console.error('There was a problem with the fetch operation:', error);
         });
     }
 

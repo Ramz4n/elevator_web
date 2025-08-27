@@ -909,10 +909,7 @@ def _postbutton():
     adres = data.get('adres')
     date1 = data.get('date1')
     date2 = data.get('date2')
-    print(city)
-    print(adres)
-    print(date1)
-    print(date2)
+
     return jsonify({'city': city, 'adres': adres, 'date1': date1, 'date2': date2})
 
 
@@ -1001,7 +998,6 @@ def _passport():
                                        ORDER BY номер_заявки;''',
                                (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
                 data0 = cursor.fetchall()
-                print(data0)
                 cursor.execute(f'''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес,
                         pa.завод_№ as Заводской_номер,
                           pa.изготовитель as Изготовитель,
@@ -1878,7 +1874,6 @@ def _search():
             cursor = connection.cursor()
 
             tickets = fetch_tickets(cursor, city, addresses, start_date, end_date)
-        print(tickets)
 
         return jsonify({'data1': tickets})
 

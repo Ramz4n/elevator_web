@@ -16,6 +16,7 @@ import pymemcache
 from flask_caching import Cache
 from db_manager import DataBaseManager
 from datetime import datetime
+from waitress import serve
 
 UPLOAD_FOLDER = 'static'
 load_dotenv()
@@ -24,6 +25,7 @@ db_password = os.getenv("DB_PASSWORD1")
 db_user = os.getenv("DB_USER")
 db_port = os.getenv("DB_PORT")
 db_host = os.getenv("DB_HOST")
+host = os.getenv("HOST")
 tester = Flask(__name__, static_folder='static')
 tester.debug = True
 tester.config['ENV'] = 'production'
@@ -1912,8 +1914,5 @@ def alexey():
 
 
 if __name__ == '__main__':
-    from waitress import serve
-
-    # serve(tester, host="192.168.10.214", port=8080, threads=100)
-    # TODO DON'T PUSH
-    tester.run(debug=True, host='localhost', port=8080, threaded=True)
+    serve(tester, host=f"{host}", port=8080, threads=100)
+    #tester.run(debug=True, host=f"{host}", port=8080, threaded=True)

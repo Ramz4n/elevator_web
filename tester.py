@@ -1507,14 +1507,11 @@ def _uk():
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE Город = '{town}' 
-                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? 
                                AND NOT pc_id IS NULL
                                AND z.Причина = 'УК' 
                                AND z.Дата_запуска IS Null
                                GROUP BY z.id
-                               ORDER BY z.id;''',
-                                   (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+                               ORDER BY z.id;''')
                     data1 = cursor.fetchall()
                 return render_template('_uk.html', data1=data1, town=town)
             except Exception as e:

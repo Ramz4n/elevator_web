@@ -245,7 +245,7 @@ def base():
                 cursor.execute((f'''SELECT count(*) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE Дата_запуска IS NULL
-                                AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь')
+                                AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК')
                                 AND Город = '{town}'
                                 AND NOT pc_id IS NULL'''),
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
@@ -253,7 +253,7 @@ def base():
                 cursor.execute((f'''SELECT count(*) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE Дата_запуска IS NULL
-                                AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь')
+                                AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК')
                                 AND NOT pc_id IS NULL'''),
                            (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data14 = cursor.fetchall()
@@ -577,7 +577,7 @@ def base():
                 # ТЕКУЩИЕ ЗАЯВКИ
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                     WHERE Дата_запуска IS NULL 
-                                    AND not Причина IN ('Линейная', 'Остановлен', 'Связь') 
+                                    AND not Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
                                     AND NOT pc_id IS NULL''')
                 data14 = cursor.fetchall()
                 # ГОДОВАЯ СТАТИСТИКА
@@ -742,7 +742,7 @@ def base():
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
                                     WHERE Дата_запуска IS NULL 
-                                    AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь') 
+                                    AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
                                     AND Город = '{town}' 
                                     AND NOT pc_id IS NULL''')
                 data14 = cursor.fetchall()
@@ -1186,7 +1186,7 @@ def _top_bad():
                                         OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
                                         OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%' 
 								   		OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%') 
-                                        AND NOT pc_id IS NULL AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.")
+                                        AND NOT pc_id IS NULL AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
                                         GROUP BY Адрес, Тип_лифта
                                         ORDER BY address_count DESC
                                         LIMIT 100;''')
@@ -1215,7 +1215,7 @@ def _top_bad():
                                         OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%' 
 								   		OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%') 
                                         AND NOT pc_id IS NULL 
-                                        AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.")
+                                        AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
                                         GROUP BY Адрес, Тип_лифта
                                         ORDER BY address_count
                                          DESC
@@ -1549,7 +1549,7 @@ def _tekuschie():
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE Дата_запуска IS NULL 
-                               AND NOT z.Причина IN ('Линейная', 'Остановлен', 'Связь') 
+                               AND NOT z.Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
                                AND NOT pc_id IS NULL''')
                     data1 = cursor.fetchall()
                 return render_template('_tekuschie.html', data1=data1, town=town)
@@ -1578,7 +1578,7 @@ def _tekuschie():
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE Дата_запуска IS NULL 
-                               AND NOT z.Причина IN ('Линейная', 'Остановлен', 'Связь') 
+                               AND NOT z.Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
                                AND Город = '{town}'
                                AND NOT pc_id IS NULL''')
                     data1 = cursor.fetchall()

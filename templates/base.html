@@ -205,6 +205,9 @@ elementsToUpdate.forEach((element) => {
 	case "lineynaya":
       element.innerText = updatedData.lineynaya;
       break;
+    case "uk":
+      element.innerText = updatedData.uk;
+      break;
     case "data3":
       element.innerText = updatedData.data3;
       break;
@@ -237,6 +240,9 @@ elementsToUpdate.forEach((element) => {
 	  break;
     case "data14":
       element.innerText = updatedData.data14;
+      break;
+    case "data15":
+      element.innerText = updatedData.data15;
       break;
 	case "procent1":
       element.innerText = updatedData.procent1 + '%';
@@ -492,6 +498,38 @@ elementsToUpdate.forEach((element) => {
 						const monthList = document.getElementById('monthList').value;
 						// Формируем URL с параметром selectedCity
 						const urlToRedirect = '/_lineynie?selectedCity=' + selectedCity + '&monthList=' + monthList;
+						// Перейти на указанную страницу
+						window.location.href = urlToRedirect;
+					});
+					</script>
+						<div class="card">
+						<div class="card-body black-ramka">
+							<div class="row">
+								<div class="col mt-0">
+									<h5 class="card-title">УК заявки</h5>
+								</div>
+							</div>
+							<div class="h1 mb-3">
+								<h1 class="mt-1 mb-3 data" id="data15">{{data15[0][0]}}</h1>
+							</div>
+							<div class="mb-0">
+								<span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								</span>
+							<span class="text-muted"></span>
+							</div>
+							<div class="text-center">
+								<button class="btn btn-success" id="redirectButton11">Показать</button>
+							</div>
+						</div>
+					</div>
+					<script>
+					const button11 = document.getElementById('redirectButton11'); // Получаем кнопку по id
+					button11.addEventListener('click', function() {
+						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+						const monthList = document.getElementById('monthList').value;
+						// Формируем URL с параметром selectedCity
+						const urlToRedirect = '/_uk?selectedCity=' + selectedCity + '&monthList=' + monthList;
 						// Перейти на указанную страницу
 						window.location.href = urlToRedirect;
 					});

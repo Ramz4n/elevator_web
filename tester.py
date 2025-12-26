@@ -500,7 +500,10 @@ def base():
             data13 = cursor.fetchall()
             if town:
                 cursor.execute((f'''SELECT 
-                                    COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = MONTH(CURDATE()) THEN 1 END) AS vsego,
+                                    COUNT(CASE
+                                                WHEN MONTH(FROM_UNIXTIME(z.Дата_заявки)) = MONTH(CURDATE())
+                                                 AND YEAR(FROM_UNIXTIME(z.Дата_заявки)) = YEAR(CURDATE())
+                                                THEN 1 END) AS vsego,
                                     COUNT(CASE WHEN Причина = 'Остановлен' AND z.дата_запуска IS Null THEN 1 END) AS stopped,
                                     COUNT(CASE WHEN Причина = 'Линейная' AND z.Дата_запуска IS Null THEN 1 END) AS lineynaya,
                                     COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска IS Null THEN 1 END) AS svyaz
@@ -511,7 +514,10 @@ def base():
                 query = cursor.fetchall()
             else:
                 cursor.execute((f'''SELECT 
-                                    COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = MONTH(CURDATE()) THEN 1 END) AS vsego,
+                                    COUNT(CASE
+                                                WHEN MONTH(FROM_UNIXTIME(z.Дата_заявки)) = MONTH(CURDATE())
+                                                 AND YEAR(FROM_UNIXTIME(z.Дата_заявки)) = YEAR(CURDATE())
+                                                THEN 1 END) AS vsego,
                                     COUNT(CASE WHEN Причина = 'Остановлен' AND z.дата_запуска IS Null THEN 1 END) AS stopped,
                                     COUNT(CASE WHEN Причина = 'Линейная' AND z.Дата_запуска IS Null THEN 1 END) AS lineynaya,
                                     COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска IS Null THEN 1 END) AS svyaz,

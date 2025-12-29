@@ -1435,14 +1435,11 @@ def _svyaz():
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE Город = '{town}' 
-                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? 
                                AND NOT pc_id IS NULL
                                AND z.Причина = 'Связь' 
                                AND z.Дата_запуска IS Null
                                GROUP BY z.id
-                               ORDER BY z.id;''',
-                                   (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+                               ORDER BY z.id;''')
                     data1 = cursor.fetchall()
                 return render_template('_svyaz.html', data1=data1, town=town)
             except Exception as e:
@@ -1890,7 +1887,8 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
                     g.город,
                     CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) AS Адрес,
                     z.Причина,
-                    m.фио AS Механик,
+                    m1.фио AS Принял,
+                    m2.фио as Исполнил,
                     FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') AS Дата_запуска,
                     z.Комментарий
                 FROM zayavki z
@@ -1899,7 +1897,8 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
                 JOIN street s ON z.id_улица = s.id
                 JOIN doma d ON z.id_дом = d.id
                 JOIN padik p ON z.id_подъезд = p.id
-                JOIN workers m ON z.id_Механик = m.id
+                JOIN workers m1 ON z.id_Механик = m1.id
+                LEFT JOIN workers m2 ON z.id_исполнитель = m2.id
                 WHERE g.город = '{city}' 
                 AND NOT pc_id IS NULL'''
 

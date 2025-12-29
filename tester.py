@@ -1873,7 +1873,8 @@ def fetch_addresses(cursor, city):
                         JOIN street s ON d.`id_улица` = s.id
                         JOIN goroda g ON s.`id_город` = g.id
                         WHERE g.город = '{city}'
-                        AND d.is_active = 1''')
+                        AND d.is_active = 1
+                        LIMIT 500''')
     addresses = cursor.fetchall()
 
     return [address[0] for address in addresses]
@@ -1911,7 +1912,7 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
         else:
             end_date = int(datetime.now().timestamp())
             query += f" AND {end_date}"
-    query += " ORDER BY z.id desc;"
+    query += " ORDER BY z.id desc LIMIT 1000;"
 
     cursor.execute(query)
 

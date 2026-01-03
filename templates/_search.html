@@ -2,8 +2,6 @@
 <html>
 <head>
 <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
-    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
@@ -86,7 +84,6 @@ overflow-x: auto; /* Позволяет прокручивать таблицу 
 position: sticky; /* Фиксация заголовков */
 top: 0; /* Закрепление заголовков в верхней части окна */
 background-color: white; /* Цвет фона заголовков */
-
 }
 .float-left {
 float: left;
@@ -134,7 +131,7 @@ font-size: 20px;
 <body>
 <script>
 function goBack() {
-  // Сохранение выбранного значения города в sessionStorage
+  // Сохранение выбранного значения города в sessionStorag
   sessionStorage.setItem("selectedCity", document.getElementById("cityList").value);
   
   window.history.back();
@@ -206,10 +203,11 @@ window.onload = function() {
 
             <div class="form-group">
                 <label for="button_search" class="customLabel"></label>
-                <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search" onclick="postbutton()">Поиск</button>
+                <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search">Поиск</button>
             </div>
         </form>
     </div>
+    </h2>
 
 <table class="table fixed-header">
     <thead>
@@ -220,7 +218,8 @@ window.onload = function() {
             <th>Город</th>
             <th>Адрес</th>
             <th>Причина</th>
-            <th>Механик</th>
+            <th>Принял</th>
+            <th>Исполнил</th>
             <th>Дата устранения</th>
             <th>Комментарий</th>
         </tr>
@@ -288,35 +287,6 @@ window.onload = function() {
                 row.appendChild(cell);
             });
             tbody.appendChild(row);
-        });
-    }
-
-    function postbutton(event) {
-        const data = {
-            addresses: document.getElementById('addressesInput').value,
-            city: document.getElementById('cityList').value,
-            start_calendar: document.getElementById('start_calendar').value,
-            end_calendar: document.getElementById('end_calendar').value
-        };
-
-        fetch('/_search', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            updateTableData(data);
-        })
-        .catch(error => {
-            console.error('There was a problem with the fetch operation:', error);
         });
     }
 

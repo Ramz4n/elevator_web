@@ -2,17 +2,14 @@
 <html>
 <head>
 <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-	<script src="C:\Server\bin\Apache24\htdocs\templates\project.js"></script>
-	<script src="C:\Server\bin\Apache24\htdocs\templates\project.css"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
       rel="stylesheet"
     />
-    <title>Проблемные лифты</title>
+    <title>Статистика по лифтам</title>
 </head>
 <body>
 	<style>
@@ -56,11 +53,10 @@ function goBack() {
       <th>Город</th>
       <th>Месяц</th>
       <th>Всего заявок</th>
-      <th>Остановки</th>
+      <th>Неисправности</th>
       <th>Застревания</th>
-      <th>Ложные Остановки</th>
-      <th>Вандальные действия</th>
-      <th>Пожарная сигнализация</th>
+      <th>Линейные</th>
+      <th>Прочее</th>
     </tr>
   </thead>
   <tbody>
@@ -73,7 +69,6 @@ function goBack() {
         <td class="data">{{ stat[4] }}</td>
         <td class="data">{{ stat[5] }}</td>
         <td class="data">{{ stat[6] }}</td>
-        <td class="data">{{ stat[7] }}</td>
       </tr>
       {% if loop.index != loop.length and stat[0] != statistic[loop.index].0 %}
         <tr><td colspan="8">&nbsp;</td></tr>

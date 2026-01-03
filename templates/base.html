@@ -1,65 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-	  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<!--    <meta charset="utf-8" />-->
-<!--    <meta http-equiv="X-UA-Compatible" content="IE=edge" />-->
-<!--    <meta-->
-<!--      name="viewport"-->
-<!--      content="width=device-width, initial-scale=1, shrink-to-fit=no"/>-->
-<!--    <meta-->
-<!--      name="description"-->
-<!--      content="Responsive Admin &amp; Dashboard Template based on Bootstrap 5"/>-->
-<!--    <meta name="author" content="AdminKit" />-->
-<!--    <meta-->
-<!--      name="keywords"-->
-<!--      content="adminkit, bootstrap, bootstrap 5, admin, dashboard, template, responsive, css, sass, html, theme, front-end, ui kit, web"/>-->
-<!--	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>-->
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
-<!--    <link rel="canonical" href="https://demo-basic.adminkit.io/" />-->
-
-    <title>Аналитика данных</title>
-	<style>
-    #cityList li {
-      display: inline;
-      margin-right: 20px;
-	  text-decoration: underline;
-    }
-	.centered {
-      text-align: center;}
-
-	.bold {
-	font-weight: bold;}
-
-	.selected {
+<head>
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+	<meta name="author" content="Roman Kuznetsov" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
+	<title>Аналитика данных</title>
+</head>
+<style>
+#cityList li {
+	display: inline;
+	margin-right: 20px;
 	text-decoration: underline;
-	}
-
-	#data4 {
+}
+.centered {
+    text-align: center;
+}
+.bold {
+	font-weight: bold;
+}
+.selected {
+	text-decoration: underline;
+}
+#data4 {
 	color: blue; /* Неисправности синим цветом */
-	}
-	#data7 {
+}
+#data7 {
 	color: orange; /* Ложные обращения жёлтым цветом */
-	}
-	#data3 {
+}
+#data3 {
 	color: red; /* Застревания красным цветом */
-	}
-
-	.color-blue {
-	color: blue;}
-	.color-red {
-	color: red;}
-	.color-orange {
-	color: orange;}
-	.sizeName {
+}
+.color-blue {
+	color: blue;
+}
+.color-red {
+	color: red;
+}
+.color-orange {
+	color: orange;
+}
+.sizeName {
 	font-size: 22px;
-	}
-	.black-ramka {
-	border: 1px solid black;}
-
-	.custom-button {
+}
+.black-ramka {
+	border: 1px solid black;
+}
+.custom-button {
     background-color: #4CAF50; /* Зеленый цвет кнопки */
     color: white;  /* Белый текст */
     padding: 10px 20px; /* Отступы вокруг текста */
@@ -69,21 +61,33 @@
     margin: 0 auto; /* Центрирование кнопки */
     font-size: 16px; /* Размер шрифта */
     cursor: pointer; /* Изменение вида курсора при наведении */
-	}
-	.custom-button:hover {
+}
+.custom-button:hover {
     background-color: #45a049; /* Темнозеленый цвет кнопки при наведении */
-	}
-	.customSelectWrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
-
-.customSelectItem {
-  margin-right: 20px;
-  text-align: left;
+.customSelectWrapper {
+	display: flex;
+	flex-wrap: wrap; /* ➕ добавляем перенос */
+	justify-content: center;
+	align-items: center;
+	gap: 20px; /* ➕ чтобы элементы не слипались */
 }
-
+@media (max-width: 768px) {
+.customSelectWrapper {
+    flex-direction: column; /* 🔁 Ставим вертикально на телефонах */
+    align-items: center;}
+.customSelectItem,
+.center-block {
+    width: 100%;
+    text-align: center;
+    align-items: center;}
+}
+.center-block img {
+	max-width: 100%;
+	height: auto;
+	display: block;
+	margin: 0 auto;
+}
 .customLabel {
     font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 30px;
@@ -92,73 +96,49 @@
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     font-weight: 700; /* Используем полужирный вариант шрифта */
 }
-
-
 .customSelect {
-  width: 220px;
-  height: 40px;
-  font-size: 16px;
-  border: 2px solid #336699;
-  border-radius: 5px;
-  padding: 5px;
-  background-color: #f2f2f2;
-  color: #333;
+	width: 220px;
+	height: 40px;
+	font-size: 16px;
+	border: 2px solid #336699;
+	border-radius: 5px;
+	padding: 5px;
+	background-color: #f2f2f2;
+	color: #333;
 }
-
 .customSelect:focus {
-  outline: none;
-  border-color: #0099cc;
-  box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
+	outline: none;
+	border-color: #0099cc;
+	box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
 }
 .float-left {
-    float: right;
+    float: none !important;
 }
 .body {
-background-color: #FFF;
+	background-color: #FFF;
 }
 </style>
-<!--<link rel="stylesheet" href="../static/css/app.css">-->
-    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
-  </head>
 <body>
-
 <div class="customSelectWrapper">
-        <div class="center-block">
-            <img src="{{ url_for('static', filename='vostok.jpg') }}" alt="Изображение">
-        </div>
+	<div class="center-block">
+		<img src="{{ url_for('static', filename='vostok.jpg') }}" alt="Изображение">
+	</div>
 
 <div class="customSelectItem float-left">
 
+<!--В этом блоке находятся Город и Месяц-->
 {% block content %}{% endblock %}
-	<form action="/base" method="post">
-        <label for="monthList" class="customLabel">Месяц:</label>
-        <select class="customSelect float-left" name="monthList" id="monthList" onchange="changeCity(document.getElementById('cityList').value, this.value)">
-            <OPTION value=1>Январь
-			<OPTION value=2>Февраль
-			<OPTION value=3>Март
-			<OPTION value=4>Апрель
-			<OPTION value=5>Май
-			<OPTION value=6>Июнь
-			<OPTION value=7>Июль
-			<OPTION value=8>Август
-			<OPTION value=9>Сентябрь
-			<OPTION value=10>Октябрь
-			<OPTION value=11>Ноябрь
-			<OPTION value=12>Декабрь</OPTION>
-        </select>
-    </form>
+
 </div>
+
 <script>
 document.querySelector(`option[value="${new Date().getMonth()+1}"]`)
     .setAttribute('selected', 'true')
 </script>
-
-					<div class="">
-					<button class="btn btn-success float-left" id="redirectButton0">Паспорт лифта</button>
-					<button class="btn btn-success float-left" id="ButtonStat">Статистика</button>
-					</div>
+	<div>
+	<!--<button class="btn btn-success float-left" id="redirectButton0">Паспорт лифта</button>-->
+	<button class="btn btn-success float-left" id="ButtonStat">Статистика</button>
+	</div>
 <script>
 	const button0 = document.getElementById('redirectButton0'); // Получаем кнопку по id
 	button0.addEventListener('click', function() {
@@ -216,11 +196,17 @@ elementsToUpdate.forEach((element) => {
 	case "vsego":
       element.innerText = updatedData.vsego;
       break;
+	case "svyaz":
+      element.innerText = updatedData.svyaz;
+      break;
 	case "stopped":
       element.innerText = updatedData.stopped;
       break;
 	case "lineynaya":
       element.innerText = updatedData.lineynaya;
+      break;
+    case "uk":
+      element.innerText = updatedData.uk;
       break;
     case "data3":
       element.innerText = updatedData.data3;
@@ -254,6 +240,9 @@ elementsToUpdate.forEach((element) => {
 	  break;
     case "data14":
       element.innerText = updatedData.data14;
+      break;
+    case "data15":
+      element.innerText = updatedData.data15;
       break;
 	case "procent1":
       element.innerText = updatedData.procent1 + '%';
@@ -352,8 +341,40 @@ elementsToUpdate.forEach((element) => {
 						<div class="card">
 							<div class="card-body black-ramka">
 								<div class="row">
+								  <div class="col mt-0">
+									<h5 class="card-title">Связь</h5>
+								  </div>
+								</div>
+								<div class="h1 mb-3">
+									<h1 class="mt-1 mb-3 data" id="svyaz">{{data2[0][3]}}</h1>
+								</div>
+								<div class="mb-0">
+								  <span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								  </span>
+								  <span class="text-muted"></span>
+								</div>
+								<div class="text-center">
+								  <button class="btn btn-success" id="redirectButton_svyaz">Показать</button>
+								</div>
+							</div>
+						</div>
+							<script>
+							const button_svyaz = document.getElementById('redirectButton_svyaz'); // Получаем кнопку по id
+							button_svyaz.addEventListener('click', function() {
+								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+								const monthList = document.getElementById('monthList').value;
+								// Формируем URL с параметром selectedCity
+								const urlToRedirect = '/_svyaz?selectedCity=' + selectedCity + '&monthList=' + monthList;
+								// Перейти на указанную страницу
+								window.location.href = urlToRedirect;
+							});
+							</script>
+						<div class="card">
+							<div class="card-body black-ramka">
+								<div class="row">
 									<div class="col mt-0">
-										<h5 class="card-title">Проблемные лифты за 30 дней</h5>
+										<h5 class="card-title">Проблемные лифты за 14 дней</h5>
 									</div>
 								</div>
 								<div class="h1 mb-3">
@@ -366,7 +387,8 @@ elementsToUpdate.forEach((element) => {
 						</div>
 							<script>
 							  document.querySelector("#myButton").addEventListener("click", function() {
-								const urlToRedirect = '/_top_bad';
+							  	const selectedCity = document.getElementById('cityList').value;
+								const urlToRedirect = '/_top_bad?selectedCity=' + selectedCity;
 								// Перейти на указанную страницу
 								window.location.href = urlToRedirect;
 							  });
@@ -476,6 +498,38 @@ elementsToUpdate.forEach((element) => {
 						const monthList = document.getElementById('monthList').value;
 						// Формируем URL с параметром selectedCity
 						const urlToRedirect = '/_lineynie?selectedCity=' + selectedCity + '&monthList=' + monthList;
+						// Перейти на указанную страницу
+						window.location.href = urlToRedirect;
+					});
+					</script>
+						<div class="card">
+						<div class="card-body black-ramka">
+							<div class="row">
+								<div class="col mt-0">
+									<h5 class="card-title">УК заявки</h5>
+								</div>
+							</div>
+							<div class="h1 mb-3">
+								<h1 class="mt-1 mb-3 data" id="data15">{{data15[0][0]}}</h1>
+							</div>
+							<div class="mb-0">
+								<span class="text-success">
+									<i class="mdi mdi-arrow-bottom-right"></i>
+								</span>
+							<span class="text-muted"></span>
+							</div>
+							<div class="text-center">
+								<button class="btn btn-success" id="redirectButton11">Показать</button>
+							</div>
+						</div>
+					</div>
+					<script>
+					const button11 = document.getElementById('redirectButton11'); // Получаем кнопку по id
+					button11.addEventListener('click', function() {
+						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
+						const monthList = document.getElementById('monthList').value;
+						// Формируем URL с параметром selectedCity
+						const urlToRedirect = '/_uk?selectedCity=' + selectedCity + '&monthList=' + monthList;
 						// Перейти на указанную страницу
 						window.location.href = urlToRedirect;
 					});

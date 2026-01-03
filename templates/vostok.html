@@ -10,10 +10,28 @@
 	<form method="post">
         <label for="cityList" class="customLabel">Город:</label>
         <select class="customSelect float-left" name="city" id="cityList" onchange="changeCity(this.value, monthList)">
+            <option value="all">Все города</option>
             {% for city in data8 %}
                 <option value="{{ city }}">{{ city }}</option>	
             {% endfor %}
-			<option value="all">Все города</option>
+        </select>
+    </form>
+    <form action="/base" method="post">
+        <label for="monthList" class="customLabel">Месяц:</label>
+        <select class="customSelect float-left" name="monthList" id="monthList"
+                onchange="changeCity(document.getElementById('cityList').value, this.value)">
+            <OPTION value=1>Январь
+			<OPTION value=2>Февраль
+			<OPTION value=3>Март
+			<OPTION value=4>Апрель
+			<OPTION value=5>Май
+			<OPTION value=6>Июнь
+			<OPTION value=7>Июль
+			<OPTION value=8>Август
+			<OPTION value=9>Сентябрь
+			<OPTION value=10>Октябрь
+			<OPTION value=11>Ноябрь
+			<OPTION value=12>Декабрь</OPTION>
         </select>
     </form>
 </div>

@@ -135,13 +135,13 @@ def base():
                 town = city
             # КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
             if town:
-                cursor.execute((f'''SELECT count(z.id)
+                cursor.execute('''SELECT count(z.id)
                                 FROM lifts z
                                 JOIN doma d ON z.id_дом = d.id
                                 JOIN street s ON d.id_улица = s.id
                                 JOIN goroda g ON s.id_город = g.id
-                                WHERE Город = '{town}'
-                                AND d.is_active = 1'''))
+                                WHERE Город = ?
+                                AND d.is_active = 1''', (town,))
             else:
                 cursor.execute((f'''SELECT count(z.id)
                                 FROM lifts z
@@ -154,74 +154,74 @@ def base():
             if town:
                 cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                WHERE NOT LOWER(Комментарий) LIKE '%ложная%'
-                                AND Причина = 'Застревание'
-                                AND Город = '{town}'
+                                WHERE NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                AND Причина = ?
+                                AND Город = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
                                 AND NOT pc_id IS NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           ('Застревание', town, f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             else:
                 cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                WHERE NOT LOWER(Комментарий) LIKE '%ложная%'
-                                AND Причина = 'Застревание'
+                                WHERE NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                AND Причина = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
                                 AND NOT pc_id IS NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           ('Застревание', f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data3 = cursor.fetchall()
             # НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
             if town:
-                cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
+                cursor.execute(f'''SELECT count(Причина) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                WHERE Город = '{town}'
-                                AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                WHERE Город = ?
                                 AND NOT LOWER(Комментарий) LIKE '%электр%'
+                                AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                 AND NOT LOWER(Комментарий) LIKE '%пож%'
-                                AND NOT LOWER(Комментарий) LIKE '%ложная%'
-                                AND Причина = 'Неисправность'
+                                AND Причина in (?, ?)
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
-                                AND NOT pc_id IS NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                                AND NOT pc_id IS NULL''',
+                           (town, 'Неисправность', 'Остановлен', str(current_month_index + 1).zfill(2), str(current_year_index)))
             else:
                 cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                WHERE NOT LOWER(Комментарий) LIKE '%скачок%'
-                                AND NOT LOWER(Комментарий) LIKE '%электр%'
+                                WHERE NOT LOWER(Комментарий) LIKE '%электр%'
+                                AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                 AND NOT LOWER(Комментарий) LIKE '%пож%'
-                                AND NOT LOWER(Комментарий) LIKE '%ложная%'
-                                AND Причина = 'Неисправность'
+                                AND Причина in (?, ?)
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
                                 AND NOT pc_id IS NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           ('Неисправность', 'Остановлен', f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data4 = cursor.fetchall()
             # ОСТАНОВЛЕННЫЕ ЗА МЕСЯЦ
             if town:
                 cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                WHERE Причина = 'Остановлен'
+                                WHERE Причина = ?
                                 AND z.дата_запуска IS Null
                                 AND Город = ?
                                 AND NOT (LOWER(Комментарий) LIKE '%ложн%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
                                 AND NOT pc_id IS NULL'''),
-                           (f'{town}',f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           ('Остановлен', town, f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             else:
                 cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                WHERE Причина = 'Остановлен'
+                                WHERE Причина = ?
                                 AND z.дата_запуска IS Null
                                 AND NOT (LOWER(Комментарий) LIKE '%ложн%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
                                 AND NOT pc_id IS NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                           ('Остановлен', f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
             data5 = cursor.fetchall()
             # ЛИНЕЙНЫЕ В МЕСЯЦ ГОРОДА
             if town:
@@ -246,44 +246,40 @@ def base():
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE Дата_запуска IS NULL
                                 AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК')
-                                AND Город = '{town}'
-                                AND NOT pc_id IS NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                                AND Город = ?
+                                AND NOT pc_id IS NULL'''),(town,))
             else:
-                cursor.execute((f'''SELECT count(*) FROM {table_name} z
+                cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE Дата_запуска IS NULL
                                 AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК')
-                                AND NOT pc_id IS NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                                AND NOT pc_id IS NULL''')
             data14 = cursor.fetchall()
             # ЗАЯВКИ УК
             if town:
                 cursor.execute((f'''SELECT count(*) FROM {table_name} z
                                             JOIN goroda g ON z.id_город = g.id
                                             WHERE Дата_запуска IS NULL
-                                            AND Причина = 'УК'
-                                            AND Город = '{town}'
-                                            AND NOT pc_id IS NULL'''),
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                                            AND Причина = ?
+                                            AND Город = ?
+                                            AND NOT pc_id IS NULL'''),('УК', town,))
             else:
                 cursor.execute((f'''SELECT count(*) FROM {table_name} z
                                             JOIN goroda g ON z.id_город = g.id
                                             WHERE Дата_запуска IS NULL
-                                            AND Причина = 'УК'
-                                            AND NOT pc_id IS NULL'''),
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                                            AND Причина = ?
+                                            AND NOT pc_id IS NULL'''),('УК',))
             data15 = cursor.fetchall()
             # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
             if town:
-                cursor.execute((f'''SELECT count(Комментарий) FROM {table_name} z
+                cursor.execute(f'''SELECT count(Комментарий) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                WHERE Город = '{town}'
+                                WHERE Город = ?
                                 AND (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                 AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
-                                AND NOT pc_id IS NULL'''),
-                           (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                                AND NOT pc_id IS NULL''',
+                           (town, str(current_month_index + 1).zfill(2), str(current_year_index)))
             else:
                 cursor.execute((f'''SELECT count(Комментарий) FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
@@ -325,9 +321,9 @@ def base():
                                 JOIN doma d ON z.id_дом = d.id
                                 JOIN street s ON d.id_улица = s.id
                                 JOIN goroda g ON s.id_город = g.id
-                                WHERE Город = '{town}'
+                                WHERE Город = ?
                                 AND EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW())
-                                AND NOT pc_id IS NULL;''' )
+                                AND NOT pc_id IS NULL;''', (town,) )
             else:
                 cursor.execute(f'''SELECT
                                     COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
@@ -350,156 +346,153 @@ def base():
                                 AND NOT pc_id IS NULL;''' )
             data9 = cursor.fetchall()
             # ГРАФИК ЗАСТРЕВАНИЙ СТОЛБЧАТЫЙ
-            for i in range(11):
-                if town:
-                    cursor.execute(f'''SELECT 
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                    FROM {table_name} z 
-                                    JOIN doma d ON z.id_дом = d.id
-                                    JOIN street s ON d.id_улица = s.id
-                                    JOIN goroda g ON s.id_город = g.id
-                                    WHERE Город = '{town}'
-                                    AND Причина = 'Застревание' 
-                                    AND NOT (LOWER(Комментарий) LIKE '%ложная%'
-                                    OR LOWER(Комментарий) LIKE '%на момент%')
-                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                    AND NOT pc_id IS NULL;''')
-                else:
-                    cursor.execute(f'''SELECT 
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                    FROM {table_name} z 
-                                    JOIN doma d ON z.id_дом = d.id
-                                    JOIN street s ON d.id_улица = s.id
-                                    JOIN goroda g ON s.id_город = g.id
-                                    WHERE Причина = 'Застревание' 
-                                    AND NOT (LOWER(Комментарий) LIKE '%ложная%'
-                                    OR LOWER(Комментарий) LIKE '%на момент%')
-                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                    AND NOT pc_id IS NULL;''')
-                data10 = cursor.fetchall()
+            if town:
+                cursor.execute((f'''SELECT 
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                FROM {table_name} z
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN street s ON d.id_улица = s.id
+                                JOIN goroda g ON s.id_город = g.id
+                                WHERE Город = ?
+                                AND Причина = ?
+                                AND NOT (LOWER(Комментарий) LIKE '%ложная%'
+                                OR LOWER(Комментарий) LIKE '%на момент%')
+                                AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
+                                AND NOT pc_id IS NULL;'''), (town, 'Застревание'))
+            else:
+                cursor.execute((f'''SELECT 
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                FROM {table_name} z 
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN street s ON d.id_улица = s.id
+                                JOIN goroda g ON s.id_город = g.id
+                                WHERE Причина = ?
+                                AND NOT (LOWER(Комментарий) LIKE '%ложная%'
+                                OR LOWER(Комментарий) LIKE '%на момент%')
+                                AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
+                                AND NOT pc_id IS NULL;'''),('Застревание',))
+            data10 = cursor.fetchall()
             # ГРАФИК НЕИСПРАВНОСТЕЙ СТОЛБЧАТЫЙ
-            for i in range(11):
-                if town:
-                    cursor.execute(f'''SELECT 
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                    FROM {table_name} z 
-                                    JOIN doma d ON z.id_дом = d.id
-                                    JOIN street s ON d.id_улица = s.id
-                                    JOIN goroda g ON s.id_город = g.id
-                                    WHERE Город = '{town}'
-                                    AND Причина IN ('Неисправность', 'Остановлен')
-                                    AND NOT LOWER(Комментарий) LIKE '%электр%'
-                                    AND NOT LOWER(Комментарий) LIKE '%скачок%'
-                                    AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                    AND NOT LOWER(Комментарий) LIKE '%вандал%'
-                                    AND NOT LOWER(Комментарий) LIKE '%пож%'
-                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                    AND NOT pc_id IS NULL;''')
-                else:
-                    cursor.execute(f'''SELECT 
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                    FROM {table_name} z 
-                                    JOIN doma d ON z.id_дом = d.id
-                                    JOIN street s ON d.id_улица = s.id
-                                    JOIN goroda g ON s.id_город = g.id
-                                    WHERE Причина IN ('Неисправность', 'Остановлен')
-                                    AND NOT LOWER(Комментарий) LIKE '%электр%'
-                                    AND NOT LOWER(Комментарий) LIKE '%скачок%'
-                                    AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                    AND NOT LOWER(Комментарий) LIKE '%вандал%'
-                                    AND NOT LOWER(Комментарий) LIKE '%пож%'
-                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                    AND NOT pc_id IS NULL;''')
+            if town:
+                cursor.execute(f'''SELECT 
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                FROM {table_name} z
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN street s ON d.id_улица = s.id
+                                JOIN goroda g ON s.id_город = g.id
+                                WHERE Город = ?
+                                AND Причина IN ('Неисправность', 'Остановлен')
+                                AND NOT LOWER(Комментарий) LIKE '%электр%'
+                                AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                AND NOT LOWER(Комментарий) LIKE '%вандал%'
+                                AND NOT LOWER(Комментарий) LIKE '%пож%'
+                                AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
+                                AND NOT pc_id IS NULL;''', (town,))
+            else:
+                cursor.execute(f'''SELECT 
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                FROM {table_name} z 
+                                JOIN doma d ON z.id_дом = d.id
+                                JOIN street s ON d.id_улица = s.id
+                                JOIN goroda g ON s.id_город = g.id
+                                WHERE Причина IN ('Неисправность', 'Остановлен')
+                                AND NOT LOWER(Комментарий) LIKE '%электр%'
+                                AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                AND NOT LOWER(Комментарий) LIKE '%вандал%'
+                                AND NOT LOWER(Комментарий) LIKE '%пож%'
+                                AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
+                                AND NOT pc_id IS NULL;''')
             data12 = cursor.fetchall()
 
             # ГРАФИК ЛОЖНЫХ СТОЛБЧАТЫЙ
-            for i in range(11):
-                if town:
-                    cursor.execute(f'''SELECT 
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                    FROM {table_name} z 
-                                    JOIN goroda g ON z.id_город = g.id
-                                    WHERE Город = '{town}'
-                                    AND (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                    AND NOT pc_id IS NULL;''')
-                else:
-                    cursor.execute(f'''SELECT 
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                    FROM {table_name} z 
-                                    JOIN goroda g ON z.id_город = g.id
-                                    WHERE (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                    AND NOT pc_id IS NULL;''')
+            if town:
+                cursor.execute(f'''SELECT 
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                FROM {table_name} z
+                                JOIN goroda g ON z.id_город = g.id
+                                WHERE Город = ?
+                                AND (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
+                                AND NOT pc_id IS NULL;''', (town,))
+            else:
+                cursor.execute(f'''SELECT 
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                FROM {table_name} z 
+                                JOIN goroda g ON z.id_город = g.id
+                                WHERE (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
+                                AND NOT pc_id IS NULL;''')
             data13 = cursor.fetchall()
             if town:
-                cursor.execute((f'''SELECT 
+                cursor.execute(f'''SELECT
                                     COUNT(CASE
                                                 WHEN MONTH(FROM_UNIXTIME(z.Дата_заявки)) = MONTH(CURDATE())
                                                  AND YEAR(FROM_UNIXTIME(z.Дата_заявки)) = YEAR(CURDATE())
@@ -509,8 +502,8 @@ def base():
                                     COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска IS Null THEN 1 END) AS svyaz
                                     FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Город = '{town}' 
-                                    AND NOT pc_id IS NULL'''))
+                                    WHERE Город = ?
+                                    AND NOT pc_id IS NULL''', (town,))
                 query = cursor.fetchall()
             else:
                 cursor.execute((f'''SELECT 
@@ -651,117 +644,120 @@ def base():
                     procent3 = '0'
 
                 # СТАТИСТИКА ЗАСТРЕВАНИЙ
-                for i in range(11):
-                    cursor.execute(f'''SELECT
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                        FROM {table_name} z
-                                        JOIN doma d ON z.id_дом = d.id
-                                        JOIN street s ON d.id_улица = s.id
-                                        JOIN goroda g ON s.id_город = g.id
-                                        WHERE Причина = 'Застревание'
-                                        AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                        AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                        AND NOT pc_id IS NULL;''')
+                cursor.execute((f'''SELECT
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                    FROM {table_name} z
+                                    JOIN doma d ON z.id_дом = d.id
+                                    JOIN street s ON d.id_улица = s.id
+                                    JOIN goroda g ON s.id_город = g.id
+                                    WHERE Причина = ?
+                                    AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
+                                    AND NOT pc_id IS NULL;'''),('Застревание',))
                 data10 = cursor.fetchall()
                 # ГРАФИК НЕИСПРАВНОСТЕЙ СТОЛБЧАТЫЙ
-                for i in range(11):
-                    cursor.execute(f'''SELECT
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                        FROM {table_name} z
-                                        JOIN doma d ON z.id_дом = d.id
-                                        JOIN street s ON d.id_улица = s.id
-                                        JOIN goroda g ON s.id_город = g.id
-                                        WHERE Причина IN ('Неисправность', 'Остановлен')
-                                        AND NOT LOWER(Комментарий) LIKE '%электр%'
-                                        AND NOT LOWER(Комментарий) LIKE '%скачок%'
-                                        AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                        AND NOT LOWER(Комментарий) LIKE '%вандал%'
-                                        AND NOT LOWER(Комментарий) LIKE '%пож%'
-                                        AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                        AND NOT pc_id IS NULL;''')
+                cursor.execute(f'''SELECT
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                    FROM {table_name} z
+                                    JOIN doma d ON z.id_дом = d.id
+                                    JOIN street s ON d.id_улица = s.id
+                                    JOIN goroda g ON s.id_город = g.id
+                                    WHERE Причина IN ('Неисправность', 'Остановлен')
+                                    AND NOT LOWER(Комментарий) LIKE '%электр%'
+                                    AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                    AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                    AND NOT LOWER(Комментарий) LIKE '%вандал%'
+                                    AND NOT LOWER(Комментарий) LIKE '%пож%'
+                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
+                                    AND NOT pc_id IS NULL;''')
                 data12 = cursor.fetchall()
                 # ГРАФИК ЛОЖНЫХ СТОЛБЧАТЫЙ
-                for i in range(11):
-                    cursor.execute(f'''SELECT
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                        FROM {table_name} z
-                                        JOIN goroda g ON z.id_город = g.id
-                                        WHERE {f"Город = '{town}' AND " if town else ""}(LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                        AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                        AND NOT pc_id IS NULL;''')
+                query = f'''SELECT
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                    FROM {table_name} z
+                                    JOIN goroda g ON z.id_город = g.id
+                                    WHERE '''
+                params = []
+                if town:
+                    query += "Город = ? AND "
+                    params.append(town)
+                query += '''(LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
+                                    AND NOT pc_id IS NULL;'''
+                cursor.execute(query, tuple(params))
                 data13 = cursor.fetchall()
             # ЭТО ЕСЛИ ВЫБРАЛИ НА САЙТЕ КОНКРЕТНЫЙ ГОРОД
             else:
-                cursor.execute((f'''SELECT 
+                cursor.execute(f'''SELECT
                                     COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = ? THEN 1 END) AS vsego,
                                     COUNT(CASE WHEN Причина = 'Остановлен' AND z.дата_запуска IS Null THEN 1 END) AS stopped,
                                     COUNT(CASE WHEN Причина = 'Линейная' AND z.Дата_запуска IS Null THEN 1 END) AS lineynaya,
                                     COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска IS Null THEN 1 END) AS svyaz
                                     FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Город = '{town}' 
-                                    AND NOT pc_id IS NULL'''), (month_list,))
+                                    WHERE Город = ?
+                                    AND NOT pc_id IS NULL''', (month_list, town))
                 query = cursor.fetchall()
                 # КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
-                cursor.execute((f'''SELECT count(z.id)
+                cursor.execute('''SELECT count(z.id)
                                     FROM lifts z
                                     JOIN doma d ON z.id_дом = d.id
                                     JOIN street s ON d.id_улица = s.id
                                     JOIN goroda g ON s.id_город = g.id
-                                    WHERE Город = '{town}' 
-                                    AND d.is_active = 1'''))
+                                    WHERE Город = ?
+                                    AND d.is_active = 1''', (town,))
                 data1 = cursor.fetchall()
                 # ТЕКУЩИЕ ЗАЯВКИ
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Дата_запуска IS NULL 
-                                    AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
-                                    AND Город = '{town}' 
-                                    AND NOT pc_id IS NULL''')
+                                    WHERE Дата_запуска IS NULL
+                                    AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК')
+                                    AND Город = ?
+                                    AND NOT pc_id IS NULL''', (town,))
                 data14 = cursor.fetchall()
                 # ЗАЯВКИ УК
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Дата_запуска IS NULL 
-                                    AND Причина = 'УК' 
-                                    AND Город = '{town}' 
-                                    AND NOT pc_id IS NULL''')
+                                    WHERE Дата_запуска IS NULL
+                                    AND Причина = ?
+                                    AND Город = ?
+                                    AND NOT pc_id IS NULL''', ('УК', town,))
                 data15 = cursor.fetchall()
                 # ГОДОВАЯ СТАТИСТИКА
-                cursor.execute(f'''SELECT
+                query = f'''SELECT
                                     COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
                                     COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
                                     COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
@@ -778,45 +774,53 @@ def base():
                                     JOIN doma d ON z.id_дом = d.id
                                     JOIN street s ON d.id_улица = s.id
                                     JOIN goroda g ON s.id_город = g.id
-                                    WHERE {f"Город = '{town}' AND " if town else ""}EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW())
-                                    AND NOT pc_id IS NULL;''')
+                                    WHERE '''
+                params = []
+                if town:
+                    query += "Город = ? AND "
+                    params.append(town)
+                query += '''EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW())
+                                    AND NOT pc_id IS NULL;'''
+                cursor.execute(query, tuple(params))
                 data9 = cursor.fetchall()
                 # ЗАСТРЕВАНИЯ В МЕСЯЦ ГОРОДА
-                cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
-                                    JOIN goroda g ON z.id_город = g.id
-                                    WHERE NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%') 
-                                    AND Причина = 'Застревание' 
-                                    AND Город = '{town}' 
-                                    AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                                    AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? 
-                                    AND NOT pc_id IS NULL'''),
-                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                cursor.execute(
+                    f'''SELECT COUNT(Причина)
+                        FROM {table_name} z
+                        JOIN goroda g ON z.id_город = g.id
+                        WHERE NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                          AND Причина = ?
+                          AND Город = ?
+                          AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
+                          AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                          AND pc_id IS NOT NULL''',
+                    ('Застревание', town, f'{month_list.zfill(2)}', str(current_year_index)))
                 data3 = cursor.fetchall()
                 # НЕИСПРАВНОСТИ ЗА МЕСЯЦ ГОРОДА
-                cursor.execute((f'''SELECT count(Причина) FROM {table_name} z
+                cursor.execute(f'''SELECT count(Причина) FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Город = '{town}' 
-                                    AND NOT LOWER(Комментарий) LIKE '%скачок%' 
-                                    AND NOT LOWER(Комментарий) LIKE '%электр%' 
+                                    WHERE Город = ?
+                                    AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                    AND NOT LOWER(Комментарий) LIKE '%электр%'
                                     AND NOT LOWER(Комментарий) LIKE '%фаз%'
-                                    AND NOT LOWER(Комментарий) LIKE '%вандал%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                     AND NOT LOWER(Комментарий) LIKE '%пож%'
                                     AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                     AND Причина IN ('Неисправность', 'Остановлен')
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                                    AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? 
-                                    AND NOT pc_id IS NULL'''),
-                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                                    AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                                    AND NOT pc_id IS NULL''',
+                               (town, month_list.zfill(2), str(current_year_index)))
                 data4 = cursor.fetchall()
                 # ЛОЖНЫЕ ТЕКУЩЕГО МЕСЯЦА
-                cursor.execute((f'''SELECT count(Комментарий) FROM {table_name} z
+                cursor.execute(f'''SELECT count(Комментарий) FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Город = '{town}' 
+                                    WHERE Город = ?
                                     AND (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                     AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                                    AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? 
-                                    AND NOT pc_id IS NULL'''),
-                               (f'{month_list.zfill(2)}', f'{str(current_year_index)}',))
+                                    AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                                    AND NOT pc_id IS NULL''',
+                               (town, month_list.zfill(2), str(current_year_index)))
                 data7 = cursor.fetchall()
                 # ПРОЦЕНТЫ В КРУГУ СТАТИСТИКИ
                 if data3[0][0] + data4[0][0] + data7[0][0] != 0:
@@ -833,89 +837,92 @@ def base():
                     procent3 = '0'
 
                 # СТАТИСТИКА ЗАСТРЕВАНИЙ
-                for i in range(11):
-                    cursor.execute(f'''SELECT
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                        FROM {table_name} z
-                                        JOIN doma d ON z.id_дом = d.id
-                                        JOIN street s ON d.id_улица = s.id
-                                        JOIN goroda g ON s.id_город = g.id
-                                        WHERE Город = '{town}'
-                                        AND Причина = 'Застревание'
-                                        AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                        AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                        AND NOT pc_id IS NULL;''')
+                cursor.execute(f'''SELECT
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                    FROM {table_name} z
+                                    JOIN doma d ON z.id_дом = d.id
+                                    JOIN street s ON d.id_улица = s.id
+                                    JOIN goroda g ON s.id_город = g.id
+                                    WHERE Город = ?
+                                    AND Причина = ?
+                                    AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
+                                    AND NOT pc_id IS NULL;''', (town, 'Застревание'))
                 data10 = cursor.fetchall()
                 # ГРАФИК НЕИСПРАВНОСТЕЙ СТОЛБЧАТЫЙ
-                for i in range(11):
-                    cursor.execute(f'''SELECT
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                        FROM {table_name} z
-                                        JOIN doma d ON z.id_дом = d.id
-                                        JOIN street s ON d.id_улица = s.id
-                                        JOIN goroda g ON s.id_город = g.id
-                                        WHERE {f"Город = '{town}' AND " if town else ""}Причина IN ('Неисправность', 'Остановлен')
-                                        AND NOT LOWER(Комментарий) LIKE '%электр%'
-                                        AND NOT LOWER(Комментарий) LIKE '%скачок%'
-                                        AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                        AND NOT LOWER(Комментарий) LIKE '%вандал%'
-                                        AND NOT LOWER(Комментарий) LIKE '%пож%'
-                                        AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                        AND NOT pc_id IS NULL;''')
+                query = f'''SELECT
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                    FROM {table_name} z
+                                    JOIN doma d ON z.id_дом = d.id
+                                    JOIN street s ON d.id_улица = s.id
+                                    JOIN goroda g ON s.id_город = g.id
+                                    WHERE '''
+                params = []
+                if town:
+                    query += "Город = ? AND "
+                    params.append(town)
+                query += '''Причина IN ('Неисправность', 'Остановлен')
+                                    AND NOT LOWER(Комментарий) LIKE '%электр%'
+                                    AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                    AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                    AND NOT LOWER(Комментарий) LIKE '%вандал%'
+                                    AND NOT LOWER(Комментарий) LIKE '%пож%'
+                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
+                                    AND NOT pc_id IS NULL;'''
+                cursor.execute(query, tuple(params))
                 data12 = cursor.fetchall()
                 # ГРАФИК ЛОЖНЫХ СТОЛБЧАТЫЙ
-                for i in range(11):
-                    cursor.execute(f'''SELECT
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
-                                        COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
-                                        FROM {table_name} z
-                                        JOIN goroda g ON z.id_город = g.id
-                                        WHERE Город = '{town}'
-                                        AND (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
-                                        AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                        AND NOT pc_id IS NULL;''')
+                cursor.execute(f'''SELECT
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 4 THEN 1 END) AS April,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 5 THEN 1 END) AS May,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 6 THEN 1 END) AS June,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 7 THEN 1 END) AS July,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 8 THEN 1 END) AS August,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 9 THEN 1 END) AS September,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 10 THEN 1 END) AS October,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 11 THEN 1 END) AS November,
+                                    COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 12 THEN 1 END) AS December
+                                    FROM {table_name} z
+                                    JOIN goroda g ON z.id_город = g.id
+                                    WHERE Город = ?
+                                    AND (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                                    AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
+                                    AND NOT pc_id IS NULL;''', (town,))
                 data13 = cursor.fetchall()
 
-            # ЛИНЕЙНЫЕ В МЕСЯЦ ГОРОДА
-            cursor.execute(f'''SELECT count(Причина) FROM {table_name} z
-                                JOIN goroda g ON z.id_город = g.id
-                                WHERE Причина = 'Линейная' 
-                                AND z.Дата_запуска IS Null
-                                AND Город = '{town}' 
-                                AND NOT pc_id IS NULL''')
-            data6 = cursor.fetchall()
+                # ЛИНЕЙНЫЕ В МЕСЯЦ ГОРОДА
+                cursor.execute(f'''SELECT count(Причина) FROM {table_name} z
+                                    JOIN goroda g ON z.id_город = g.id
+                                    WHERE Причина = ?
+                                    AND z.Дата_запуска IS Null
+                                    AND Город = ?
+                                    AND NOT pc_id IS NULL''', ('Линейная', town,))
+                data6 = cursor.fetchall()
 
     return jsonify({'data1': data1,
                     'vsego': query[0][0],
@@ -970,15 +977,15 @@ def _get_city_for_poisk():
                 port=port,
                 database=database)) as connection:
             cursor = connection.cursor()
-            cursor.execute(f'''SELECT s.улица, d.номер as дом, p.номер as Подъезд
+            cursor.execute('''SELECT s.улица, d.номер as дом, p.номер as Подъезд
                                 FROM lifts z
-                                JOIN padik p ON z.id_подъезд = p.id  
+                                JOIN padik p ON z.id_подъезд = p.id
                                 JOIN doma d ON z.id_дом = d.id
                                 JOIN street s ON d.id_улица = s.id
                                 JOIN goroda g ON s.id_город = g.id
-                                WHERE Город='{town}' 
+                                WHERE Город = ?
                                 GROUP BY s.улица, дом, Подъезд
-                                ORDER BY s.улица, дом, Подъезд''')
+                                ORDER BY s.улица, дом, Подъезд''', (town,))
             adres = cursor.fetchall()
         return jsonify(adres)
     except Exception as e:
@@ -1027,12 +1034,12 @@ def _passport():
                                        JOIN doma d ON z.id_дом = d.id
                                        JOIN padik p ON z.id_подъезд = p.id
                                        JOIN workers m ON z.id_Механик = m.id
-                                       WHERE Город = '{request.args.get('selectedCity')}' 
+                                       WHERE Город = ?
                                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                        AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
                                        GROUP BY номер_заявки
                                        ORDER BY номер_заявки;''',
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                               (town_url, str(current_month_index + 1).zfill(2), str(current_year_index)))
                 data0 = cursor.fetchall()
                 cursor.execute(f'''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес,
                         pa.завод_№ as Заводской_номер,
@@ -1071,40 +1078,40 @@ def _passport():
             # при выборе города меняется улица дом и падик в списке select html======================================
             with closing(db_manager.connect()) as connection:
                 cursor = connection.cursor()
-                cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер) AS Адрес,                        
+                cursor.execute('''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер) AS Адрес,
                                     pa.завод_№ as Заводской_номер,
                                     pa.изготовитель as Изготовитель,
                                     pa.модель as Модель,
                                     pa.год_ввода as Год_ввода,
                                     pa.год_изготовления as Год_изготовления,
-                                    pa.грузопод AS Грузоподъемность,                        
+                                    pa.грузопод AS Грузоподъемность,
                                     pa.этажн as Этажность,
                                     pa.кол_во_канатов as Кол_во_канатов,
-                                    pa.длина_канатов as Длина_канатов,                        
+                                    pa.длина_канатов as Длина_канатов,
                                     pa.диаметр_канатов as Диаметр_канатов,
-                                    pa.редуктор_леб as Редуктор_лебедки,                        
+                                    pa.редуктор_леб as Редуктор_лебедки,
                                     pa.двигатель_леб AS Двигатель_лебедки,
-                                    pa.шкив_канат as Шкив_канатоведущий,                        
+                                    pa.шкив_канат as Шкив_канатоведущий,
                                     pa.отводной_блок as Отводной_блок,
-                                    pa.частотник as Частотный_преобразователь,                        
+                                    pa.частотник as Частотный_преобразователь,
                                     pa.рег_привод_двер as Регулируемый_привод_дверей,
-                                    pa.нерег_привод_двер as Нерегулируемый_привод_дверей 
-                                    FROM passport pa     
+                                    pa.нерег_привод_двер as Нерегулируемый_привод_дверей
+                                    FROM passport pa
                                     JOIN lifts li ON pa.id_лифт = li.id
-                                    JOIN padik p ON li.id_подъезд = p.id 
-                                    JOIN doma d ON li.id_дом = d.id 
-                                    JOIN street s ON d.id_улица = s.id 
-                                    JOIN goroda g ON s.`id_город` = g.id   
-                                    WHERE g.город = '{town}' 
-                                    AND s.улица = '{address[0]}' 
-                                    AND d.номер = '{address[1]}' 
-                                    AND p.номер = '{address[2]}'
+                                    JOIN padik p ON li.id_подъезд = p.id
+                                    JOIN doma d ON li.id_дом = d.id
+                                    JOIN street s ON d.id_улица = s.id
+                                    JOIN goroda g ON s.`id_город` = g.id
+                                    WHERE g.город = ?
+                                    AND s.улица = ?
+                                    AND d.номер = ?
+                                    AND p.номер = ?
                                     GROUP BY Адрес
                                     ORDER BY Адрес
-                                    ''')
+                                    ''', (town, address[0], address[1], address[2]))
                 data1 = cursor.fetchall()
                 # КОЛИЧЕСТВО ВСЕГО ОБРАЩЕНИЙ ЗА МЕСЯЦ АДРЕСА
-                cursor.execute(f'''SELECT z.Номер_заявки,
+                cursor.execute('''SELECT z.Номер_заявки,
                                    FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
                                    di.фио,
                                    g.город,
@@ -1116,20 +1123,21 @@ def _passport():
                                    z.Комментарий
                                    FROM zayavki z
                                    JOIN workers di ON z.id_Диспетчер = di.id
-                                   JOIN padik p ON z.id_подъезд = p.id 
-                                   JOIN doma d ON z.id_дом = d.id 
-                                   JOIN street s ON d.id_улица = s.id 
-                                   JOIN goroda g ON s.`id_город` = g.id   
-                                   WHERE Город = '{town}' 
-                                   AND s.улица = '{address[0]}' 
-                                   AND d.номер = '{address[1]}' 
-                                   AND p.номер = '{address[2]}' 
+                                   JOIN padik p ON z.id_подъезд = p.id
+                                   JOIN doma d ON z.id_дом = d.id
+                                   JOIN street s ON d.id_улица = s.id
+                                   JOIN goroda g ON s.`id_город` = g.id
+                                   WHERE Город = ?
+                                   AND s.улица = ?
+                                   AND d.номер = ?
+                                   AND p.номер = ?
                                    AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                                   AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? 
+                                   AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
                                    AND NOT pc_id IS NULL
                                    GROUP BY номер_заявки
                                    ORDER BY номер_заявки;''',
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                               (town, address[0], address[1], address[2],
+                                str(current_month_index + 1).zfill(2), str(current_year_index)))
                 data0 = cursor.fetchall()
             return jsonify({'data1': data1,
                             'data2': data0,
@@ -1144,15 +1152,15 @@ def get_results_from_db(address, city):
     db_manager = DataBaseManager(config_file)
     with closing(db_manager.connect()) as connection:
         cursor = connection.cursor()
-        cursor.execute(f'''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес
+        cursor.execute('''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес
                       FROM passport pa
                       JOIN lifts li ON pa.id_лифт = li.id
                       JOIN padik p ON li.`id_подъезд` = p.id
                       JOIN doma d ON li.id_дом = d.id
                       JOIN street u ON d.id_улица = u.id
-                      JOIN goroda g ON u.`id_город` = g.id AND g.Город = "{city}"
-                      WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE LOWER("%{address}%") 
-                      AND NOT pc_id IS NULL''')
+                      JOIN goroda g ON u.`id_город` = g.id AND g.Город = ?
+                      WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE LOWER(?)
+                      AND NOT pc_id IS NULL''', (city, f"%{address}%"))
         results = cursor.fetchall()
     return results
 
@@ -1214,18 +1222,18 @@ def _top_bad():
                                         JOIN street s ON z.id_улица = s.id
                                         JOIN doma d ON z.id_дом = d.id
                                         JOIN padik p ON z.id_подъезд = p.id
-                                        WHERE Город='{town}' AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
-                                        AND NOT (LOWER(Комментарий) LIKE '%скачок%'  
+                                        WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                        AND NOT (LOWER(Комментарий) LIKE '%скачок%'
                                         OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
                                         OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
-                                        OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%' 
-								   		OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%') 
-                                        AND NOT pc_id IS NULL 
+                                        OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%'
+								   		OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
+                                        AND NOT pc_id IS NULL
                                         AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
                                         GROUP BY Адрес, Тип_лифта
                                         ORDER BY address_count
                                          DESC
-                                        LIMIT 100;''')
+                                        LIMIT 100;''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('_top_bad.html', data1=data1)
             except Exception as e:
@@ -1360,11 +1368,13 @@ def _obrasch():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город='{town}' AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? AND NOT pc_id is NULL
+                               WHERE Город = ? AND 
+                               DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ? AND 
+                               DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? AND 
+                               NOT pc_id is NULL
                                GROUP BY z.id
                                ORDER BY z.id;''',
-                                   (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+                                   (town, month.zfill(2), str(current_year_index)))
                     data1 = cursor.fetchall()
                 return render_template('_obrasch.html', data1=data1, town=town)
             except Exception as e:
@@ -1386,7 +1396,7 @@ def _svyaz():
             try:
                 with closing(db_manager.connect()) as connection:
                     cursor = connection.cursor()
-                    cursor.execute(f'''SELECT z.Номер_заявки,
+                    cursor.execute((f'''SELECT z.Номер_заявки,
                                FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
                                di.фио,
                                g.город,
@@ -1404,10 +1414,10 @@ def _svyaz():
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE NOT pc_id IS NULL
-                               AND z.Причина = 'Связь' 
+                               AND z.Причина = ?
                                AND z.Дата_запуска IS Null
                                GROUP BY z.id
-                               ORDER BY z.id;''')
+                               ORDER BY z.id;'''),('Связь',))
                     data1 = cursor.fetchall()
                 return render_template('_svyaz.html', data1=data1, town=town)
             except Exception as e:
@@ -1434,12 +1444,12 @@ def _svyaz():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город = '{town}' 
+                               WHERE Город = ?
                                AND NOT pc_id IS NULL
-                               AND z.Причина = 'Связь' 
+                               AND z.Причина = ?
                                AND z.Дата_запуска IS Null
                                GROUP BY z.id
-                               ORDER BY z.id;''')
+                               ORDER BY z.id;''', (town, 'Связь'))
                     data1 = cursor.fetchall()
                 return render_template('_svyaz.html', data1=data1, town=town)
             except Exception as e:
@@ -1461,7 +1471,7 @@ def _uk():
             try:
                 with closing(db_manager.connect()) as connection:
                     cursor = connection.cursor()
-                    cursor.execute(f'''SELECT z.Номер_заявки,
+                    cursor.execute((f'''SELECT z.Номер_заявки,
                                FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
                                di.фио,
                                g.город,
@@ -1479,10 +1489,10 @@ def _uk():
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE NOT pc_id IS NULL
-                               AND z.Причина = 'УК' 
+                               AND z.Причина = ?
                                AND z.Дата_запуска IS Null
                                GROUP BY z.id
-                               ORDER BY z.id;''')
+                               ORDER BY z.id;'''),('УК',))
                     data1 = cursor.fetchall()
                 return render_template('_uk.html', data1=data1, town=town)
             except Exception as e:
@@ -1509,12 +1519,12 @@ def _uk():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город = '{town}' 
+                               WHERE Город = ?
                                AND NOT pc_id IS NULL
-                               AND z.Причина = 'УК' 
+                               AND z.Причина = ?
                                AND z.Дата_запуска IS Null
                                GROUP BY z.id
-                               ORDER BY z.id;''')
+                               ORDER BY z.id;''', (town, 'УК'))
                     data1 = cursor.fetchall()
                 return render_template('_uk.html', data1=data1, town=town)
             except Exception as e:
@@ -1563,7 +1573,7 @@ def _tekuschie():
             try:
                 with closing(db_manager.connect()) as connection:
                     cursor = connection.cursor()
-                    cursor.execute(f'''SELECT z.Номер_заявки,
+                    cursor.execute((f'''SELECT z.Номер_заявки,
                                FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
                                di.фио,
                                g.город,
@@ -1582,8 +1592,8 @@ def _tekuschie():
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE Дата_запуска IS NULL 
                                AND NOT z.Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
-                               AND Город = '{town}'
-                               AND NOT pc_id IS NULL''')
+                               AND Город = ?
+                               AND NOT pc_id IS NULL'''),(town,))
                     data1 = cursor.fetchall()
                 return render_template('_tekuschie.html', data1=data1, town=town)
             except Exception as e:
@@ -1668,7 +1678,7 @@ def _ostanov():
             try:
                 with closing(db_manager.connect()) as connection:
                     cursor = connection.cursor()
-                    cursor.execute(f'''select z.Номер_заявки,
+                    cursor.execute((f'''select z.Номер_заявки,
                                FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
                                di.фио,
                                g.город,
@@ -1687,10 +1697,10 @@ def _ostanov():
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE z.дата_запуска IS Null 
                                AND NOT (LOWER(Комментарий) LIKE 'ложная' OR LOWER(Комментарий) LIKE 'на момент')
-                               AND Причина = 'Остановлен' 
+                               AND Причина = ?
                                AND NOT pc_id is NULL
                                 GROUP BY z.id
-                                ORDER BY z.id;''')
+                                ORDER BY z.id;'''),('Остановлен',))
                     data1 = cursor.fetchall()
                 return render_template('_ostanov.html', data1=data1, town=town)
             except Exception as e:
@@ -1717,13 +1727,13 @@ def _ostanov():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город = '{town}' 
-                               AND z.дата_запуска IS Null 
-                               AND NOT LOWER(Комментарий) LIKE 'ложная' 
-                               AND Причина = 'Остановлен' 
+                               WHERE Город = ?
+                               AND z.дата_запуска IS Null
+                               AND NOT LOWER(Комментарий) LIKE 'ложная'
+                               AND Причина = ?
                                AND NOT pc_id IS NULL
                                 GROUP BY z.id
-                                ORDER BY z.id;''')
+                                ORDER BY z.id;''', (town, 'Остановлен'))
                     data1 = cursor.fetchall()
                 return render_template('_ostanov.html', data1=data1, town=town)
             except Exception as e:
@@ -1744,7 +1754,7 @@ def _lineynie():
             try:
                 with closing(db_manager.connect()) as connection:
                     cursor = connection.cursor()
-                    cursor.execute(f'''select z.Номер_заявки,
+                    cursor.execute((f'''select z.Номер_заявки,
                                FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
                                di.фио,
                                g.город,
@@ -1762,10 +1772,10 @@ def _lineynie():
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
                                WHERE z.дата_запуска IS Null 
-                               AND Причина = 'Линейная' 
+                               AND Причина = ?
                                AND NOT pc_id IS NULL
                                 GROUP BY z.id
-                                ORDER BY z.id;''')
+                                ORDER BY z.id;'''),('Линейная',))
                     data1 = cursor.fetchall()
                 return render_template('_lineynie.html', data1=data1, town=town)
             except Exception as e:
@@ -1792,12 +1802,12 @@ def _lineynie():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город = '{town}' 
-                               AND z.дата_запуска IS Null 
-                               AND Причина = 'Линейная' 
+                               WHERE Город = ?
+                               AND z.дата_запуска IS Null
+                               AND Причина = ?
                                AND NOT pc_id IS NULL
                                 GROUP BY z.id
-                                ORDER BY z.id;''')
+                                ORDER BY z.id;''', (town, 'Линейная'))
                     data1 = cursor.fetchall()
                 return render_template('_lineynie.html', data1=data1, town=town)
             except Exception as e:
@@ -1837,7 +1847,7 @@ def kolvo_lifts():
             try:
                 with closing(db_manager.connect()) as connection:
                     cursor = connection.cursor()
-                    cursor.execute(f'''SELECT g.город,
+                    cursor.execute('''SELECT g.город,
                                s.`улица`,
                                d.`номер`,
                                p.`номер`,
@@ -1847,9 +1857,9 @@ def kolvo_lifts():
                                JOIN doma d ON l.id_дом = d.id
                                JOIN street s ON d.id_улица = s.id
                                JOIN goroda g ON s.id_город = g.id
-                               WHERE город = '{town}' 
+                               WHERE город = ?
                                AND d.is_active = 1
-                               ORDER BY s.улица, d.номер, p.`Номер`, Тип_лифта''')
+                               ORDER BY s.улица, d.номер, p.`Номер`, Тип_лифта''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('kolvo_lifts.html', data1=data1, town=town)
             except Exception as e:
@@ -1866,28 +1876,28 @@ def get_db_manager(config_file):
 
 
 def fetch_addresses(cursor, city):
-    cursor.execute(f'''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
+    cursor.execute('''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
                         FROM lifts l
                         JOIN padik p ON l.`id_подъезд` = p.id
                         JOIN doma d ON l.`id_дом` = d.id
                         JOIN street s ON d.`id_улица` = s.id
                         JOIN goroda g ON s.`id_город` = g.id
-                        WHERE g.город = '{city}'
+                        WHERE g.город = ?
                         AND d.is_active = 1
-                        LIMIT 500''')
+                        LIMIT 500''', (city,))
     addresses = cursor.fetchall()
 
     return [address[0] for address in addresses]
 
 
 def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
-    query = f'''SELECT
+    query = '''SELECT
                     z.Номер_заявки,
                     FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') AS Дата_заявки,
                     di.фио,
                     g.город,
                     CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) AS Адрес,
-                    z.Причина,
+                    z.Причина, 
                     m1.фио AS Принял,
                     m2.фио as Исполнил,
                     FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') AS Дата_запуска,
@@ -1900,21 +1910,22 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
                 JOIN padik p ON z.id_подъезд = p.id
                 JOIN workers m1 ON z.id_Механик = m1.id
                 LEFT JOIN workers m2 ON z.id_исполнитель = m2.id
-                WHERE g.город = '{city}' 
+                WHERE g.город = ?
                 AND NOT pc_id IS NULL'''
 
+    params = [city]
+
     if addresses:
-        query += f" AND ('{addresses}' = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) like '%{addresses}%')"
+        query += " AND (? = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) like ?)"
+        params.extend([addresses, f'%{addresses}%'])
     if start_date:
-        query += f" AND z.Дата_заявки BETWEEN {start_date}"
-        if end_date:
-            query += f" AND {end_date}"
-        else:
+        if end_date is None:
             end_date = int(datetime.now().timestamp())
-            query += f" AND {end_date}"
+        query += " AND z.Дата_заявки BETWEEN ? AND ?"
+        params.extend([start_date, end_date])
     query += " ORDER BY z.id desc LIMIT 1000;"
 
-    cursor.execute(query)
+    cursor.execute(query, tuple(params))
 
     return cursor.fetchall()
 

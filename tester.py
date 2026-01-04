@@ -506,9 +506,6 @@ def base():
                                     WHERE Город = ?
                                     AND NOT pc_id IS NULL''', (town,))
                 query = cursor.fetchall()
-                print(f"DEBUG query (with town): {query}, type: {type(query)}, len: {len(query)}")
-                if query:
-                    print(f"DEBUG query[0]: {query[0]}, type: {type(query[0])}")
             else:
                 cursor.execute((f'''SELECT 
                                     COUNT(CASE
@@ -523,9 +520,6 @@ def base():
                                     JOIN goroda g ON z.id_город = g.id
                                     WHERE NOT pc_id IS NULL'''))
                 query = cursor.fetchall()
-                print(f"DEBUG query (no town): {query}, type: {type(query)}, len: {len(query)}")
-                if query:
-                    print(f"DEBUG query[0]: {query[0]}, type: {type(query[0])}")
         return render_template(f'vostok.html',
                                data1=data1,
                                data2=query,
@@ -701,7 +695,7 @@ def base():
                                     AND NOT pc_id IS NULL;''')
                 data12 = cursor.fetchall()
                 # ГРАФИК ЛОЖНЫХ СТОЛБЧАТЫЙ
-                query = f'''SELECT
+                sql_query = f'''SELECT
                                     COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
                                     COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
                                     COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
@@ -719,12 +713,12 @@ def base():
                                     WHERE '''
                 params = []
                 if town:
-                    query += "Город = ? AND "
+                    sql_query += "Город = ? AND "
                     params.append(town)
-                query += '''(LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
+                sql_query += '''(LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                     AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
                                     AND NOT pc_id IS NULL;'''
-                cursor.execute(query, tuple(params))
+                cursor.execute(sql_query, tuple(params))
                 data13 = cursor.fetchall()
             # ЭТО ЕСЛИ ВЫБРАЛИ НА САЙТЕ КОНКРЕТНЫЙ ГОРОД
             else:
@@ -764,7 +758,7 @@ def base():
                                     AND NOT pc_id IS NULL''', ('УК', town,))
                 data15 = cursor.fetchall()
                 # ГОДОВАЯ СТАТИСТИКА
-                query = f'''SELECT
+                sql_query = f'''SELECT
                                     COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
                                     COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
                                     COUNT(CASE WHEN EXTRACT(MONTH FROM FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
@@ -784,11 +778,11 @@ def base():
                                     WHERE '''
                 params = []
                 if town:
-                    query += "Город = ? AND "
+                    sql_query += "Город = ? AND "
                     params.append(town)
-                query += '''EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW())
+                sql_query += '''EXTRACT(YEAR FROM FROM_UNIXTIME(Дата_заявки)) = YEAR(NOW())
                                     AND NOT pc_id IS NULL;'''
-                cursor.execute(query, tuple(params))
+                cursor.execute(sql_query, tuple(params))
                 data9 = cursor.fetchall()
                 # ЗАСТРЕВАНИЯ В МЕСЯЦ ГОРОДА
                 cursor.execute(
@@ -868,7 +862,7 @@ def base():
                                     AND NOT pc_id IS NULL;''', (town, 'Застревание'))
                 data10 = cursor.fetchall()
                 # ГРАФИК НЕИСПРАВНОСТЕЙ СТОЛБЧАТЫЙ
-                query = f'''SELECT
+                sql_query = f'''SELECT
                                     COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
                                     COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
                                     COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
@@ -888,9 +882,9 @@ def base():
                                     WHERE '''
                 params = []
                 if town:
-                    query += "Город = ? AND "
+                    sql_query += "Город = ? AND "
                     params.append(town)
-                query += '''Причина IN ('Неисправность', 'Остановлен')
+                sql_query += '''Причина IN ('Неисправность', 'Остановлен')
                                     AND NOT LOWER(Комментарий) LIKE '%электр%'
                                     AND NOT LOWER(Комментарий) LIKE '%скачок%'
                                     AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
@@ -898,7 +892,7 @@ def base():
                                     AND NOT LOWER(Комментарий) LIKE '%пож%'
                                     AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
                                     AND NOT pc_id IS NULL;'''
-                cursor.execute(query, tuple(params))
+                cursor.execute(sql_query, tuple(params))
                 data12 = cursor.fetchall()
                 # ГРАФИК ЛОЖНЫХ СТОЛБЧАТЫЙ
                 cursor.execute(f'''SELECT

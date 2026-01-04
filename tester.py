@@ -720,6 +720,18 @@ def base():
                                     AND NOT pc_id IS NULL;'''
                 cursor.execute(sql_query, tuple(params))
                 data13 = cursor.fetchall()
+                # ЛИНЕЙНЫЕ В МЕСЯЦ (ВСЕ ГОРОДА)
+                cursor.execute(f'''SELECT count(Причина) FROM {table_name} z
+                                    WHERE Причина = ?
+                                    AND z.Дата_запуска IS Null
+                                    AND NOT pc_id IS NULL''', ('Линейная',))
+                data6 = cursor.fetchall()
+                # УК ЗАЯВКИ (ВСЕ ГОРОДА)
+                cursor.execute(f'''SELECT count(*) FROM {table_name} z
+                                    WHERE Дата_запуска IS NULL
+                                    AND Причина = ?
+                                    AND NOT pc_id IS NULL''', ('УК',))
+                data15 = cursor.fetchall()
             # ЭТО ЕСЛИ ВЫБРАЛИ НА САЙТЕ КОНКРЕТНЫЙ ГОРОД
             else:
                 cursor.execute(f'''SELECT

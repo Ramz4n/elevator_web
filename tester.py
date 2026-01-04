@@ -558,14 +558,38 @@ def base():
             # ЭТО ЕСЛИ ВЫБРАЛИ НА САЙТЕ "ВСЕ ГОРОДА"
             if selected_city == 'all':
                 # ВСЕГО ЗАЯВОК, ОСТАНОВКИ, ЛИНЕЙНЫЕ
-                cursor.execute((f'''SELECT 
-                                    COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = ? THEN 1 END) AS vsego,
-                                    COUNT(CASE WHEN Причина = 'Остановлен' AND z.дата_запуска IS Null THEN 1 END) AS stopped,
-                                    COUNT(CASE WHEN Причина = 'Линейная' AND z.Дата_запуска IS Null THEN 1 END) AS lineynaya,
-                                    COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска IS Null THEN 1 END) AS svyaz
-                                    FROM {table_name} z 
-                                    WHERE NOT pc_id IS NULL'''), (month_list,))
+                cursor.execute(
+                    f'''
+                    SELECT
+                        COUNT(CASE 
+                            WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = ?
+                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
+                            THEN 1 END) AS vsego,
+                        COUNT(CASE 
+                            WHEN Причина = 'Остановлен'
+                             AND z.Дата_запуска IS NULL
+                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
+                            THEN 1 END) AS stopped,
+                        COUNT(CASE 
+                            WHEN Причина = 'Линейная'
+                             AND z.Дата_запуска IS NULL
+                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
+                            THEN 1 END) AS lineynaya,
+                        COUNT(CASE 
+                            WHEN Причина = 'Связь'
+                             AND z.Дата_запуска IS NULL
+                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
+                            THEN 1 END) AS svyaz
+                    FROM {table_name} z
+                    JOIN goroda g ON z.id_город = g.id
+                    WHERE pc_id IS NOT NULL
+                    ''', (month_list, current_year_index,
+                        current_year_index,
+                        current_year_index,
+                        current_year_index))
+
                 query = cursor.fetchall()
+
                 # КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
                 cursor.execute(f'''SELECT count(z.id)
                                     FROM lifts z
@@ -734,16 +758,41 @@ def base():
                 data15 = cursor.fetchall()
             # ЭТО ЕСЛИ ВЫБРАЛИ НА САЙТЕ КОНКРЕТНЫЙ ГОРОД
             else:
-                cursor.execute(f'''SELECT
-                                    COUNT(CASE WHEN z.id AND MONTH(FROM_UNIXTIME(Дата_заявки)) = ? THEN 1 END) AS vsego,
-                                    COUNT(CASE WHEN Причина = 'Остановлен' AND z.дата_запуска IS Null THEN 1 END) AS stopped,
-                                    COUNT(CASE WHEN Причина = 'Линейная' AND z.Дата_запуска IS Null THEN 1 END) AS lineynaya,
-                                    COUNT(CASE WHEN Причина = 'Связь' AND z.Дата_запуска IS Null THEN 1 END) AS svyaz
-                                    FROM {table_name} z
-                                    JOIN goroda g ON z.id_город = g.id
-                                    WHERE Город = ?
-                                    AND NOT pc_id IS NULL''', (month_list, town))
+                cursor.execute(
+                    f'''
+                    SELECT
+                        COUNT(CASE 
+                            WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = ?
+                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
+                            THEN 1 END) AS vsego,
+                        COUNT(CASE 
+                            WHEN Причина = 'Остановлен'
+                             AND z.Дата_запуска IS NULL
+                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
+                            THEN 1 END) AS stopped,
+                        COUNT(CASE 
+                            WHEN Причина = 'Линейная'
+                             AND z.Дата_запуска IS NULL
+                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
+                            THEN 1 END) AS lineynaya,
+                        COUNT(CASE 
+                            WHEN Причина = 'Связь'
+                             AND z.Дата_запуска IS NULL
+                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
+                            THEN 1 END) AS svyaz
+                    FROM {table_name} z
+                    JOIN goroda g ON z.id_город = g.id
+                    WHERE Город = ?
+                      AND pc_id IS NOT NULL
+                    ''',
+                    (month_list, current_year_index,
+                        current_year_index,
+                        current_year_index,
+                        current_year_index,
+                        town))
+
                 query = cursor.fetchall()
+
                 # КОЛ-ВО ЛИФТОВ ВЫБРАННОГО ГОРОДА
                 cursor.execute('''SELECT count(z.id)
                                     FROM lifts z

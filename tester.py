@@ -753,18 +753,18 @@ def base():
                 # ТЕКУЩИЕ ЗАЯВКИ
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Дата_запуска IS NULL 
-                                    AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
-                                    AND Город = '{town}' 
-                                    AND NOT pc_id IS NULL''')
+                                    WHERE Дата_запуска IS NULL
+                                    AND NOT Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК')
+                                    AND Город = %s
+                                    AND NOT pc_id IS NULL''', (town,))
                 data14 = cursor.fetchall()
                 # ЗАЯВКИ УК
                 cursor.execute(f'''SELECT count(*) FROM {table_name} z
                                     JOIN goroda g ON z.id_город = g.id
-                                    WHERE Дата_запуска IS NULL 
-                                    AND Причина = 'УК' 
-                                    AND Город = '{town}' 
-                                    AND NOT pc_id IS NULL''')
+                                    WHERE Дата_запуска IS NULL
+                                    AND Причина = 'УК'
+                                    AND Город = %s
+                                    AND NOT pc_id IS NULL''', (town,))
                 data15 = cursor.fetchall()
                 # ГОДОВАЯ СТАТИСТИКА
                 query = f'''SELECT
@@ -871,7 +871,7 @@ def base():
                 data10 = cursor.fetchall()
                 # ГРАФИК НЕИСПРАВНОСТЕЙ СТОЛБЧАТЫЙ
                 for i in range(11):
-                    cursor.execute(f'''SELECT
+                    query = f'''SELECT
                                         COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 1 THEN 1 END) AS January,
                                         COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 2 THEN 1 END) AS February,
                                         COUNT(CASE WHEN MONTH(FROM_UNIXTIME(Дата_заявки)) = 3 THEN 1 END) AS March,
@@ -888,14 +888,20 @@ def base():
                                         JOIN doma d ON z.id_дом = d.id
                                         JOIN street s ON d.id_улица = s.id
                                         JOIN goroda g ON s.id_город = g.id
-                                        WHERE {f"Город = '{town}' AND " if town else ""}Причина IN ('Неисправность', 'Остановлен')
+                                        WHERE '''
+                    params = []
+                    if town:
+                        query += "Город = %s AND "
+                        params.append(town)
+                    query += '''Причина IN ('Неисправность', 'Остановлен')
                                         AND NOT LOWER(Комментарий) LIKE '%электр%'
                                         AND NOT LOWER(Комментарий) LIKE '%скачок%'
                                         AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                         AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                         AND NOT LOWER(Комментарий) LIKE '%пож%'
-                                        AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE()) 
-                                        AND NOT pc_id IS NULL;''')
+                                        AND YEAR(FROM_UNIXTIME(Дата_заявки)) = YEAR(CURDATE())
+                                        AND NOT pc_id IS NULL;'''
+                    cursor.execute(query, tuple(params))
                 data12 = cursor.fetchall()
                 # ГРАФИК ЛОЖНЫХ СТОЛБЧАТЫЙ
                 for i in range(11):
@@ -1039,12 +1045,12 @@ def _passport():
                                        JOIN doma d ON z.id_дом = d.id
                                        JOIN padik p ON z.id_подъезд = p.id
                                        JOIN workers m ON z.id_Механик = m.id
-                                       WHERE Город = '{request.args.get('selectedCity')}' 
-                                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ?
+                                       WHERE Город = %s
+                                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = %s
+                                       AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = %s
                                        GROUP BY номер_заявки
                                        ORDER BY номер_заявки;''',
-                               (f'{str(current_month_index + 1).zfill(2)}', f'{str(current_year_index)}',))
+                               (town_url, str(current_month_index + 1).zfill(2), str(current_year_index)))
                 data0 = cursor.fetchall()
                 cursor.execute(f'''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес,
                         pa.завод_№ as Заводской_номер,
@@ -1157,15 +1163,15 @@ def get_results_from_db(address, city):
     db_manager = DataBaseManager(config_file)
     with closing(db_manager.connect()) as connection:
         cursor = connection.cursor()
-        cursor.execute(f'''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес
+        cursor.execute('''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес
                       FROM passport pa
                       JOIN lifts li ON pa.id_лифт = li.id
                       JOIN padik p ON li.`id_подъезд` = p.id
                       JOIN doma d ON li.id_дом = d.id
                       JOIN street u ON d.id_улица = u.id
-                      JOIN goroda g ON u.`id_город` = g.id AND g.Город = "{city}"
-                      WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE LOWER("%{address}%") 
-                      AND NOT pc_id IS NULL''')
+                      JOIN goroda g ON u.`id_город` = g.id AND g.Город = %s
+                      WHERE LOWER(concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта)) LIKE LOWER(%s)
+                      AND NOT pc_id IS NULL''', (city, f"%{address}%"))
         results = cursor.fetchall()
     return results
 
@@ -1227,18 +1233,18 @@ def _top_bad():
                                         JOIN street s ON z.id_улица = s.id
                                         JOIN doma d ON z.id_дом = d.id
                                         JOIN padik p ON z.id_подъезд = p.id
-                                        WHERE Город='{town}' AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
-                                        AND NOT (LOWER(Комментарий) LIKE '%скачок%'  
+                                        WHERE Город=%s AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                        AND NOT (LOWER(Комментарий) LIKE '%скачок%'
                                         OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
                                         OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
-                                        OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%' 
-								   		OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%') 
-                                        AND NOT pc_id IS NULL 
+                                        OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%'
+								   		OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
+                                        AND NOT pc_id IS NULL
                                         AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
                                         GROUP BY Адрес, Тип_лифта
                                         ORDER BY address_count
                                          DESC
-                                        LIMIT 100;''')
+                                        LIMIT 100;''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('_top_bad.html', data1=data1)
             except Exception as e:
@@ -1373,11 +1379,11 @@ def _obrasch():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город='{town}' AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
-                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? AND NOT pc_id is NULL
+                               WHERE Город=%s AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = %s
+                               AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = %s AND NOT pc_id is NULL
                                GROUP BY z.id
                                ORDER BY z.id;''',
-                                   (f'{month.zfill(2)}', f'{str(current_year_index)}',))
+                                   (town, month.zfill(2), str(current_year_index)))
                     data1 = cursor.fetchall()
                 return render_template('_obrasch.html', data1=data1, town=town)
             except Exception as e:
@@ -1447,12 +1453,12 @@ def _svyaz():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город = '{town}' 
+                               WHERE Город = %s
                                AND NOT pc_id IS NULL
-                               AND z.Причина = 'Связь' 
+                               AND z.Причина = 'Связь'
                                AND z.Дата_запуска IS Null
                                GROUP BY z.id
-                               ORDER BY z.id;''')
+                               ORDER BY z.id;''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('_svyaz.html', data1=data1, town=town)
             except Exception as e:
@@ -1522,12 +1528,12 @@ def _uk():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город = '{town}' 
+                               WHERE Город = %s
                                AND NOT pc_id IS NULL
-                               AND z.Причина = 'УК' 
+                               AND z.Причина = 'УК'
                                AND z.Дата_запуска IS Null
                                GROUP BY z.id
-                               ORDER BY z.id;''')
+                               ORDER BY z.id;''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('_uk.html', data1=data1, town=town)
             except Exception as e:
@@ -1730,13 +1736,13 @@ def _ostanov():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город = '{town}' 
-                               AND z.дата_запуска IS Null 
-                               AND NOT LOWER(Комментарий) LIKE 'ложная' 
-                               AND Причина = 'Остановлен' 
+                               WHERE Город = %s
+                               AND z.дата_запуска IS Null
+                               AND NOT LOWER(Комментарий) LIKE 'ложная'
+                               AND Причина = 'Остановлен'
                                AND NOT pc_id IS NULL
                                 GROUP BY z.id
-                                ORDER BY z.id;''')
+                                ORDER BY z.id;''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('_ostanov.html', data1=data1, town=town)
             except Exception as e:
@@ -1805,12 +1811,12 @@ def _lineynie():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
-                               WHERE Город = '{town}' 
-                               AND z.дата_запуска IS Null 
-                               AND Причина = 'Линейная' 
+                               WHERE Город = %s
+                               AND z.дата_запуска IS Null
+                               AND Причина = 'Линейная'
                                AND NOT pc_id IS NULL
                                 GROUP BY z.id
-                                ORDER BY z.id;''')
+                                ORDER BY z.id;''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('_lineynie.html', data1=data1, town=town)
             except Exception as e:

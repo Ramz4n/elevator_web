@@ -568,25 +568,19 @@ def base():
                         COUNT(CASE 
                             WHEN Причина = 'Остановлен'
                              AND z.Дата_запуска IS NULL
-                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
                             THEN 1 END) AS stopped,
                         COUNT(CASE 
                             WHEN Причина = 'Линейная'
                              AND z.Дата_запуска IS NULL
-                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
                             THEN 1 END) AS lineynaya,
                         COUNT(CASE 
                             WHEN Причина = 'Связь'
                              AND z.Дата_запуска IS NULL
-                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
                             THEN 1 END) AS svyaz
                     FROM {table_name} z
                     JOIN goroda g ON z.id_город = g.id
                     WHERE pc_id IS NOT NULL
-                    ''', (month_list, current_year_index,
-                        current_year_index,
-                        current_year_index,
-                        current_year_index))
+                    ''', (month_list, current_year_index))
 
                 query = cursor.fetchall()
 
@@ -768,28 +762,21 @@ def base():
                         COUNT(CASE 
                             WHEN Причина = 'Остановлен'
                              AND z.Дата_запуска IS NULL
-                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
                             THEN 1 END) AS stopped,
                         COUNT(CASE 
                             WHEN Причина = 'Линейная'
                              AND z.Дата_запуска IS NULL
-                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
                             THEN 1 END) AS lineynaya,
                         COUNT(CASE 
                             WHEN Причина = 'Связь'
                              AND z.Дата_запуска IS NULL
-                             AND YEAR(FROM_UNIXTIME(Дата_заявки)) = ?
                             THEN 1 END) AS svyaz
                     FROM {table_name} z
                     JOIN goroda g ON z.id_город = g.id
                     WHERE Город = ?
                       AND pc_id IS NOT NULL
                     ''',
-                    (month_list, current_year_index,
-                        current_year_index,
-                        current_year_index,
-                        current_year_index,
-                        town))
+                    (month_list, current_year_index, town))
 
                 query = cursor.fetchall()
 

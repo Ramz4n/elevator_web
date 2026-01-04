@@ -506,6 +506,9 @@ def base():
                                     WHERE Город = ?
                                     AND NOT pc_id IS NULL''', (town,))
                 query = cursor.fetchall()
+                print(f"DEBUG query (with town): {query}, type: {type(query)}, len: {len(query)}")
+                if query:
+                    print(f"DEBUG query[0]: {query[0]}, type: {type(query[0])}")
             else:
                 cursor.execute((f'''SELECT 
                                     COUNT(CASE
@@ -520,6 +523,9 @@ def base():
                                     JOIN goroda g ON z.id_город = g.id
                                     WHERE NOT pc_id IS NULL'''))
                 query = cursor.fetchall()
+                print(f"DEBUG query (no town): {query}, type: {type(query)}, len: {len(query)}")
+                if query:
+                    print(f"DEBUG query[0]: {query[0]}, type: {type(query[0])}")
         return render_template(f'vostok.html',
                                data1=data1,
                                data2=query,

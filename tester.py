@@ -17,6 +17,7 @@ from flask_caching import Cache
 from db_manager import DataBaseManager
 from datetime import datetime
 from waitress import serve
+from yearly_stats_cache import yearly_cache  # Кэширование годовой статистики
 
 UPLOAD_FOLDER = 'static'
 load_dotenv()

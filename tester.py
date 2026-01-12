@@ -1252,7 +1252,7 @@ def _top_bad():
                                         AND NOT pc_id IS NULL AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
                                         GROUP BY Адрес, Тип_лифта
                                         ORDER BY address_count DESC
-                                        LIMIT 100;''')
+                                        LIMIT 30;''')
                     data1 = cursor.fetchall()
                 return render_template('_top_bad.html', data1=data1)
             except Exception as e:
@@ -1282,7 +1282,7 @@ def _top_bad():
                                         GROUP BY Адрес, Тип_лифта
                                         ORDER BY address_count
                                          DESC
-                                        LIMIT 100;''', (town,))
+                                        LIMIT 30;''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('_top_bad.html', data1=data1)
             except Exception as e:
@@ -1331,7 +1331,7 @@ def _top_bad():
                                     AND z.`Тип_лифта` = ? 
                                     AND NOT pc_id is NULL
                                     GROUP BY z.Дата_заявки desc
-                                   limit 100;''', (city, adres[0], adres[1], adres[2], lift))
+                                   limit 30;''', (city, adres[0], adres[1], adres[2], lift))
                 query_bd = cursor.fetchall()
 
                 query = []
@@ -1960,7 +1960,8 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
                 JOIN workers m1 ON z.id_Механик = m1.id
                 LEFT JOIN workers m2 ON z.id_исполнитель = m2.id
                 WHERE g.город = ?
-                AND NOT pc_id IS NULL'''
+                AND NOT pc_id IS NULL
+                '''
 
     params = [city]
 

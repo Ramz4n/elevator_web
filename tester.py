@@ -1658,11 +1658,22 @@ def _stat():
         table_name = session['table_name']
         config_file = session['config_file']
         db_manager = DataBaseManager(config_file)
+        selected_year = request.args.get('year', type=int)
         try:
             with closing(db_manager.connect()) as connection:
                 cursor = connection.cursor()
+                cursor.execute(f'''SELECT DISTINCT YEAR(FROM_UNIXTIME(Дата_заявки)) as y
+                                FROM {table_name}
+                                WHERE NOT pc_id IS NULL
+                                ORDER BY y DESC;''')
+                years = [row[0] for row in cursor.fetchall()]
+                if selected_year is None and years:
+                    selected_year = years[0]
+                year_filter = ''
+                if selected_year:
+                    year_filter = f'AND YEAR(FROM_UNIXTIME(Дата_заявки)) = {int(selected_year)}'
                 cursor.execute(f'''SELECT Город,
-                                    CASE 
+                                    CASE
                                     WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'January' THEN 'Январь'
                                     WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'February' THEN 'Февраль'
                                     WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'March' THEN 'Март'
@@ -1677,38 +1688,39 @@ def _stat():
                                     WHEN MONTHNAME(FROM_UNIXTIME(Дата_заявки)) = 'December' THEN 'Декабрь'
                                     END AS месяц,
                                     COUNT(*) as всего_заявок,
-                                    
-                                    SUM(CASE WHEN Причина IN ('Остановлен', 'Неисправность') 
-                                    AND NOT LOWER(Комментарий) LIKE '%на момент осмотра%' 
-                                    AND NOT LOWER(Комментарий) LIKE '%ложн%' 
-                                    AND NOT LOWER(Комментарий) LIKE '%вандал%' 
-                                    AND NOT LOWER(Комментарий) LIKE '%пож%' THEN 1 ELSE 0 END) as Неисправность,
-                                    
-                                    SUM(CASE WHEN Причина = 'Застревание' 
-                                    AND NOT LOWER(Комментарий) LIKE '%на момент осмотра%' 
-                                    AND NOT LOWER(Комментарий) LIKE '%ложн%'
-                                    AND NOT LOWER(Комментарий) LIKE '%вандал%' 
-                                    AND NOT LOWER(Комментарий) LIKE '%пож%' THEN 1 ELSE 0 END) as Застревание,
-                                    
-                                    SUM(CASE WHEN Причина = 'Линейная' 
+
+                                    SUM(CASE WHEN Причина IN ('Остановлен', 'Неисправность')
                                     AND NOT LOWER(Комментарий) LIKE '%на момент осмотра%'
-                                    AND NOT LOWER(Комментарий) LIKE '%ложн%' 
-                                    AND NOT LOWER(Комментарий) LIKE '%пож%' 
+                                    AND NOT LOWER(Комментарий) LIKE '%ложн%'
+                                    AND NOT LOWER(Комментарий) LIKE '%вандал%'
+                                    AND NOT LOWER(Комментарий) LIKE '%пож%' THEN 1 ELSE 0 END) as Неисправность,
+
+                                    SUM(CASE WHEN Причина = 'Застревание'
+                                    AND NOT LOWER(Комментарий) LIKE '%на момент осмотра%'
+                                    AND NOT LOWER(Комментарий) LIKE '%ложн%'
+                                    AND NOT LOWER(Комментарий) LIKE '%вандал%'
+                                    AND NOT LOWER(Комментарий) LIKE '%пож%' THEN 1 ELSE 0 END) as Застревание,
+
+                                    SUM(CASE WHEN Причина = 'Линейная'
+                                    AND NOT LOWER(Комментарий) LIKE '%на момент осмотра%'
+                                    AND NOT LOWER(Комментарий) LIKE '%ложн%'
+                                    AND NOT LOWER(Комментарий) LIKE '%пож%'
                                     AND NOT LOWER(Комментарий) LIKE '%вандал%' THEN 1 ELSE 0 END) as Линейные,
-                                    
-                                    SUM(CASE WHEN Причина = 'Связь' 
-                                    OR LOWER(Комментарий) LIKE '%пож%' 
+
+                                    SUM(CASE WHEN Причина = 'Связь'
+                                    OR LOWER(Комментарий) LIKE '%пож%'
                                     OR LOWER(Комментарий) LIKE '%ложн%'
-                                    OR LOWER(Комментарий) LIKE '%на момент осмотра%' 
+                                    OR LOWER(Комментарий) LIKE '%на момент осмотра%'
                                     OR LOWER(Комментарий) LIKE '%вандал%'
                                     THEN 1 ELSE 0 END) as Прочее
-                                FROM {table_name} z 
+                                FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE NOT pc_id IS NULL
+                                {year_filter}
                                 GROUP BY Город, месяц
                                 ORDER BY Город, Дата_заявки, месяц;''')
                 statistic = cursor.fetchall()
-            return render_template('_stat.html', statistic=statistic)
+            return render_template('_stat.html', statistic=statistic, years=years, selected_year=selected_year)
         except Exception as e:
             print('Проблема в stat:', e)
             return render_template('error.html')

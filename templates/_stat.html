@@ -47,6 +47,38 @@ function goBack() {
 
 </script>
 <h2 style="text-align: center"><button class="btn btn-success" onclick="goBack()">Назад</button>Статистика по городам</h2>
+<div style="text-align: center; margin-bottom: 15px; position: relative; display: inline-block; width: 100%;">
+  <button onclick="document.getElementById('yearList').classList.toggle('show')"
+          style="padding: 8px 20px; font-size: 18px; border-radius: 5px; border: none;
+                 background-color: #63B2F3; color: white; cursor: pointer;">
+    Год: {{ selected_year }} &#9662;
+  </button>
+  <div id="yearList" style="display: none; position: absolute; left: 50%; transform: translateX(-50%);
+       background: white; border: 1px solid #ddd; border-radius: 5px; margin-top: 5px;
+       box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10;">
+    {% for year in years %}
+      <a href="/_stat?year={{ year }}"
+         style="display: block; padding: 8px 30px; text-decoration: none; font-size: 17px;
+                color: {% if year == selected_year %}white{% else %}#333{% endif %};
+                background-color: {% if year == selected_year %}#2e7d32{% else %}white{% endif %};">
+        {{ year }}
+      </a>
+    {% endfor %}
+  </div>
+</div>
+<script>
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('button');
+  var list = document.getElementById('yearList');
+  if (!btn || btn.nextElementSibling !== list) {
+    list.classList.remove('show');
+  }
+});
+</script>
+<style>
+#yearList.show { display: block !important; }
+#yearList a:hover { background-color: #e8e8e8; }
+</style>
 <table class="table fixed-header">
   <thead>
     <tr>

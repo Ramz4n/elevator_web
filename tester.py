@@ -21,33 +21,39 @@ from yearly_stats_cache import yearly_cache  # Кэширование годов
 
 UPLOAD_FOLDER = 'static'
 load_dotenv()
-db_table_name = os.getenv("DB_NAME1")
-db_password = os.getenv("DB_PASSWORD1")
-db_user = os.getenv("DB_USER")
+
+db_table_name = os.getenv("DB_NAME_SITE")
+db_password = os.getenv("DB_PASSWORD_ROOT")
+db_user = os.getenv("DB_LOGIN_ROOT")
 db_port = os.getenv("DB_PORT")
 db_host = os.getenv("DB_HOST")
-host = os.getenv("HOST")
+
+pc_host = os.getenv("HOST")
+db_table = os.getenv("DB_TABLE", "zayavki")
+
 tester = Flask(__name__, static_folder='static')
-tester.debug = True
-tester.config['ENV'] = 'production'
 tester.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-tester.config[
-    'SQLALCHEMY_DATABASE_URI'] = f'mariadb+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_table_name}'
-tester.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
-tester.config['SQLALCHEMY_POOL_SIZE'] = 20  # Увеличить размер пула соединений
-tester.config['SQLALCHEMY_MAX_OVERFLOW'] = 0  # Запретить переполнение пула
-tester.config['SQLALCHEMY_CONNECT_TIMEOUT'] = 30  # Установить время ожидания соединения
-tester.config['SQLALCHEMY_POOL_RECYCLE'] = 3600  # Сбрасывать соединения каждые 3600 секунд (1 час)
+tester.config['SQLALCHEMY_DATABASE_URI'] = f'mariadb+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_table_name}'
+tester.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 3600,
+    'pool_size': 15,
+    'max_overflow': 5
+}
 
 client = pymemcache.Client('localhost')
 
 login_manager = LoginManager(tester)
-login_manager.init_app(tester)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Введите Логин и Пароль'
 
-secret_key = os.urandom(24)
-tester.config['SECRET_KEY'] = secret_key
+tester.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+tester.config['SESSION_COOKIE_HTTPONLY'] = True
+tester.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+tester.config['PERMANENT_SESSION_LIFETIME'] = 3600
+tester.config['REMEMBER_COOKIE_DURATION'] = 7 * 24 * 3600  # 7 дней
+tester.config['REMEMBER_COOKIE_SECURE'] = os.getenv('HTTPS', 'false').lower() == 'true'
+tester.config['REMEMBER_COOKIE_HTTPONLY'] = True
 db = SQLAlchemy(tester)
 
 # Настройки блокировки IP
@@ -75,7 +81,8 @@ def login():
         if user:
             # Check the hash
             if check_password_hash(user.password, form.password.data):
-                login_user(user)
+                login_user(user, remember=True)
+                session.permanent = True
                 print(form.username.data)
                 session['access'] = user.access
                 return redirect(url_for('base'))
@@ -113,15 +120,12 @@ def base():
     if request.method == 'GET':
         image_value = request.args.get('image_value')
         city = request.args.get('city')
-        with open(f'vostok.json', 'r') as file:
-            data = json.loads(file.read())
-        session['table_name'] = data['table_name']
+        session['table_name'] = db_table
         session['config_file'] = "vostok"
-        table_name = session.get('table_name')
+        table_name = db_table
         current_month_index = int((datetime.now(tz=None)).strftime("%m")) - 1
         current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
-        config_file = session.get('config_file')
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
             cursor.execute(f'''SELECT g.Город FROM {table_name} z
@@ -540,10 +544,9 @@ def base():
                                procent2=procent2,
                                procent3=procent3)
     elif request.method == 'POST':
-        config_file = session.get('config_file')
         data = request.get_json()
         table_name = session.get('table_name')
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         selected_city = data.get('selectedCity')
         month_list = data.get('monthList')
         if selected_city == "all" or selected_city is None:
@@ -1050,9 +1053,8 @@ def _passport():
     current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
     try:
         if request.method == 'GET':
-            config_file = session['config_file']
             table_name = session['table_name']
-            db_manager = DataBaseManager(config_file)
+            db_manager = DataBaseManager()
             town_url = request.args.get('selectedCity')
             with closing(db_manager.connect()) as connection:
                 cursor = connection.cursor()
@@ -1121,9 +1123,8 @@ def _passport():
             table_name = session['table_name']
             town = request.get_json()['cityList']
             address = address.split(', ')
-            config_file = session['config_file']
             current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
-            db_manager = DataBaseManager(config_file)
+            db_manager = DataBaseManager()
             # при выборе города меняется улица дом и падик в списке select html======================================
             with closing(db_manager.connect()) as connection:
                 cursor = connection.cursor()
@@ -1197,8 +1198,7 @@ def _passport():
 
 
 def get_results_from_db(address, city):
-    config_file = session['config_file']
-    db_manager = DataBaseManager(config_file)
+    db_manager = DataBaseManager()
     with closing(db_manager.connect()) as connection:
         cursor = connection.cursor()
         cursor.execute('''SELECT concat(u.улица, ', ',  d.номер, ', ',  p.`Номер`, ', ',  li.тип_лифта) as Адрес
@@ -1228,8 +1228,7 @@ def _top_bad():
     if request.method == 'GET':
         town = request.args.get('selectedCity')
         table_name = session['table_name']
-        config_file = session['config_file']
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         if town == 'all':
             try:
                 with closing(db_manager.connect()) as connection:
@@ -1290,8 +1289,7 @@ def _top_bad():
                 return render_template('error.html')
     if request.method == 'POST':
         table_name = session['table_name']
-        config_file = session['config_file']
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         data = request.get_json()
         city = data['city']
         adres = data['adres']
@@ -1359,12 +1357,11 @@ def _top_bad():
 def _obrasch():
     # ОБРАЩЕНИЯ №1
     if request.method == 'GET':
-        config_file = session['config_file']
         table_name = session['table_name']
         current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         month = request.args.get('monthList')
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         if town == 'all':
             try:
                 with closing(db_manager.connect()) as connection:
@@ -1435,12 +1432,11 @@ def _obrasch():
 def _svyaz():
     # ОБРАЩЕНИЯ №1
     if request.method == 'GET':
-        config_file = session['config_file']
         table_name = session['table_name']
         current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         month = request.args.get('monthList')
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         if town == 'all':
             try:
                 with closing(db_manager.connect()) as connection:
@@ -1510,12 +1506,11 @@ def _svyaz():
 def _uk():
     # ОБРАЩЕНИЯ №1
     if request.method == 'GET':
-        config_file = session['config_file']
         table_name = session['table_name']
         current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         month = request.args.get('monthList')
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         if town == 'all':
             try:
                 with closing(db_manager.connect()) as connection:
@@ -1585,10 +1580,9 @@ def _uk():
 def _tekuschie():
     # ТЕКУЩИЕ ЗАЯВКИ
     if request.method == 'GET':
-        config_file = session['config_file']
         table_name = session['table_name']
         town = request.args.get('selectedCity')
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         if town == 'all':
             try:
                 with closing(db_manager.connect()) as connection:
@@ -1656,8 +1650,7 @@ def _stat():
     # statistica
     if request.method == 'GET':
         table_name = session['table_name']
-        config_file = session['config_file']
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         selected_year = request.args.get('year', type=int)
         try:
             with closing(db_manager.connect()) as connection:
@@ -1732,9 +1725,8 @@ def _ostanov():
     # ОСТАНОВКИ №4
     if request.method == 'GET':
         town = request.args.get('selectedCity')
-        config_file = session.get('config_file')
         table_name = session['table_name']
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         if town == 'all':
             try:
                 with closing(db_manager.connect()) as connection:
@@ -1808,9 +1800,8 @@ def _lineynie():
     # ЛИНЕЙНЫЕ №4
     if request.method == 'GET':
         town = request.args.get('selectedCity')
-        config_file = session.get('config_file')
         table_name = session['table_name']
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         if town == 'all':
             try:
                 with closing(db_manager.connect()) as connection:
@@ -1880,8 +1871,7 @@ def _lineynie():
 def kolvo_lifts():
     # КОЛИЧЕСТВО ЛИФТОВ У КОМПАНИИ
     if request.method == 'GET':
-        config_file = session['config_file']
-        db_manager = DataBaseManager(config_file)
+        db_manager = DataBaseManager()
         town = request.args.get('selectedCity')
         if town == 'all':
             try:
@@ -1932,8 +1922,8 @@ def kolvo_lifts():
 # ---------------------------------------------------------------------------------------------------------------------#
 # ---------------------------------------------------------------------------------------------------------------------#
 # -----------------------------------------------!!!ALARM!!!-----------------------------------------------------------#
-def get_db_manager(config_file):
-    return DataBaseManager(config_file)
+def get_db_manager():
+    return DataBaseManager()
 
 
 def fetch_addresses(cursor, city):
@@ -2003,8 +1993,7 @@ def fetch_cities(cursor):
 @login_required
 def updateData():
     if request.method == 'POST':
-        config_file = session.get('config_file')
-        db_manager = get_db_manager(config_file)
+        db_manager = get_db_manager()
 
         city = request.get_json()['cityList']
 
@@ -2021,7 +2010,7 @@ def updateData():
 @login_required
 def _search():
     config_file = session.get('config_file')
-    db_manager = get_db_manager(config_file)
+    db_manager = get_db_manager()
 
     if request.method == 'GET':
         with closing(db_manager.connect()) as connection:
@@ -2096,5 +2085,5 @@ def alexey():
 
 
 if __name__ == '__main__':
-    serve(tester, host=f"{host}", port=8080, threads=100)
+    serve(tester, host=f"{pc_host}", port=8080, threads=100)
     #tester.run(debug=True, host=f"{host}", port=8080, threaded=True)

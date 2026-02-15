@@ -1,16 +1,18 @@
 import mariadb
-import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class DataBaseManager:
-    def __init__(self, config_file):
-        with open(f'{config_file}.json', 'r') as file:
-            self.config = json.loads(file.read())
+    def __init__(self, db_name=None):
+        self.db_name = db_name or os.getenv('DB_NAME_JOURNAL')
 
     def connect(self):
         return mariadb.connect(
-            user=self.config['db_user'],
-            password=self.config['db_password'],
-            host=self.config['db_host'],
-            port=self.config['db_port'],
-            database=self.config['db_name'])
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            host=os.getenv('DB_HOST'),
+            port=int(os.getenv('DB_PORT', 3306)),
+            database=self.db_name)

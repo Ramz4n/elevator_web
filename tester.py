@@ -63,7 +63,14 @@ cache = Cache(tester, config={'CACHE_TYPE': 'simple'})
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(Users, int(user_id))
+    try:
+        return db.session.get(Users, int(user_id))
+    except Exception:
+        db.session.rollback()
+        try:
+            return db.session.get(Users, int(user_id))
+        except Exception:
+            return None
 
 
 class LoginForm(FlaskForm):
@@ -1053,7 +1060,7 @@ def _passport():
     current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
     try:
         if request.method == 'GET':
-            table_name = session['table_name']
+            table_name = session.get('table_name', db_table)
             db_manager = DataBaseManager()
             town_url = request.args.get('selectedCity')
             with closing(db_manager.connect()) as connection:
@@ -1120,7 +1127,7 @@ def _passport():
             return render_template('_passport.html', data0=data0, town=town, town_url=town_url, data1=data1)
         if request.method == 'POST':
             address = request.get_json()['adresList']
-            table_name = session['table_name']
+            table_name = session.get('table_name', db_table)
             town = request.get_json()['cityList']
             address = address.split(', ')
             current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
@@ -1227,7 +1234,7 @@ def search():
 def _top_bad():
     if request.method == 'GET':
         town = request.args.get('selectedCity')
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         db_manager = DataBaseManager()
         if town == 'all':
             try:
@@ -1288,7 +1295,7 @@ def _top_bad():
                 print('Проблема в наихудших:', e)
                 return render_template('error.html')
     if request.method == 'POST':
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         db_manager = DataBaseManager()
         data = request.get_json()
         city = data['city']
@@ -1357,7 +1364,7 @@ def _top_bad():
 def _obrasch():
     # ОБРАЩЕНИЯ №1
     if request.method == 'GET':
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         month = request.args.get('monthList')
@@ -1432,7 +1439,7 @@ def _obrasch():
 def _svyaz():
     # ОБРАЩЕНИЯ №1
     if request.method == 'GET':
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         month = request.args.get('monthList')
@@ -1506,7 +1513,7 @@ def _svyaz():
 def _uk():
     # ОБРАЩЕНИЯ №1
     if request.method == 'GET':
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         current_year_index = int((datetime.now(tz=None)).strftime("%Y"))
         town = request.args.get('selectedCity')
         month = request.args.get('monthList')
@@ -1580,7 +1587,7 @@ def _uk():
 def _tekuschie():
     # ТЕКУЩИЕ ЗАЯВКИ
     if request.method == 'GET':
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         town = request.args.get('selectedCity')
         db_manager = DataBaseManager()
         if town == 'all':
@@ -1649,7 +1656,7 @@ def _tekuschie():
 def _stat():
     # statistica
     if request.method == 'GET':
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         db_manager = DataBaseManager()
         selected_year = request.args.get('year', type=int)
         try:
@@ -1725,7 +1732,7 @@ def _ostanov():
     # ОСТАНОВКИ №4
     if request.method == 'GET':
         town = request.args.get('selectedCity')
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         db_manager = DataBaseManager()
         if town == 'all':
             try:
@@ -1800,7 +1807,7 @@ def _lineynie():
     # ЛИНЕЙНЫЕ №4
     if request.method == 'GET':
         town = request.args.get('selectedCity')
-        table_name = session['table_name']
+        table_name = session.get('table_name', db_table)
         db_manager = DataBaseManager()
         if town == 'all':
             try:

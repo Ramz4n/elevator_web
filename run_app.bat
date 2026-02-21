@@ -4,15 +4,21 @@ set PYTHONIOENCODING=utf-8
 call venv\Scripts\activate
 
 :retry
-echo Сайт со статистикой запущен. НЕ ЗАКРЫВАЙТЕ ЭТО ОКНО, СВЕРНИТЕ ЕГО!
-python tester.py > app.log 2>&1
+echo [%date% %time%] Проверка соединения с БД...
 
+REM Проверка соединения с сервером БД (замени DB_HOST на свой хост)
+ping -n 1 localhost >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Ошибка при выполнении tester.py, возможно, нет интернета.
-    echo Повторная попытка через 10 секунд...
+    echo [%date% %time%] Нет соединения. Повтор через 10 сек...
     timeout /t 10 /nobreak >nul
     goto retry
 )
 
-echo Скрипт успешно завершён.
-pause
+echo [%date% %time%] Сайт запущен. НЕ ЗАКРЫВАЙТЕ ЭТО ОКНО!
+echo [%date% %time%] Запуск сервера >> app.log
+python tester.py >> app.log 2>&1
+
+echo [%date% %time%] Сервер остановлен (код: %errorlevel%). Перезапуск через 5 сек...
+echo [%date% %time%] Сервер остановлен (код: %errorlevel%) >> app.log
+timeout /t 5 /nobreak >nul
+goto retry

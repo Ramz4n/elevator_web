@@ -1958,6 +1958,18 @@ def fetch_uk(cursor):
     return cursor.fetchall()
 
 
+def fetch_uk_by_city(cursor, city):
+    cursor.execute('''SELECT DISTINCT u.id, u.Название
+                      FROM uk u
+                      JOIN doma d ON d.id_ук = u.id
+                      JOIN street s ON d.id_улица = s.id
+                      JOIN goroda g ON s.id_город = g.id
+                      WHERE g.Город = ?
+                      AND u.is_active = 1
+                      ORDER BY u.Название''', (city,))
+    return cursor.fetchall()
+
+
 def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None, uk_id=None):
     query = '''SELECT
                     z.Номер_заявки,
@@ -2027,8 +2039,9 @@ def updateData():
 
             addresses = fetch_addresses(cursor, city, uk_id)
             tickets = fetch_tickets(cursor, city, uk_id=uk_id)
+            uk = fetch_uk_by_city(cursor, city)
 
-        return jsonify({'tickets': tickets, 'addresses': addresses})
+        return jsonify({'tickets': tickets, 'addresses': addresses, 'uk': uk})
 
 
 @tester.route('/_search', methods=['GET', 'POST'])

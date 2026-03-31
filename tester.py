@@ -1933,29 +1933,40 @@ def get_db_manager():
     return DataBaseManager()
 
 
-def fetch_addresses(cursor, city):
-    cursor.execute('''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
+def fetch_addresses(cursor, city, uk_id=None):
+    query = '''SELECT concat(s.улица, ', ', d.номер, ', ', p.номер, ', ', l.Тип_лифта) as Адрес
                         FROM lifts l
                         JOIN padik p ON l.`id_подъезд` = p.id
                         JOIN doma d ON l.`id_дом` = d.id
                         JOIN street s ON d.`id_улица` = s.id
                         JOIN goroda g ON s.`id_город` = g.id
                         WHERE g.город = ?
-                        AND d.is_active = 1
-                        LIMIT 500''', (city,))
+                        AND d.is_active = 1'''
+    params = [city]
+    if uk_id:
+        query += ' AND d.id_ук = ?'
+        params.append(uk_id)
+    query += ' LIMIT 500'
+    cursor.execute(query, tuple(params))
     addresses = cursor.fetchall()
 
     return [address[0] for address in addresses]
 
 
-def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
+def fetch_uk(cursor):
+    cursor.execute("SELECT id, Название FROM uk WHERE is_active = 1 ORDER BY Название")
+    return cursor.fetchall()
+
+
+def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None, uk_id=None):
     query = '''SELECT
                     z.Номер_заявки,
                     FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') AS Дата_заявки,
                     di.фио,
                     g.город,
                     CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) AS Адрес,
-                    z.Причина, 
+                    uk.Название AS УК,
+                    z.Причина,
                     m1.фио AS Принял,
                     m2.фио as Исполнил,
                     FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') AS Дата_запуска,
@@ -1968,10 +1979,15 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None):
                 JOIN padik p ON z.id_подъезд = p.id
                 JOIN workers m1 ON z.id_Механик = m1.id
                 LEFT JOIN workers m2 ON z.id_исполнитель = m2.id
+                LEFT JOIN uk ON d.id_ук = uk.id
                 WHERE g.город = ?
                 AND NOT pc_id IS NULL'''
 
     params = [city]
+
+    if uk_id:
+        query += " AND d.id_ук = ?"
+        params.append(uk_id)
 
     if addresses:
         query += " AND (? = '' OR CONCAT(s.улица, ', ', d.номер, ', ', p.номер, ', ', z.Тип_лифта) like ?)"
@@ -2001,13 +2017,15 @@ def updateData():
     if request.method == 'POST':
         db_manager = get_db_manager()
 
-        city = request.get_json()['cityList']
+        data = request.get_json()
+        city = data['cityList']
+        uk_id = data.get('ukId') or None
 
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
 
-            addresses = fetch_addresses(cursor, city)
-            tickets = fetch_tickets(cursor, city)
+            addresses = fetch_addresses(cursor, city, uk_id)
+            tickets = fetch_tickets(cursor, city, uk_id=uk_id)
 
         return jsonify({'tickets': tickets, 'addresses': addresses})
 
@@ -2024,14 +2042,16 @@ def _search():
 
             town = fetch_cities(cursor)
             addresses = fetch_addresses(cursor, town[0])
+            uk = fetch_uk(cursor)
 
-        return render_template('_search.html', town=town, addresses=addresses)
+        return render_template('_search.html', town=town, addresses=addresses, uk=uk)
 
     if request.method == 'POST':
         city = request.form.get('city')
         addresses = request.form.get('addresses')
         start_calendar = request.form.get('start_calendar')
         end_calendar = request.form.get('end_calendar')
+        uk_id = request.form.get('uk_id') or None
 
         start_date = None
         end_date = None
@@ -2052,7 +2072,7 @@ def _search():
         with closing(db_manager.connect()) as connection:
             cursor = connection.cursor()
 
-            tickets = fetch_tickets(cursor, city, addresses, start_date, end_date)
+            tickets = fetch_tickets(cursor, city, addresses, start_date, end_date, uk_id)
 
         return jsonify({'data1': tickets})
 

@@ -2022,6 +2022,7 @@ def alexey():
     return render_template('alexey.html')
 
 
+
 if __name__ == '__main__':
     serve(tester, host=f"{host}", port=8080, threads=100)
     #tester.run(debug=True, host=f"{host}", port=8080, threaded=True)

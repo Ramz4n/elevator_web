@@ -1,3 +1,6 @@
 .env
 config.json
 vostok.json
+app.log
+.claude
+vostok.sql

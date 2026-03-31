@@ -4,6 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/xlsx.full.min.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
       rel="stylesheet"
@@ -184,6 +185,16 @@ window.onload = function() {
 
 
             <div class="form-group">
+                <label for="ukList" class="customLabel">УК:</label>
+                <select class="customSelect" style="width:300px" name="uk_id" id="ukList" onchange="updateData()">
+                    <option value="">Все УК</option>
+                    {% for item in uk %}
+                        <option value="{{ item[0] }}">{{ item[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label for="addressesInput" class="customLabel">Адрес:</label>
                 <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" style="width: 600px;">
                 <datalist id="addresses">
@@ -206,6 +217,11 @@ window.onload = function() {
                 <label for="button_search" class="customLabel"></label>
                 <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search">Поиск</button>
             </div>
+
+            <div class="form-group">
+                <label class="customLabel"></label>
+                <button class="btn btn1 btn-primary" type="button" onclick="exportToExcel()">Скачать Excel</button>
+            </div>
         </form>
     </div>
     </h2>
@@ -218,6 +234,7 @@ window.onload = function() {
             <th>Диспетчер</th>
             <th>Город</th>
             <th>Адрес</th>
+            <th>УК</th>
             <th>Причина</th>
             <th>Принял</th>
             <th>Исполнил</th>
@@ -239,13 +256,14 @@ window.onload = function() {
 <script>
     function updateData() {
         const city = document.getElementById('cityList').value;
+        const ukId = document.getElementById('ukList').value;
 
         fetch('/updateData', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ cityList: city })
+            body: JSON.stringify({ cityList: city, ukId: ukId })
         })
         .then(response => response.json())
         .then(data => {
@@ -312,6 +330,12 @@ window.onload = function() {
 </script>
 
 <script>
+    function exportToExcel() {
+        const table = document.querySelector('table');
+        const wb = XLSX.utils.table_to_book(table, { sheet: 'Заявки' });
+        XLSX.writeFile(wb, 'zayavki.xlsx');
+    }
+
     document.getElementById('searchForm').addEventListener('submit', function(event) {
         event.preventDefault(); // Предотвращаем стандартное поведение формы
 
@@ -351,7 +375,7 @@ window.onload = function() {
                     row.appendChild(cell5);
 
                     var cell6 = document.createElement('td');
-                    cell6.textContent = item[5]; // Лифт
+                    cell6.textContent = item[5]; // УК
                     row.appendChild(cell6);
 
                     var cell7 = document.createElement('td');
@@ -359,16 +383,20 @@ window.onload = function() {
                     row.appendChild(cell7);
 
                     var cell8 = document.createElement('td');
-                    cell8.textContent = item[7]; // Механик
+                    cell8.textContent = item[7]; // Принял
                     row.appendChild(cell8);
 
                     var cell9 = document.createElement('td');
-                    cell9.textContent = item[8]; // Дата устранения
+                    cell9.textContent = item[8]; // Исполнил
                     row.appendChild(cell9);
 
                     var cell10 = document.createElement('td');
-                    cell10.textContent = item[9]; // Комментарий
+                    cell10.textContent = item[9]; // Дата устранения
                     row.appendChild(cell10);
+
+                    var cell11 = document.createElement('td');
+                    cell11.textContent = item[10]; // Комментарий
+                    row.appendChild(cell11);
 
                     tbody.appendChild(row);
                 });

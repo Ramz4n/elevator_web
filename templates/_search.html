@@ -174,7 +174,7 @@ window.onload = function() {
         <form id="searchForm" action="/_search" method="get" class="form-horizontal">
             <div class="form-group">
                 <label for="cityList" class="customLabel">Город:</label>
-                <select class="customSelect" style="width:300px" name="city" id="cityList" onchange="updateData()">
+                <select class="customSelect" style="width:300px" name="city" id="cityList" onchange="onCityChange()">
                     <option value="" disabled selected>Выберите город</option>
                     {% for city in town %}
                         <option class="data" value="{{ city }}">{{ city }}</option>
@@ -268,10 +268,34 @@ window.onload = function() {
         .then(data => {
             updateAddresses(data.addresses);
             updateTickets(data.tickets);
+            if (data.uk) {
+                updateUk(data.uk);
+            }
         })
         .catch(error => {
             console.error('There was a problem with the fetch operation:', error);
         });
+    }
+
+    function onCityChange() {
+        document.getElementById('ukList').value = '';
+        updateData();
+    }
+
+    function updateUk(uks) {
+        const ukSelect = document.getElementById('ukList');
+        const currentValue = ukSelect.value;
+        ukSelect.innerHTML = '<option value="">Все УК</option>';
+        uks.forEach(uk => {
+            const option = document.createElement('option');
+            option.value = uk[0];
+            option.textContent = uk[1];
+            ukSelect.appendChild(option);
+        });
+        // Если ранее выбранная УК есть в новом списке — восстановим выбор
+        if ([...ukSelect.options].some(opt => opt.value === currentValue)) {
+            ukSelect.value = currentValue;
+        }
     }
 
     function updateAddresses(addresses) {

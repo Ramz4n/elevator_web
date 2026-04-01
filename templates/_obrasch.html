@@ -1,5 +1,5 @@
 {% extends '_display.html'%}
 {% block title %} Обращения {% endblock %}
 {% block content %}
-	Обращения по лифтам в городе {{town}}
+	Обращения по лифтам {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}
 {% endblock %}

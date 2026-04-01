@@ -1,5 +1,5 @@
 {% extends '_display.html'%}
 {% block title %} Застревания {% endblock %}
 {% block content %}
-	Застревания в лифте в городе {{town}}
+	Застревания в лифте {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}
 {% endblock %}

@@ -41,7 +41,7 @@ function goBack() {
   window.history.back();
 }
 </script>
-	<h2 style="text-align: center"> <button class="btn btn-success" onclick="goBack()">Назад</button>Кол-во лифтов города {{town}}</h2>
+	<h2 style="text-align: center"> <button class="btn btn-success" onclick="goBack()">Назад</button>Кол-во лифтов {{ 'всех городов' if (town == 'all' or not town) else 'города ' ~ town }}</h2>
 <table class="fixed-header">
   <thead>
     <tr>

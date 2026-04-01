@@ -1,5 +1,5 @@
 {% extends '_display.html'%}
 {% block title %} Электроэнергия {% endblock %}
 {% block content %}
-	Отсутствие элетроэнергии в городе {{town}}
+	Отсутствие элетроэнергии {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}
 {% endblock %}

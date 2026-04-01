@@ -1,5 +1,17 @@
 {% extends '_display.html'%}
 {% block title %} Остановленные {% endblock %}
+{% block extra_style %}
+<style>
+    .row-stopped {
+        outline: 2px solid #E53935;
+        outline-offset: -1px;
+    }
+    .fixed-header thead th {
+        background-color: #EF9A9A;
+        color: #fff;
+    }
+</style>
+{% endblock %}
 {% block content %}
-	Остановленные лифты в городе {{town}}
+	Остановленные лифты {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}
 {% endblock %}

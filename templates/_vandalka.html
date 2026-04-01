@@ -1,5 +1,5 @@
 {% extends '_display.html'%}
 {% block title %} Вандальные|Пожарная {% endblock %}
 {% block content %}
-	Ванадльные действия и пожарная опасность в городе {{town}}
+	Ванадльные действия и пожарная опасность {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}
 {% endblock %}

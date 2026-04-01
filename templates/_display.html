@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/app.css') }}">
@@ -35,11 +36,91 @@
         }
 
         .fixed-header thead th {
-            position: sticky; /* Фиксация заголовков */
-            top: 0; /* Закрепление заголовков в верхней части окна */
-            background-color: #63B2F3; /* Цвет фона заголовков */
+            position: sticky;
+            top: 0;
+            background-color: #63B2F3;
+        }
+
+        .card-toggle-cell, .card-toggle {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 8px;
+                overflow-x: hidden;
+            }
+
+            .fixed-header thead {
+                display: none;
+            }
+
+            .fixed-header tr {
+                display: block;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                margin-bottom: 12px;
+                padding: 4px 0;
+                background: #fff;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            }
+
+            .fixed-header td {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 6px 12px;
+                border-bottom: 1px solid #f0f0f0;
+                font-size: 13px;
+                text-align: left;
+                gap: 10px;
+            }
+
+            .fixed-header td:last-of-type {
+                border-bottom: none;
+            }
+
+            .fixed-header td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #555;
+                flex-shrink: 0;
+                min-width: 110px;
+            }
+
+            .fixed-header td.card-extra {
+                display: none;
+            }
+
+            .fixed-header tr.card-open td.card-extra {
+                display: flex;
+            }
+
+            .card-toggle-cell, .card-toggle {
+                display: block;
+            }
+
+            .card-toggle {
+                width: 100%;
+                padding: 6px;
+                background: none;
+                border: none;
+                color: #007bff;
+                font-size: 13px;
+                cursor: pointer;
+                text-align: center;
+            }
+
+            table {
+                font-size: 13px;
+                width: 100%;
+            }
+        }
+        .row-stopped {
+            background-color: #FF9999;
         }
     </style>
+    {% block extra_style %}{% endblock %}
 </head>
 <body>
 <script>
@@ -110,20 +191,28 @@ function sortTable(n) {
     </thead>
     <tbody>
         {% for dat in data1 %}
-        <tr {% if dat[6] == "Остановлен" and dat[8] == None %}style="background-color: #FF9999;"{% endif %}>
-            <td class="data">{{ dat[0] }}</td>
-            <td class="data">{{ dat[1] }}</td>
-            <td class="data">{{ dat[2] }}</td>
-            <td class="data">{{ dat[3] }}</td>
-            <td class="data">{{ dat[4] }}</td>
-            <td class="data">{{ dat[5] }}</td>
-            <td class="data">{{ dat[6] }}</td>
-            <td class="data">{{ dat[7] }}</td>
-            <td class="data">{{ dat[8] }}</td>
-            <td class="data">{{ dat[9] }}</td>
+        <tr {% if dat[6] == "Остановлен" and dat[8] == None %}class="row-stopped"{% endif %}>
+            <td class="data" data-label="№ заявки">{{ dat[0] }}</td>
+            <td class="data card-extra" data-label="Дата заявки">{{ dat[1] }}</td>
+            <td class="data card-extra" data-label="Диспетчер">{{ dat[2] }}</td>
+            <td class="data{% if not town or town == 'all' %}{% else %} card-extra{% endif %}" data-label="Город">{{ dat[3] }}</td>
+            <td class="data" data-label="Адрес">{{ dat[4] }}</td>
+            <td class="data card-extra" data-label="Лифт">{{ dat[5] }}</td>
+            <td class="data card-extra" data-label="Причина">{{ dat[6] }}</td>
+            <td class="data card-extra" data-label="Принял">{{ dat[7] }}</td>
+            <td class="data card-extra" data-label="Дата запуска">{{ dat[8] }}</td>
+            <td class="data" data-label="Комментарий">{{ dat[9] }}</td>
+            <td class="card-toggle-cell"><button class="card-toggle" onclick="toggleCard(this)">Подробнее ▼</button></td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+<script>
+    function toggleCard(btn) {
+        const row = btn.closest('tr');
+        const open = row.classList.toggle('card-open');
+        btn.textContent = open ? 'Скрыть ▲' : 'Подробнее ▼';
+    }
+</script>
 </body>
 </html>

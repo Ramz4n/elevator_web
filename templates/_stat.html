@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
@@ -35,9 +36,67 @@ overflow-x: auto; /* Позволяет прокручивать таблицу 
 }
 
 .fixed-header thead th {
-position: sticky; /* Фиксация заголовков */
-top: 0; /* Закрепление заголовков в верхней части окна */
-background-color: #63B2F3; /* Цвет фона заголовков */
+    position: sticky;
+    top: 0;
+    background-color: #63B2F3;
+}
+
+.card-toggle-cell, .card-toggle { display: none; }
+
+@media (max-width: 768px) {
+    body { padding: 8px; overflow-x: hidden; }
+
+    .fixed-header thead { display: none; }
+
+    .fixed-header tbody tr:not(.separator) {
+        display: block;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        padding: 4px 0;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .fixed-header tbody tr.separator { display: none; }
+
+    .fixed-header td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 6px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 13px;
+        text-align: left;
+        gap: 10px;
+    }
+
+    .fixed-header td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #555;
+        flex-shrink: 0;
+        min-width: 110px;
+    }
+
+    .fixed-header td.card-extra { display: none; }
+    .fixed-header tr.card-open td.card-extra { display: flex; }
+
+    .card-toggle-cell, .card-toggle { display: block; }
+
+    .card-toggle {
+        width: 100%;
+        padding: 6px;
+        background: none;
+        border: none;
+        color: #007bff;
+        font-size: 13px;
+        cursor: pointer;
+        text-align: center;
+    }
+
+    table { font-size: 13px; width: 100%; }
+}
     </style>
 <script>
 function goBack() {
@@ -47,38 +106,63 @@ function goBack() {
 
 </script>
 <h2 style="text-align: center"><button class="btn btn-success" onclick="goBack()">Назад</button>Статистика по городам</h2>
-<div style="text-align: center; margin-bottom: 15px; position: relative; display: inline-block; width: 100%;">
-  <button onclick="document.getElementById('yearList').classList.toggle('show')"
-          style="padding: 8px 20px; font-size: 18px; border-radius: 5px; border: none;
-                 background-color: #63B2F3; color: white; cursor: pointer;">
-    Год: {{ selected_year }} &#9662;
-  </button>
-  <div id="yearList" style="display: none; position: absolute; left: 50%; transform: translateX(-50%);
-       background: white; border: 1px solid #ddd; border-radius: 5px; margin-top: 5px;
-       box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10;">
-    {% for year in years %}
-      <a href="/_stat?year={{ year }}"
-         style="display: block; padding: 8px 30px; text-decoration: none; font-size: 17px;
-                color: {% if year == selected_year %}white{% else %}#333{% endif %};
-                background-color: {% if year == selected_year %}#2e7d32{% else %}white{% endif %};">
-        {{ year }}
-      </a>
-    {% endfor %}
+<style>
+.controls-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+.year-wrapper { position: relative; }
+#yearList.show { display: block !important; }
+#yearList a:hover { background-color: #e8e8e8; }
+</style>
+
+<div class="controls-row">
+  <div class="year-wrapper">
+    <button onclick="document.getElementById('yearList').classList.toggle('show')"
+            style="padding: 8px 20px; font-size: 18px; border-radius: 5px; border: none;
+                   background-color: #63B2F3; color: white; cursor: pointer;">
+      Год: {{ selected_year }} &#9662;
+    </button>
+    <div id="yearList" style="display: none; position: absolute; left: 50%; transform: translateX(-50%);
+         background: white; border: 1px solid #ddd; border-radius: 5px; margin-top: 5px;
+         box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10;">
+      {% for year in years %}
+        <a href="/_stat?year={{ year }}"
+           style="display: block; padding: 8px 30px; text-decoration: none; font-size: 17px;
+                  color: {% if year == selected_year %}white{% else %}#333{% endif %};
+                  background-color: {% if year == selected_year %}#2e7d32{% else %}white{% endif %};">
+          {{ year }}
+        </a>
+      {% endfor %}
+    </div>
   </div>
+
+  <select id="cityFilter" onchange="filterCity(this.value)"
+          style="padding: 8px 16px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; min-width: 200px;">
+    <option value="">Все города</option>
+    {% set seen = namespace(cities=[]) %}
+    {% for stat in statistic %}
+      {% if stat[0] not in seen.cities %}
+        {% set seen.cities = seen.cities + [stat[0]] %}
+        <option value="{{ stat[0] }}">{{ stat[0] }}</option>
+      {% endif %}
+    {% endfor %}
+  </select>
 </div>
+
 <script>
 document.addEventListener('click', function(e) {
-  var btn = e.target.closest('button');
   var list = document.getElementById('yearList');
-  if (!btn || btn.nextElementSibling !== list) {
+  if (!list.contains(e.target) && !e.target.closest('.year-wrapper button')) {
     list.classList.remove('show');
   }
 });
 </script>
-<style>
-#yearList.show { display: block !important; }
-#yearList a:hover { background-color: #e8e8e8; }
-</style>
+
 <table class="table fixed-header">
   <thead>
     <tr>
@@ -94,20 +178,39 @@ document.addEventListener('click', function(e) {
   <tbody>
     {% for stat in statistic %}
       <tr>
-        <td class="data">{{ stat[0] }}</td>
-        <td class="data">{{ stat[1] }}</td>
-        <td class="data">{{ stat[2] }}</td>
-        <td class="data">{{ stat[3] }}</td>
-        <td class="data">{{ stat[4] }}</td>
-        <td class="data">{{ stat[5] }}</td>
-        <td class="data">{{ stat[6] }}</td>
+        <td class="data" data-label="Город">{{ stat[0] }}</td>
+        <td class="data" data-label="Месяц">{{ stat[1] }}</td>
+        <td class="data" data-label="Всего заявок">{{ stat[2] }}</td>
+        <td class="data card-extra" data-label="Неисправности">{{ stat[3] }}</td>
+        <td class="data card-extra" data-label="Застревания">{{ stat[4] }}</td>
+        <td class="data card-extra" data-label="Линейные">{{ stat[5] }}</td>
+        <td class="data card-extra" data-label="Прочее">{{ stat[6] }}</td>
+        <td class="card-toggle-cell"><button class="card-toggle" onclick="toggleCard(this)">Подробнее ▼</button></td>
       </tr>
       {% if loop.index != loop.length and stat[0] != statistic[loop.index].0 %}
-        <tr><td colspan="8">&nbsp;</td></tr>
+        <tr class="separator"><td colspan="8">&nbsp;</td></tr>
       {% endif %}
     {% endfor %}
   </tbody>
 </table>
 
+<script>
+    function toggleCard(btn) {
+        const row = btn.closest('tr');
+        const open = row.classList.toggle('card-open');
+        btn.textContent = open ? 'Скрыть ▲' : 'Подробнее ▼';
+    }
+
+    function filterCity(city) {
+        document.querySelectorAll('.fixed-header tbody tr:not(.separator)').forEach(row => {
+            const cityCell = row.querySelector('td[data-label="Город"]');
+            if (!cityCell) return;
+            row.style.display = (!city || cityCell.textContent.trim() === city) ? '' : 'none';
+        });
+        document.querySelectorAll('.fixed-header tbody tr.separator').forEach(sep => {
+            sep.style.display = city ? 'none' : '';
+        });
+    }
+</script>
 </body>
 </html>

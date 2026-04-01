@@ -1,5 +1,5 @@
 {% extends '_display.html'%}
 {% block title %} Связь {% endblock %}
 {% block content %}
-	Неисправности по связи в городе {{town}}
+	Неисправности по связи {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}
 {% endblock %}

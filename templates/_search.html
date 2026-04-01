@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
@@ -126,7 +127,116 @@ font-size: 20px;
     width: 150px; /* Ширина полей ввода и выбора */
 }
 .btn1 {
-    margin-top: 30px; /* Добавляем отступ сверху для кнопки */
+    margin-top: 30px;
+}
+
+.card-toggle-cell, .card-toggle {
+    display: none;
+}
+
+.customSelect {
+    width: 300px;
+}
+
+#addressesInput {
+    width: 600px;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 8px;
+        overflow-x: hidden;
+    }
+
+    .form-horizontal {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .form-group {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 92%;
+    }
+
+    .form-group input,
+    .form-group select,
+    .customSelect,
+    #addressesInput {
+        width: 100% !important;
+        box-sizing: border-box;
+        font-size: 16px; /* чтобы iOS не зумил при фокусе */
+    }
+
+    .btn1 {
+        margin-top: 0;
+        width: 100%;
+    }
+
+    table {
+        font-size: 13px;
+        width: 100%;
+        min-width: unset;
+    }
+
+    .table thead {
+        display: none;
+    }
+
+    .table tr {
+        display: block;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        padding: 4px 0;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 6px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 13px;
+        gap: 10px;
+    }
+
+    .table td:last-child {
+        border-bottom: none;
+    }
+
+    .table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #555;
+        flex-shrink: 0;
+        min-width: 110px;
+    }
+
+    .table td.card-extra {
+        display: none;
+    }
+
+    .table tr.card-open td.card-extra {
+        display: flex;
+    }
+
+    .card-toggle-cell, .card-toggle {
+        display: block;
+    }
+
+    .card-toggle {
+        width: 100%;
+        padding: 6px;
+        background: none;
+        border: none;
+        color: #007bff;
+        font-size: 13px;
+        cursor: pointer;
+        text-align: center;
+    }
 }
  </style>
 </head>
@@ -175,7 +285,7 @@ window.onload = function() {
         <form id="searchForm" action="/_search" method="get" class="form-horizontal">
             <div class="form-group">
                 <label for="cityList" class="customLabel">Город:</label>
-                <select class="customSelect" style="width:300px" name="city" id="cityList" onchange="onCityChange()">
+                <select class="customSelect" name="city" id="cityList" onchange="onCityChange()">
                     <option value="" disabled selected>Выберите город</option>
                     {% for city in town %}
                         <option class="data" value="{{ city }}">{{ city }}</option>
@@ -186,7 +296,7 @@ window.onload = function() {
 
             <div class="form-group">
                 <label for="ukList" class="customLabel">УК:</label>
-                <select class="customSelect" style="width:300px" name="uk_id" id="ukList" onchange="updateData()">
+                <select class="customSelect" name="uk_id" id="ukList" onchange="updateData()">
                     <option value="">Все УК</option>
                     {% for item in uk %}
                         <option value="{{ item[0] }}">{{ item[1] }}</option>
@@ -196,7 +306,7 @@ window.onload = function() {
 
             <div class="form-group">
                 <label for="addressesInput" class="customLabel">Адрес:</label>
-                <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" style="width: 600px;">
+                <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес">
                 <datalist id="addresses">
                     {% for address in addresses %}
                         <option value="{{ address }}">{{ address }}</option>
@@ -245,9 +355,18 @@ window.onload = function() {
     <tbody id="data1">
         {% for ticket in tickets %}
             <tr>
-                {% for item in ticket %}
-                    <td>{{ item }}</td>
-                {% endfor %}
+                <td data-label="№ заявки">{{ ticket[0] }}</td>
+                <td data-label="Дата заявки" class="card-extra">{{ ticket[1] }}</td>
+                <td data-label="Диспетчер" class="card-extra">{{ ticket[2] }}</td>
+                <td data-label="Город" class="card-extra">{{ ticket[3] }}</td>
+                <td data-label="Адрес">{{ ticket[4] }}</td>
+                <td data-label="УК" class="card-extra">{{ ticket[5] }}</td>
+                <td data-label="Причина" class="card-extra">{{ ticket[6] }}</td>
+                <td data-label="Принял" class="card-extra">{{ ticket[7] }}</td>
+                <td data-label="Исполнил" class="card-extra">{{ ticket[8] }}</td>
+                <td data-label="Дата устранения" class="card-extra">{{ ticket[9] }}</td>
+                <td data-label="Комментарий">{{ ticket[10] }}</td>
+                <td class="card-toggle-cell"><button class="card-toggle" onclick="toggleCard(this)">Подробнее ▼</button></td>
             </tr>
         {% endfor %}
     </tbody>
@@ -319,18 +438,39 @@ window.onload = function() {
         });
     }
 
+    const LABELS = ['№ заявки','Дата заявки','Диспетчер','Город','Адрес','УК','Причина','Принял','Исполнил','Дата устранения','Комментарий'];
+    const EXTRA_INDICES = [1, 2, 3, 5, 6, 7, 8, 9];
+
+    function toggleCard(btn) {
+        const row = btn.closest('tr');
+        const open = row.classList.toggle('card-open');
+        btn.textContent = open ? 'Скрыть ▲' : 'Подробнее ▼';
+    }
+
+    function createTicketRow(item) {
+        const row = document.createElement('tr');
+        item.forEach((cellData, i) => {
+            const cell = document.createElement('td');
+            cell.dataset.label = LABELS[i] || '';
+            cell.textContent = cellData;
+            if (EXTRA_INDICES.includes(i)) cell.classList.add('card-extra');
+            row.appendChild(cell);
+        });
+        const toggleCell = document.createElement('td');
+        toggleCell.className = 'card-toggle-cell';
+        const btn = document.createElement('button');
+        btn.className = 'card-toggle';
+        btn.textContent = 'Подробнее ▼';
+        btn.onclick = function() { toggleCard(this); };
+        toggleCell.appendChild(btn);
+        row.appendChild(toggleCell);
+        return row;
+    }
+
     function updateTickets(tickets) {
         const tbody = document.getElementById('data1');
         tbody.innerHTML = '';
-        tickets.forEach(ticket => {
-            const row = document.createElement('tr');
-            ticket.forEach(cellData => {
-                const cell = document.createElement('td');
-                cell.textContent = cellData;
-                row.appendChild(cell);
-            });
-            tbody.appendChild(row);
-        });
+        tickets.forEach(ticket => tbody.appendChild(createTicketRow(ticket)));
     }
 
     function updateTableData(data) {
@@ -376,53 +516,7 @@ window.onload = function() {
 
             if (Array.isArray(data.data1)) {
                 data.data1.forEach(function(item) {
-                    var row = document.createElement('tr');
-
-                    var cell1 = document.createElement('td');
-                    cell1.textContent = item[0]; // № заявки
-                    row.appendChild(cell1);
-
-                    var cell2 = document.createElement('td');
-                    cell2.textContent = item[1]; // Дата заявки
-                    row.appendChild(cell2);
-
-                    var cell3 = document.createElement('td');
-                    cell3.textContent = item[2]; // Диспетчер
-                    row.appendChild(cell3);
-
-                    var cell4 = document.createElement('td');
-                    cell4.textContent = item[3]; // Город
-                    row.appendChild(cell4);
-
-                    var cell5 = document.createElement('td');
-                    cell5.textContent = item[4]; // Адрес
-                    row.appendChild(cell5);
-
-                    var cell6 = document.createElement('td');
-                    cell6.textContent = item[5]; // УК
-                    row.appendChild(cell6);
-
-                    var cell7 = document.createElement('td');
-                    cell7.textContent = item[6]; // Причина
-                    row.appendChild(cell7);
-
-                    var cell8 = document.createElement('td');
-                    cell8.textContent = item[7]; // Принял
-                    row.appendChild(cell8);
-
-                    var cell9 = document.createElement('td');
-                    cell9.textContent = item[8]; // Исполнил
-                    row.appendChild(cell9);
-
-                    var cell10 = document.createElement('td');
-                    cell10.textContent = item[9]; // Дата устранения
-                    row.appendChild(cell10);
-
-                    var cell11 = document.createElement('td');
-                    cell11.textContent = item[10]; // Комментарий
-                    row.appendChild(cell11);
-
-                    tbody.appendChild(row);
+                    tbody.appendChild(createTicketRow(item));
                 });
             } else {
                 console.error('Unexpected data format:', data);

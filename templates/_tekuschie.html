@@ -1,5 +1,10 @@
 {% extends '_display.html'%}
 {% block title %} Текущие заявки {% endblock %}
+{% block extra_style %}
+<style>
+    .fixed-header th:nth-child(9), .fixed-header td[data-label="Дата запуска"] { display: none !important; }
+</style>
+{% endblock %}
 {% block content %}
 	Текущие заявки {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}
 {% endblock %}

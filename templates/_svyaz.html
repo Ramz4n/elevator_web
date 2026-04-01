@@ -1,5 +1,10 @@
 {% extends '_display.html'%}
 {% block title %} Связь {% endblock %}
+{% block extra_style %}
+<style>
+    .fixed-header th:nth-child(9), .fixed-header td[data-label="Дата запуска"] { display: none !important; }
+</style>
+{% endblock %}
 {% block content %}
 	Неисправности по связи {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}
 {% endblock %}

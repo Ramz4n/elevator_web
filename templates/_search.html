@@ -201,6 +201,9 @@ font-size: 20px;
         border-bottom: 1px solid #f0f0f0;
         font-size: 13px;
         gap: 10px;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        min-width: 0;
     }
 
     .table td:last-child {
@@ -221,6 +224,10 @@ font-size: 20px;
 
     .table tr.card-open td.card-extra {
         display: flex;
+    }
+
+    .table tr.card-open {
+        background: #e8e8e8;
     }
 
     .card-toggle-cell, .card-toggle {
@@ -496,15 +503,14 @@ window.onload = function() {
 <script>
     function exportToExcel() {
         const table = document.querySelector('table');
-        const wb = XLSX.utils.table_to_book(table, { sheet: 'Заявки' });
+        const clone = table.cloneNode(true);
+        clone.querySelectorAll('.card-toggle-cell').forEach(el => el.remove());
+        const wb = XLSX.utils.table_to_book(clone, { sheet: 'Заявки' });
         XLSX.writeFile(wb, 'zayavki.xlsx');
     }
 
-    document.getElementById('searchForm').addEventListener('submit', function(event) {
-        event.preventDefault(); // Предотвращаем стандартное поведение формы
-
-        var formData = new FormData(this);
-
+    function performSearch() {
+        var formData = new FormData(document.getElementById('searchForm'));
         fetch('/_search', {
             method: 'POST',
             body: formData
@@ -512,8 +518,7 @@ window.onload = function() {
         .then(response => response.json())
         .then(data => {
             var tbody = document.getElementById('data1');
-            tbody.innerHTML = ''; // Очищаем текущее содержимое таблицы
-
+            tbody.innerHTML = '';
             if (Array.isArray(data.data1)) {
                 data.data1.forEach(function(item) {
                     tbody.appendChild(createTicketRow(item));
@@ -523,7 +528,15 @@ window.onload = function() {
             }
         })
         .catch(error => console.error('Error:', error));
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        performSearch();
     });
+
+    document.getElementById('start_calendar').addEventListener('change', performSearch);
+    document.getElementById('end_calendar').addEventListener('change', performSearch);
 </script>
 </body>
 </html>

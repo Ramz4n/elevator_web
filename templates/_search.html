@@ -135,7 +135,9 @@ font-size: 20px;
 }
 
 .customSelect {
-    width: 300px;
+    width: auto;
+    min-width: 200px;
+    max-width: 100%;
 }
 
 #addressesInput {
@@ -313,7 +315,7 @@ window.onload = function() {
 
             <div class="form-group">
                 <label for="addressesInput" class="customLabel">Адрес:</label>
-                <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес">
+                <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" autocomplete="off">
                 <datalist id="addresses">
                     {% for address in addresses %}
                         <option value="{{ address }}">{{ address }}</option>

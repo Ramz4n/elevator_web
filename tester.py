@@ -137,7 +137,14 @@ def base():
             cursor = connection.cursor()
             cursor.execute(f'''SELECT g.Город FROM {table_name} z
                                 JOIN goroda g ON z.id_город = g.id
-                                GROUP BY Город 
+                                GROUP BY Город
+                                UNION
+                                SELECT g.Город FROM lifts l
+                                JOIN doma d ON l.id_дом = d.id
+                                JOIN street s ON d.id_улица = s.id
+                                JOIN goroda g ON s.id_город = g.id
+                                WHERE d.is_active = 1
+                                GROUP BY g.Город
                                 ORDER BY Город''')
             data8 = cursor.fetchall()
             cities = [city[-1] for city in data8]

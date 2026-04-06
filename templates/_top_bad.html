@@ -154,10 +154,61 @@
 
 <script>
 	function goBack() {
-	  window.history.back();
+	  window.location.href = '/base';
+	}
+	function toggleMode() {
+	    const url = new URL(window.location.href);
+	    if (url.searchParams.get('mode') === 'svyaz') {
+	        url.searchParams.delete('mode');
+	    } else {
+	        url.searchParams.set('mode', 'svyaz');
+	    }
+	    window.location.replace(url.toString());
 	}
 </script>
-<h2 style="text-align: center"><button class="btn btn-success" onclick="goBack()">Назад</button>Проблемные лифты за последние 14 дней</h2>
+{% set is_svyaz = (mode == 'svyaz') %}
+<h2 style="text-align: center">
+    <button class="btn btn-success" onclick="goBack()">Назад</button>
+    Проблемные лифты за последние 14 дней
+</h2>
+<div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px;">
+    <span id="label-bad" style="font-size: 16px; font-weight: {% if not is_svyaz %}700{% else %}400{% endif %}; color: {% if not is_svyaz %}#34c759{% else %}#999{% endif %};">Неисправности</span>
+    <label class="ios-toggle">
+        <input type="checkbox" id="mode-toggle" {% if is_svyaz %}checked{% endif %} onchange="toggleMode()">
+        <span class="ios-slider"></span>
+    </label>
+    <span id="label-svyaz" style="font-size: 16px; font-weight: {% if is_svyaz %}700{% else %}400{% endif %}; color: {% if is_svyaz %}#34c759{% else %}#999{% endif %};">Связь</span>
+</div>
+<style>
+    .ios-toggle {
+        position: relative;
+        display: inline-block;
+        width: 52px;
+        height: 30px;
+        flex-shrink: 0;
+    }
+    .ios-toggle input { display: none; }
+    .ios-slider {
+        position: absolute;
+        inset: 0;
+        background: #34c759;
+        border-radius: 30px;
+        cursor: pointer;
+    }
+    .ios-slider::before {
+        content: '';
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        left: 3px;
+        top: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.25s;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .ios-toggle input:checked + .ios-slider::before { transform: translateX(22px); }
+</style>
 
 <button id="float-collapse-btn" onclick="collapseDetails()" style="
     display: none;
@@ -298,7 +349,8 @@ function toggleDetails(row, city, adres, lift, rowIndex) {
                 body: JSON.stringify({
                     city: city,
                     adres: adres,
-                    lift: lift
+                    lift: lift,
+                    mode: '{{ mode }}'
                 })
             })
             .then(response => {
@@ -329,7 +381,7 @@ function toggleDetails(row, city, adres, lift, rowIndex) {
                                 <td data-label="Лифт">${item.Тип_лифта}</td>
                                 <td data-label="Причина">${item.Причина}</td>
                                 <td data-label="Механик">${item.Механик}</td>
-                                <td data-label="Дата запуска">${item.Дата_запуска}</td>
+                                <td data-label="Дата запуска">${item.Дата_запуска ?? ''}</td>
                                 <td data-label="Комментарий">${item.Комментарий}</td>
                             `;
                             detailsBody.appendChild(row);

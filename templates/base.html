@@ -796,21 +796,41 @@ document.addEventListener('DOMContentLoaded', function() {
         let myPieChart;
 
         function updatePieChart(data4, data7, data3) {
+            function toNum(v) {
+                if (Array.isArray(v)) return Array.isArray(v[0]) ? (v[0][0] || 0) : (v[0] || 0);
+                return Number(v) || 0;
+            }
+            const n4 = toNum(data4), n7 = toNum(data7), n3 = toNum(data3);
+            const isEmpty = n4 === 0 && n7 === 0 && n3 === 0;
+            const chartData = isEmpty ? [1, 1, 1] : [n4, n7, n3];
+            const chartColors = isEmpty
+                ? ['#d0d0d0', '#d0d0d0', '#d0d0d0']
+                : [window.theme.primary, window.theme.warning, window.theme.danger];
+
+            const canvas = document.getElementById("chartjs-dashboard-pie");
+            let noDataLabel = document.getElementById("pie-no-data");
+            if (!noDataLabel) {
+                noDataLabel = document.createElement("div");
+                noDataLabel.id = "pie-no-data";
+                noDataLabel.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:#999;text-align:center;pointer-events:none;";
+                noDataLabel.textContent = "Нет данных";
+                canvas.parentElement.style.position = "relative";
+                canvas.parentElement.appendChild(noDataLabel);
+            }
+            noDataLabel.style.display = isEmpty ? "block" : "none";
+
             if (myPieChart) {
-                myPieChart.data.datasets[0].data = [data4, data7, data3];
+                myPieChart.data.datasets[0].data = chartData;
+                myPieChart.data.datasets[0].backgroundColor = chartColors;
                 myPieChart.update();
             } else {
-                myPieChart = new Chart(document.getElementById("chartjs-dashboard-pie"), {
+                myPieChart = new Chart(canvas, {
                     type: "pie",
                     data: {
                         labels: ["Неисправности", "Ложные обращения", "Застревания"],
                         datasets: [{
-                            data: [data4, data7, data3],
-                            backgroundColor: [
-                                window.theme.primary,
-                                window.theme.warning,
-                                window.theme.danger,
-                            ],
+                            data: chartData,
+                            backgroundColor: chartColors,
                             borderWidth: 0,
                         }],
                     },
@@ -821,6 +841,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             display: false,
                         },
                         cutoutPercentage: 75,
+                        tooltips: {
+                            filter: function() { return !isEmpty; }
+                        },
                     },
                 });
             }

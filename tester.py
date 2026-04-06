@@ -1241,33 +1241,50 @@ def search():
 def _top_bad():
     if request.method == 'GET':
         town = request.args.get('selectedCity')
+        mode = request.args.get('mode', '')
         table_name = session.get('table_name', db_table)
         db_manager = DataBaseManager()
         if town == 'all':
             try:
                 with closing(db_manager.connect()) as connection:
                     cursor = connection.cursor()
-                    cursor.execute(f'''SELECT g.город, 
-                                        concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес, 
-                                        z.Тип_лифта, 
-                                        COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
-                                        FROM {table_name} z
-                                        JOIN goroda g ON z.id_город = g.id
-                                        JOIN street s ON z.id_улица = s.id
-                                        JOIN doma d ON z.id_дом = d.id
-                                        JOIN padik p ON z.id_подъезд = p.id
-                                        WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
-                                        AND NOT (LOWER(Комментарий) LIKE '%скачок%'  
-                                        OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
-                                        OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
-                                        OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%' 
-								   		OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%') 
-                                        AND NOT pc_id IS NULL AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
-                                        GROUP BY Адрес, Тип_лифта
-                                        ORDER BY address_count DESC
-                                        LIMIT 30;''')
+                    if mode == 'svyaz':
+                        cursor.execute(f'''SELECT g.город,
+                                            concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                            z.Тип_лифта,
+                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                            FROM {table_name} z
+                                            JOIN goroda g ON z.id_город = g.id
+                                            JOIN street s ON z.id_улица = s.id
+                                            JOIN doma d ON z.id_дом = d.id
+                                            JOIN padik p ON z.id_подъезд = p.id
+                                            WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                            AND NOT pc_id IS NULL AND z.Причина = "Связь"
+                                            GROUP BY Адрес, Тип_лифта
+                                            ORDER BY address_count DESC
+                                            LIMIT 30;''')
+                    else:
+                        cursor.execute(f'''SELECT g.город,
+                                            concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                            z.Тип_лифта,
+                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                            FROM {table_name} z
+                                            JOIN goroda g ON z.id_город = g.id
+                                            JOIN street s ON z.id_улица = s.id
+                                            JOIN doma d ON z.id_дом = d.id
+                                            JOIN padik p ON z.id_подъезд = p.id
+                                            WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                            AND NOT (LOWER(Комментарий) LIKE '%скачок%'
+                                            OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
+                                            OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
+                                            OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%'
+                                            OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
+                                            AND NOT pc_id IS NULL AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
+                                            GROUP BY Адрес, Тип_лифта
+                                            ORDER BY address_count DESC
+                                            LIMIT 30;''')
                     data1 = cursor.fetchall()
-                return render_template('_top_bad.html', data1=data1)
+                return render_template('_top_bad.html', data1=data1, mode=mode)
             except Exception as e:
                 print('Проблема в наихудших:', e)
                 return render_template('error.html')
@@ -1275,29 +1292,44 @@ def _top_bad():
             try:
                 with closing(db_manager.connect()) as connection:
                     cursor = connection.cursor()
-                    cursor.execute(f'''SELECT g.город, 
-                                        concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес, 
-                                        z.Тип_лифта, 
-                                        COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
-                                        FROM {table_name} z
-                                        JOIN goroda g ON z.id_город = g.id
-                                        JOIN street s ON z.id_улица = s.id
-                                        JOIN doma d ON z.id_дом = d.id
-                                        JOIN padik p ON z.id_подъезд = p.id
-                                        WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
-                                        AND NOT (LOWER(Комментарий) LIKE '%скачок%'
-                                        OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
-                                        OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
-                                        OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%'
-								   		OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
-                                        AND NOT pc_id IS NULL
-                                        AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
-                                        GROUP BY Адрес, Тип_лифта
-                                        ORDER BY address_count
-                                         DESC
-                                        LIMIT 30;''', (town,))
+                    if mode == 'svyaz':
+                        cursor.execute(f'''SELECT g.город,
+                                            concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                            z.Тип_лифта,
+                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                            FROM {table_name} z
+                                            JOIN goroda g ON z.id_город = g.id
+                                            JOIN street s ON z.id_улица = s.id
+                                            JOIN doma d ON z.id_дом = d.id
+                                            JOIN padik p ON z.id_подъезд = p.id
+                                            WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                            AND NOT pc_id IS NULL AND z.Причина = "Связь"
+                                            GROUP BY Адрес, Тип_лифта
+                                            ORDER BY address_count DESC
+                                            LIMIT 30;''', (town,))
+                    else:
+                        cursor.execute(f'''SELECT g.город,
+                                            concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                            z.Тип_лифта,
+                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                            FROM {table_name} z
+                                            JOIN goroda g ON z.id_город = g.id
+                                            JOIN street s ON z.id_улица = s.id
+                                            JOIN doma d ON z.id_дом = d.id
+                                            JOIN padik p ON z.id_подъезд = p.id
+                                            WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                            AND NOT (LOWER(Комментарий) LIKE '%скачок%'
+                                            OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
+                                            OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
+                                            OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%'
+                                            OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
+                                            AND NOT pc_id IS NULL
+                                            AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
+                                            GROUP BY Адрес, Тип_лифта
+                                            ORDER BY address_count DESC
+                                            LIMIT 30;''', (town,))
                     data1 = cursor.fetchall()
-                return render_template('_top_bad.html', data1=data1)
+                return render_template('_top_bad.html', data1=data1, mode=mode)
             except Exception as e:
                 print('Проблема в наихудших:', e)
                 return render_template('error.html')
@@ -1309,41 +1341,71 @@ def _top_bad():
         adres = data['adres']
         adres = adres.split(', ')
         lift = data['lift']
+        mode = data.get('mode', '')
         try:
             with closing(db_manager.connect()) as connection:
                 cursor = connection.cursor()
-                cursor.execute(f'''SELECT z.Номер_заявки,
-                                      FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
-                                      di.фио,
-                                      g.город,
-                                      concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
-                                      z.Тип_лифта,
-                                      z.Причина,
-                                      m.фио,
-                                      FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                                      z.Комментарий
-                                      FROM {table_name} z
-                                      JOIN workers di ON z.id_диспетчер = di.id
-                                      JOIN goroda g ON z.id_город = g.id
-                                      JOIN street s ON z.id_улица = s.id
-                                      JOIN doma d ON z.id_дом = d.id
-                                      JOIN padik p ON z.id_подъезд = p.id
-                                      JOIN workers m ON z.id_механик = m.id
-                                   WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
-                                   AND NOT (LOWER(Комментарий) LIKE '%скачок%'  
-                                   OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
-                                   OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
-                                   OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%' 
-								   OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%') 
-                                   AND g.город = ? 
-                                   AND s.`Улица` = ? 
-                                   AND NOT z.Причина in ("Линейная", "Связь")
-                                    AND d.`Номер` = ? 
-                                    AND p.`Номер` = ? 
-                                    AND z.`Тип_лифта` = ? 
-                                    AND NOT pc_id is NULL
-                                    GROUP BY z.Дата_заявки desc
-                                   limit 30;''', (city, adres[0], adres[1], adres[2], lift))
+                if mode == 'svyaz':
+                    cursor.execute(f'''SELECT z.Номер_заявки,
+                                          FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                                          di.фио,
+                                          g.город,
+                                          concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                          z.Тип_лифта,
+                                          z.Причина,
+                                          m.фио,
+                                          FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                                          z.Комментарий
+                                          FROM {table_name} z
+                                          JOIN workers di ON z.id_диспетчер = di.id
+                                          JOIN goroda g ON z.id_город = g.id
+                                          JOIN street s ON z.id_улица = s.id
+                                          JOIN doma d ON z.id_дом = d.id
+                                          JOIN padik p ON z.id_подъезд = p.id
+                                          JOIN workers m ON z.id_механик = m.id
+                                       WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                       AND g.город = ?
+                                       AND s.`Улица` = ?
+                                       AND d.`Номер` = ?
+                                       AND p.`Номер` = ?
+                                       AND z.`Тип_лифта` = ?
+                                       AND z.Причина = "Связь"
+                                       AND NOT pc_id is NULL
+                                       GROUP BY z.Дата_заявки desc
+                                       limit 30;''', (city, adres[0], adres[1], adres[2], lift))
+                else:
+                    cursor.execute(f'''SELECT z.Номер_заявки,
+                                          FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
+                                          di.фио,
+                                          g.город,
+                                          concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
+                                          z.Тип_лифта,
+                                          z.Причина,
+                                          m.фио,
+                                          FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
+                                          z.Комментарий
+                                          FROM {table_name} z
+                                          JOIN workers di ON z.id_диспетчер = di.id
+                                          JOIN goroda g ON z.id_город = g.id
+                                          JOIN street s ON z.id_улица = s.id
+                                          JOIN doma d ON z.id_дом = d.id
+                                          JOIN padik p ON z.id_подъезд = p.id
+                                          JOIN workers m ON z.id_механик = m.id
+                                       WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                       AND NOT (LOWER(Комментарий) LIKE '%скачок%'
+                                       OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
+                                       OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
+                                       OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%'
+                                       OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
+                                       AND g.город = ?
+                                       AND s.`Улица` = ?
+                                       AND NOT z.Причина in ("Линейная", "Связь")
+                                       AND d.`Номер` = ?
+                                       AND p.`Номер` = ?
+                                       AND z.`Тип_лифта` = ?
+                                       AND NOT pc_id is NULL
+                                       GROUP BY z.Дата_заявки desc
+                                       limit 30;''', (city, adres[0], adres[1], adres[2], lift))
                 query_bd = cursor.fetchall()
 
                 query = []

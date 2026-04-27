@@ -186,25 +186,27 @@ function sortTable(n) {
             <th onclick="sortTable(3)">Город</th>
             <th onclick="sortTable(4)">Адрес</th>
             <th onclick="sortTable(5)">Лифт</th>
-            <th onclick="sortTable(6)">Причина</th>
-            <th onclick="sortTable(7)">Принял</th>
-            <th onclick="sortTable(8)">Дата запуска</th>
-            <th onclick="sortTable(9)">Комментарий</th>
+            <th onclick="sortTable(6)">УК</th>
+            <th onclick="sortTable(7)">Причина</th>
+            <th onclick="sortTable(8)">Принял</th>
+            <th onclick="sortTable(9)">Дата запуска</th>
+            <th onclick="sortTable(10)">Комментарий</th>
         </tr>
     </thead>
     <tbody>
         {% for dat in data1 %}
-        <tr {% if dat[6] == "Остановлен" and dat[8] == None %}class="row-stopped"{% endif %}>
+        <tr {% if dat[7] == "Остановлен" and dat[9] == None %}class="row-stopped"{% endif %}>
             <td class="data" data-label="№ заявки">{{ dat[0] }}</td>
             <td class="data card-extra" data-label="Дата заявки">{{ dat[1] }}</td>
             <td class="data card-extra" data-label="Диспетчер">{{ dat[2] }}</td>
             <td class="data{% if not town or town == 'all' %}{% else %} card-extra{% endif %}" data-label="Город">{{ dat[3] }}</td>
             <td class="data" data-label="Адрес">{{ dat[4] }}</td>
             <td class="data card-extra" data-label="Лифт">{{ dat[5] }}</td>
-            <td class="data card-extra" data-label="Причина">{{ dat[6] }}</td>
-            <td class="data card-extra" data-label="Принял">{{ dat[7] }}</td>
-            <td class="data card-extra" data-label="Дата запуска">{{ dat[8] }}</td>
-            <td class="data" data-label="Комментарий">{{ dat[9] }}</td>
+            <td class="data card-extra" data-label="УК">{{ dat[6] }}</td>
+            <td class="data card-extra" data-label="Причина">{{ dat[7] }}</td>
+            <td class="data card-extra" data-label="Принял">{{ dat[8] }}</td>
+            <td class="data card-extra" data-label="Дата запуска">{{ dat[9] }}</td>
+            <td class="data" data-label="Комментарий">{{ dat[10] }}</td>
             <td class="card-toggle-cell"><button class="card-toggle" onclick="toggleCard(this)">Подробнее ▼</button></td>
         </tr>
         {% endfor %}

@@ -1448,6 +1448,7 @@ def _obrasch():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1459,6 +1460,7 @@ def _obrasch():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ?
                                AND DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? AND NOT pc_id is NULL
                                GROUP BY z.id
@@ -1479,6 +1481,7 @@ def _obrasch():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1490,6 +1493,7 @@ def _obrasch():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE Город = ? AND 
                                DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%m') = ? AND 
                                DATE_FORMAT(FROM_UNIXTIME(Дата_заявки), '%Y') = ? AND 
@@ -1523,6 +1527,7 @@ def _svyaz():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1534,6 +1539,7 @@ def _svyaz():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE NOT pc_id IS NULL
                                AND z.Причина = ?
                                AND z.Дата_запуска IS Null
@@ -1554,6 +1560,7 @@ def _svyaz():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1565,6 +1572,7 @@ def _svyaz():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE Город = ?
                                AND NOT pc_id IS NULL
                                AND z.Причина = ?
@@ -1597,6 +1605,7 @@ def _uk():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1608,6 +1617,7 @@ def _uk():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE NOT pc_id IS NULL
                                AND z.Причина = ?
                                AND z.Дата_запуска IS Null
@@ -1628,6 +1638,7 @@ def _uk():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1639,6 +1650,7 @@ def _uk():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE Город = ?
                                AND NOT pc_id IS NULL
                                AND z.Причина = ?
@@ -1669,6 +1681,7 @@ def _tekuschie():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1680,6 +1693,7 @@ def _tekuschie():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE Дата_запуска IS NULL 
                                AND NOT z.Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
                                AND NOT pc_id IS NULL''')
@@ -1698,6 +1712,7 @@ def _tekuschie():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1709,6 +1724,7 @@ def _tekuschie():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE Дата_запуска IS NULL 
                                AND NOT z.Причина IN ('Линейная', 'Остановлен', 'Связь', 'УК') 
                                AND Город = ?
@@ -1813,6 +1829,7 @@ def _ostanov():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1824,6 +1841,7 @@ def _ostanov():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE z.дата_запуска IS Null 
                                AND NOT (LOWER(Комментарий) LIKE 'ложная' OR LOWER(Комментарий) LIKE 'на момент')
                                AND Причина = ?
@@ -1845,6 +1863,7 @@ def _ostanov():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1856,6 +1875,7 @@ def _ostanov():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE Город = ?
                                AND z.дата_запуска IS Null
                                AND NOT LOWER(Комментарий) LIKE 'ложная'
@@ -1888,6 +1908,7 @@ def _lineynie():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1899,6 +1920,7 @@ def _lineynie():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE z.дата_запуска IS Null 
                                AND Причина = ?
                                AND NOT pc_id IS NULL
@@ -1919,6 +1941,7 @@ def _lineynie():
                                g.город,
                                concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                z.Тип_лифта,
+                               uk.Название AS УК,
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
@@ -1930,6 +1953,7 @@ def _lineynie():
                                JOIN doma d ON z.id_дом = d.id
                                JOIN padik p ON z.id_подъезд = p.id
                                JOIN workers m ON z.id_Механик = m.id
+                               LEFT JOIN uk ON d.id_ук = uk.id
                                WHERE Город = ?
                                AND z.дата_запуска IS Null
                                AND Причина = ?

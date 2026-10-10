@@ -7,6 +7,7 @@ from werkzeug.security import check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
+from urllib.parse import quote_plus
 from flask_login import LoginManager, UserMixin, login_required, login_user, current_user, logout_user
 from wtforms import StringField, SubmitField, TextAreaField, BooleanField, PasswordField
 from wtforms.validators import DataRequired
@@ -23,8 +24,8 @@ UPLOAD_FOLDER = 'static'
 load_dotenv()
 
 db_table_name = os.getenv("DB_NAME_SITE")
-db_password = os.getenv("DB_PASSWORD_ROOT")
-db_user = os.getenv("DB_LOGIN_ROOT")
+db_password = os.getenv("DB_PASSWORD")
+db_user = os.getenv("DB_USER")
 db_port = os.getenv("DB_PORT")
 db_host = os.getenv("DB_HOST")
 
@@ -33,7 +34,9 @@ db_table = os.getenv("DB_TABLE", "zayavki")
 
 tester = Flask(__name__, static_folder='static')
 tester.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-tester.config['SQLALCHEMY_DATABASE_URI'] = f'mariadb+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_table_name}'
+tester.config['SQLALCHEMY_DATABASE_URI'] = (
+    f'mariadb+pymysql://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_table_name}'
+)
 tester.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 3600,
@@ -2190,31 +2193,6 @@ def _search():
 @login_required
 def error():
     return render_template('error.html')
-
-
-@tester.route('/techteam', methods=['GET', 'POST'])
-def techteam():
-    return render_template('techteam.html')
-
-
-@tester.route('/dmitry')
-def dmitry():
-    return render_template('dmitry.html')
-
-
-@tester.route('/roman')
-def roman():
-    return render_template('roman.html')
-
-
-@tester.route('/sergey')
-def sergey():
-    return render_template('sergey.html')
-
-
-@tester.route('/alexey')
-def alexey():
-    return render_template('alexey.html')
 
 
 

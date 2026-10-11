@@ -1,6 +1,9 @@
-# Восток — веб-интерфейс
+# Веб-интерфейс
 
 Веб-приложение на Flask для просмотра заявок и статистики лифтовой службы. Работает с теми же данными, что и десктопное приложение [elevator_desktop](https://github.com/Ramz4n/elevator_desktop) (журнал заявок), и только читает их. Вход — по логину и паролю из отдельной базы `site`.
+
+<img width="1903" height="1016" alt="screen_for_readme" src="https://github.com/user-attachments/assets/9e6e6f8b-e7fe-46b0-95e4-7128474edb25" />
+
 
 ## Возможности
 

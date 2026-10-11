@@ -4,3 +4,4 @@ vostok.json
 app.log
 .claude
 vostok.sql
+__pycache__/

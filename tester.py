@@ -52,7 +52,8 @@ client = pymemcache.Client('localhost')
 
 login_manager = LoginManager(tester)
 login_manager.login_view = 'login'
-login_manager.login_message = 'Введите Логин и Пароль'
+login_manager.login_message = 'Войдите, чтобы открыть эту страницу'
+login_manager.login_message_category = 'info'
 
 tester.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 tester.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -106,14 +107,14 @@ def login():
             session.permanent = True
             session['access'] = user.access
             return redirect(url_for('base'))
-        flash("Неверный Логин или Пароль")
+        flash("Неверный логин или пароль. Проверьте раскладку клавиатуры и Caps Lock.", "error")
 
     return render_template('login.html', form=form)
 
 
 @tester.errorhandler(429)
 def too_many_requests(e):
-    flash("Слишком много попыток входа. Попробуйте позже.")
+    flash("Слишком много попыток входа. Подождите несколько минут и попробуйте снова.", "warning")
     return render_template('login.html', form=LoginForm()), 429
 
 
@@ -130,7 +131,7 @@ class Users(db.Model, UserMixin):
 def logout():
     logout_user()
     session.clear()
-    flash("You have been logged out.")
+    flash("Вы вышли из системы.", "info")
     return redirect(url_for('login'))
 
 

@@ -1,5 +1,6 @@
-<html lang="en">
+<html lang="ru">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <style>
@@ -109,6 +110,82 @@ input:focus {
     height: auto;
 }
 
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border-left: 4px solid;
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: left;
+    animation: alert-in .3s ease-out;
+}
+
+.alert-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    color: #FFF;
+    font-weight: bold;
+    font-size: 13px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.alert-error {
+    background-color: #FDEDEC;
+    border-color: #E74C3C;
+    color: #922B21;
+}
+
+.alert-error .alert-icon {
+    background-color: #E74C3C;
+}
+
+.alert-warning {
+    background-color: #FEF5E7;
+    border-color: #F39C12;
+    color: #9A5B07;
+}
+
+.alert-warning .alert-icon {
+    background-color: #F39C12;
+}
+
+.alert-info {
+    background-color: #EBF5FB;
+    border-color: #3498DB;
+    color: #1F618D;
+}
+
+.alert-info .alert-icon {
+    background-color: #3498DB;
+}
+
+.has-error input[type="text"],
+.has-error input[type="password"] {
+    border-color: #E74C3C;
+}
+
+.caps-warning {
+    display: none;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #9A5B07;
+}
+
+@keyframes alert-in {
+    0% { transform: translateX(0); opacity: 0; }
+    25% { transform: translateX(-6px); opacity: 1; }
+    50% { transform: translateX(6px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+}
+
 </style>
 <body>
     <div class="content">
@@ -122,12 +199,18 @@ input:focus {
                 <h1>Авторизация</h1>
             </div>
 
+            {% set has_error = namespace(value=false) %}
             {% for category, message in get_flashed_messages(with_categories=true) %}
-                <span class="{{ category }}">{{ message }}</span>
+                {% set category = category if category in ['error', 'warning'] else 'info' %}
+                {% if category == 'error' %}{% set has_error.value = true %}{% endif %}
+                <div class="alert alert-{{ category }}" role="alert">
+                    <span class="alert-icon">{{ '!' if category != 'info' else 'i' }}</span>
+                    <span>{{ message }}</span>
+                </div>
             {% endfor %}
 
             <div class="shadow p-3 mb-5 bg-body rounded">
-                <form method="POST">
+                <form method="POST" class="{{ 'has-error' if has_error.value }}">
                     {{ form.hidden_tag() }}
 
                     {{ form.username.label(class="form-label") }}
@@ -136,6 +219,7 @@ input:focus {
 
                     {{ form.password.label(class="form-label") }}
                     {{ form.password(class="form-control") }}
+                    <div class="caps-warning" id="caps-warning">Включён Caps Lock</div>
                     <br/>
                     <br/>
 
@@ -144,6 +228,18 @@ input:focus {
             </div>
         </div>
     </div>
+    <script>
+        const password = document.getElementById('password');
+        const capsWarning = document.getElementById('caps-warning');
+        ['keydown', 'keyup'].forEach(function (eventName) {
+            password.addEventListener(eventName, function (e) {
+                capsWarning.style.display = e.getModifierState('CapsLock') ? 'block' : 'none';
+            });
+        });
+        password.addEventListener('blur', function () {
+            capsWarning.style.display = 'none';
+        });
+    </script>
 </body>
 
 </html>

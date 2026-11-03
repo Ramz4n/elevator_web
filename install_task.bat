@@ -1,10 +1,15 @@
 @echo off
+chcp 65001 >nul
 REM Запускать от имени Администратора!
-set TASK_NAME=FlaskTesterApp
+REM Создаёт задачи FlaskTesterApp (сайт) и backup. Повторный запуск заменяет их.
+set BACKUP_EVERY_HOURS=1
+
 set PROJECT_DIR=%~dp0
+set PROJECT_DIR=%PROJECT_DIR:~0,-1%
+
 REM Используем venv если есть, иначе системный pythonw
-if exist "%PROJECT_DIR%.venv\Scripts\pythonw.exe" (
-    set PYTHONW=%PROJECT_DIR%.venv\Scripts\pythonw.exe
+if exist "%PROJECT_DIR%\.venv\Scripts\pythonw.exe" (
+    set PYTHONW=%PROJECT_DIR%\.venv\Scripts\pythonw.exe
 ) else (
     for /f "delims=" %%i in ('where pythonw 2^>nul') do set PYTHONW=%%i
     if not defined PYTHONW (
@@ -17,20 +22,21 @@ if not defined PYTHONW (
     pause
     exit /b 1
 )
-set WATCHDOG=%PROJECT_DIR%watchdog.py
 
-echo Удаление старой задачи...
-schtasks /delete /tn "%TASK_NAME%" /f >nul 2>&1
+echo Python: %PYTHONW%
+echo.
 
-echo Создание задачи для пользователя %USERNAME%...
-schtasks /create /tn "%TASK_NAME%" /tr "\"%PYTHONW%\" \"%WATCHDOG%\"" /sc onlogon /ru "%USERNAME%" /f
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_DIR%\install_task.ps1" -ProjectDir "%PROJECT_DIR%" -PythonW "%PYTHONW%" -BackupEveryHours %BACKUP_EVERY_HOURS%
+if errorlevel 1 (
+    echo.
+    echo ОШИБКА при создании задач.
+    pause
+    exit /b 1
+)
 
 echo.
-echo Готово! Сайт будет запускаться при входе в Windows (без окна CMD).
-echo.
-echo Запустить сейчас:
-start "" "%PYTHONW%" "%WATCHDOG%"
+echo Готово! Сайт запускается при входе в Windows, бэкап — каждые %BACKUP_EVERY_HOURS% ч.
+echo Для запуска без ручного входа нужен автовход в Windows (netplwiz).
 echo.
 echo Управление: taskschd.msc
-echo Удалить задачу: schtasks /delete /tn "%TASK_NAME%" /f
 pause

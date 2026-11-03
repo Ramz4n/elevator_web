@@ -1,5 +1,7 @@
-﻿# Бэкап баз MariaDB: проверка дампа, хранение последних копий и копирование в папку Google Drive.
-# Запускается из backup.bat (задача backup в планировщике).
+﻿# Бэкап баз MariaDB: проверка дампа, хранение копий и копирование в папку Google Drive.
+# Запускается из backup.bat (задача backup в планировщике, каждый час).
+# На компьютере хранятся все бэкапы за $LocalKeepDays дней,
+# в Google Drive — первый удачный бэкап каждого дня за $GDriveKeepDays дней.
 # backup.bat -Force — сохранить бэкап, даже если он намного меньше прошлого.
 param(
     [switch]$Force,
@@ -7,7 +9,8 @@ param(
     [string]$EnvFile = (Join-Path $PSScriptRoot '.env'),  # DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, имена баз
     [string]$BackupDir = 'D:\backup',
     [string]$GDriveDir = 'G:\Мой диск\backup',  # папка Google Drive для компьютера
-    [int]$KeepCount = 14,
+    [int]$LocalKeepDays = 14,
+    [int]$GDriveKeepDays = 30,
     [double]$MinSizeRatio = 0.5                # дамп меньше 50% прошлого — данные пропали, не сохраняем
 )
 
@@ -46,15 +49,24 @@ function Clear-Warning($Database) {
     }
 }
 
-# Оставляет только $KeepCount последних бэкапов базы (имена сортируются по дате)
-function Remove-OldBackups($Dir, $Database) {
-    Get-ChildItem -Path $Dir -Filter "${Database}_*.zip" |
-        Sort-Object Name -Descending |
-        Select-Object -Skip $KeepCount |
-        ForEach-Object {
-            Remove-Item $_.FullName
-            Write-Log "Удалён старый бэкап: $($_.FullName)"
+# Бэкапы базы в папке с датой из имени: <база>_yyyy-MM-dd_HH-mm.zip
+function Get-Backups($Dir, $Database) {
+    $pattern = '^' + [regex]::Escape($Database) + '_(\d{4}-\d{2}-\d{2})_\d{2}-\d{2}\.zip$'
+    Get-ChildItem -Path $Dir -Filter "${Database}_*.zip" | ForEach-Object {
+        if ($_.Name -match $pattern) {
+            [pscustomobject]@{ File = $_; Date = [datetime]::ParseExact($Matches[1], 'yyyy-MM-dd', $null) }
         }
+    }
+}
+
+# Удаляет бэкапы старше $KeepDays дней. Вызывается только после удачного бэкапа,
+# поэтому при сбоях последние хорошие копии не пропадают
+function Remove-OldBackups($Dir, $Database, $KeepDays) {
+    $cutoff = (Get-Date).Date.AddDays(-$KeepDays)
+    Get-Backups $Dir $Database | Where-Object { $_.Date -lt $cutoff } | ForEach-Object {
+        Remove-Item $_.File.FullName
+        Write-Log "Удалён старый бэкап: $($_.File.FullName)"
+    }
 }
 
 function Test-Dump($TempSql, $MainTable, $SizeFile) {
@@ -116,7 +128,7 @@ function Backup-Database($Database, $MainTable, $Connection) {
         Set-Content -Path $sizeFile -Value $size
         Write-Log ("Бэкап сохранён: {0} (дамп {1:N1} МБ)" -f $zip, ($size / 1MB))
         Clear-Warning $Database
-        Remove-OldBackups $BackupDir $Database
+        Remove-OldBackups $BackupDir $Database $LocalKeepDays
         return $zip
     }
     catch {
@@ -168,9 +180,12 @@ if ($zips.Count -gt 0) {
         }
         New-Item -ItemType Directory -Force -Path $GDriveDir | Out-Null
         foreach ($item in $zips) {
+            # В Google Drive — только первый удачный бэкап за день
+            $today = (Get-Date).Date
+            if (Get-Backups $GDriveDir $item[0] | Where-Object { $_.Date -eq $today }) { continue }
             Copy-Item $item[1] $GDriveDir
             Write-Log "Скопирован в Google Drive: $(Join-Path $GDriveDir (Split-Path $item[1] -Leaf))"
-            Remove-OldBackups $GDriveDir $item[0]
+            Remove-OldBackups $GDriveDir $item[0] $GDriveKeepDays
         }
     }
     catch {

@@ -3,7 +3,8 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 import mariadb
 import json
 from contextlib import closing
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
@@ -12,7 +13,8 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, cur
 from wtforms import StringField, SubmitField, TextAreaField, BooleanField, PasswordField
 from wtforms.validators import DataRequired
 from flask_wtf import FlaskForm
-from flask_ipban import IpBan
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import pymemcache
 from flask_caching import Cache
 from db_manager import DataBaseManager
@@ -33,6 +35,8 @@ pc_host = os.getenv("HOST")
 db_table = os.getenv("DB_TABLE", "zayavki")
 
 tester = Flask(__name__, static_folder='static')
+# Сайт работает за nginx: берём реальный IP клиента и схему из X-Forwarded-*
+tester.wsgi_app = ProxyFix(tester.wsgi_app, x_for=1, x_proto=1, x_host=1)
 tester.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 tester.config['SQLALCHEMY_DATABASE_URI'] = (
     f'mariadb+pymysql://{quote_plus(db_user)}:{quote_plus(db_password)}@{db_host}:{db_port}/{db_table_name}'
@@ -53,15 +57,20 @@ login_manager.login_message = 'Введите Логин и Пароль'
 tester.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 tester.config['SESSION_COOKIE_HTTPONLY'] = True
 tester.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-tester.config['PERMANENT_SESSION_LIFETIME'] = 3600
+tester.config['PERMANENT_SESSION_LIFETIME'] = 12 * 3600  # 12 часов без активности
 tester.config['REMEMBER_COOKIE_DURATION'] = 7 * 24 * 3600  # 7 дней
-tester.config['REMEMBER_COOKIE_SECURE'] = os.getenv('HTTPS', 'false').lower() == 'true'
+use_https = os.getenv('HTTPS', 'false').lower() == 'true'
+tester.config['SESSION_COOKIE_SECURE'] = use_https
+tester.config['REMEMBER_COOKIE_SECURE'] = use_https
 tester.config['REMEMBER_COOKIE_HTTPONLY'] = True
 db = SQLAlchemy(tester)
 
-# Настройки блокировки IP
-tester.config['BANNED_IPS'] = set()
+# Ограничение попыток входа (защита от подбора пароля)
+limiter = Limiter(get_remote_address, app=tester, storage_uri="memory://")
 cache = Cache(tester, config={'CACHE_TYPE': 'simple'})
+
+# Хэш-заглушка, чтобы время ответа не выдавало существование логина
+DUMMY_PASSWORD_HASH = generate_password_hash(os.urandom(16).hex())
 
 
 @login_manager.user_loader
@@ -84,42 +93,43 @@ class LoginForm(FlaskForm):
 
 @tester.route('/', methods=['GET', 'POST'])
 @tester.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute; 20 per hour", methods=["POST"])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = Users.query.filter_by(username=form.username.data).first()
-        if user:
-            # Check the hash
-            if check_password_hash(user.password, form.password.data):
-                login_user(user, remember=True)
-                session.permanent = True
-                print(form.username.data)
-                session['access'] = user.access
-                return redirect(url_for('base'))
-            else:
-                ip_address = request.remote_addr
-                tester.config['BANNED_IPS'].add(ip_address)
-                return 'Ошибка входа. Неправильный логин или пароль.'
-        else:
-            ip_address = request.remote_addr
-            tester.config['BANNED_IPS'].add(ip_address)
-            flash("Неверный Логин или Пароль")
+        # Хэш проверяется всегда, даже если пользователя нет
+        password_hash = user.password if user else DUMMY_PASSWORD_HASH
+        if check_password_hash(password_hash, form.password.data) and user:
+            session.clear()
+            login_user(user, remember=False)
+            session.permanent = True
+            session['access'] = user.access
+            return redirect(url_for('base'))
+        flash("Неверный Логин или Пароль")
 
     return render_template('login.html', form=form)
+
+
+@tester.errorhandler(429)
+def too_many_requests(e):
+    flash("Слишком много попыток входа. Попробуйте позже.")
+    return render_template('login.html', form=LoginForm()), 429
 
 
 class Users(db.Model, UserMixin):
     __tablename__ = 'users'
     id = db.Column(db.Integer(), primary_key=True)
     username = db.Column(db.String(50), nullable=False, unique=True)
-    password = db.Column(db.String(162), nullable=False, unique=True)
-    access = db.Column(db.Integer, nullable=False, unique=True)
+    password = db.Column(db.String(162), nullable=False)
+    access = db.Column(db.Integer, nullable=False)
 
 
 @tester.route('/logout/')
 @login_required
 def logout():
     logout_user()
+    session.clear()
     flash("You have been logged out.")
     return redirect(url_for('login'))
 

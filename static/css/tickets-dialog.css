@@ -88,6 +88,10 @@
     white-space: nowrap;
 }
 
+.tickets-date span {
+    display: block;
+}
+
 .tickets-table td.tickets-wide {
     min-width: 260px;
     overflow-wrap: anywhere;
@@ -131,6 +135,20 @@
 
     .tickets-table td:last-child {
         border-bottom: none;
+    }
+
+    /* В карточке на телефоне места хватает: дата и время в одну строку */
+    .tickets-date span {
+        display: inline;
+    }
+
+    .tickets-table td.tickets-date {
+        gap: 0;
+    }
+
+    .tickets-date span:first-of-type {
+        margin-left: auto;
+        margin-right: 6px;
     }
 
     .tickets-table td::before {

@@ -41,6 +41,23 @@ window.TicketsDialog = (function () {
     document.body.appendChild(dialog);
   }
 
+  // «06.10.2026, 20:54» -> дата «06.10.26» и время отдельной строкой
+  function fillDate(cell, value) {
+    var m = /^(\d{2})\.(\d{2})\.\d{2}(\d{2}),?\s+(\d{2}:\d{2})$/.exec(String(value));
+    if (!m) {
+      cell.textContent = value;
+      return;
+    }
+    var date = document.createElement('span');
+    date.textContent = m[1] + '.' + m[2] + '.' + m[3];
+    var time = document.createElement('span');
+    time.textContent = m[4];
+    cell.appendChild(date);
+    cell.appendChild(document.createTextNode(' '));
+    cell.appendChild(time);
+    cell.classList.add('tickets-date');
+  }
+
   function render(tickets, columns) {
     body.textContent = '';
     if (!tickets.length) {
@@ -61,7 +78,13 @@ window.TicketsDialog = (function () {
       columns.forEach(function (column) {
         var cell = row.insertCell();
         var value = ticket[column.key];
-        cell.textContent = (value === null || value === undefined || value === '') ? '—' : value;
+        if (value === null || value === undefined || value === '') {
+          cell.textContent = '—';
+        } else if (column.date) {
+          fillDate(cell, value);
+        } else {
+          cell.textContent = value;
+        }
         cell.dataset.label = column.label;
         if (column.nowrap) cell.classList.add('tickets-nowrap');
         if (column.wide) cell.classList.add('tickets-wide');
@@ -70,7 +93,7 @@ window.TicketsDialog = (function () {
     body.appendChild(table);
   }
 
-  // options: title, columns [{key, label, nowrap, wide}], load() -> Promise со списком заявок, subtitle(tickets) -> строка
+  // options: title, columns [{key, label, nowrap, wide, date}], load() -> Promise со списком заявок, subtitle(tickets) -> строка
   function open(options) {
     ensure();
     var current = ++requestId;

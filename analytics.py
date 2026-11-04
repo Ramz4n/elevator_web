@@ -9,7 +9,6 @@ DOWNTIME_REASONS = ('Неисправность', 'Застревание', 'О�
 COMPLETE_MONTH_SHARE = 0.5
 # Меньше стольких ремонтов медиана ни о чём не говорит
 MIN_REPAIRS = 5
-MIN_LIFT_REPAIRS = 3
 GROWTH_MIN_TICKETS = 100
 # На меньшем числе лифтов процент изменения прыгает от случайных заявок
 MIN_COMPARE_LIFTS = 30
@@ -22,17 +21,6 @@ def repair_text(seconds):
     if seconds <= 0:
         return '—'
     return format_duration(seconds / 3600)
-
-
-def median_repair_text(seconds_list):
-    """Обычное время ремонта лифта. seconds_list: длительности через запятую из GROUP_CONCAT.
-
-    За короткий период у лифта мало заявок, поэтому порог ниже, чем в аналитике.
-    """
-    values = [int(value) for value in (seconds_list or '').split(',') if value]
-    if len(values) < MIN_LIFT_REPAIRS:
-        return '—'
-    return format_duration(statistics.median(values) / 3600)
 
 
 def ticket_view(number, date, reason, seconds, comment):

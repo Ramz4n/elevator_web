@@ -1,971 +1,512 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 	<meta charset="utf-8" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 	<meta name="author" content="Roman Kuznetsov" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" />
-	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
-	<script src="{{ url_for('static', filename='js/app.js') }}"></script>
-	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
 	<title>Аналитика данных</title>
+	<link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/app.css') }}">
+	<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+	<style>
+	.c-fault { color: blue; } /* Неисправности */
+	.c-stuck { color: red; } /* Застревания */
+	.c-false { color: orange; } /* Ложные обращения */
+
+	/* Шапка */
+	.dash-header {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px 40px;
+		padding: 12px 24px;
+	}
+	.dash-logo {
+		display: block;
+		height: auto;
+		max-width: 100%;
+	}
+	.dash-controls,
+	.dash-filters,
+	.dash-nav {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		gap: 12px;
+	}
+	.dash-controls { gap: 12px 24px; }
+	.dash-nav .btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 38px;
+	}
+	.customLabel {
+		display: block;
+		margin-bottom: 4px;
+		font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		font-size: 14px;
+		font-weight: 700;
+		color: #832018;
+	}
+	.customSelect {
+		width: 190px;
+		height: 38px;
+		font-size: 15px;
+		border: 2px solid #336699;
+		border-radius: 5px;
+		padding: 5px;
+		background-color: #f2f2f2;
+		color: #333;
+	}
+	.customSelect-short { width: 100px; }
+	.customSelect:focus {
+		outline: none;
+		border-color: #0099cc;
+		box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
+	}
+	@media (max-width: 768px) {
+		.dash-header { padding: 12px 16px; }
+		.dash-controls, .dash-filters, .dash-nav, .filter { width: 100%; }
+		.customSelect, .customSelect-short { width: 100%; }
+		.dash-nav .btn { flex: 1; }
+	}
+
+	/* Сообщение об ошибке и состояние загрузки */
+	.dash-error {
+		margin: 0 24px 12px;
+		padding: 10px 16px;
+		border: 1px solid #dc3545;
+		border-radius: 5px;
+		background: #fdecee;
+		color: #842029;
+	}
+	.dash-error button {
+		margin-left: 12px;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font-weight: 700;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+	.content { transition: opacity .15s; }
+	.is-loading, .is-stale { opacity: .45; }
+
+	/* Карточки: кликается вся карточка */
+	.stat-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		grid-auto-rows: 1fr;
+		gap: 24px;
+		margin-bottom: 24px;
+	}
+	.stat-grid .card { margin-bottom: 0; }
+	.stat-spacer { display: none; }
+	@media (min-width: 576px) {
+		.stat-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			grid-template-rows: repeat(5, 1fr);
+			grid-auto-flow: column;
+		}
+		.stat-spacer { display: block; }
+	}
+	.stat-card,
+	.stat-card:hover {
+		color: inherit;
+		text-decoration: none;
+		border-radius: 10px;
+	}
+	.stat-card .card-body {
+		position: relative;
+		border: 1px solid black;
+		border-radius: 10px;
+		transition: background-color .15s;
+	}
+	.stat-card .card-body::after {
+		content: '→';
+		position: absolute;
+		top: 12px;
+		right: 16px;
+		font-size: 18px;
+		line-height: 1;
+		color: #6c757d;
+	}
+	.stat-card:hover .card-body { background-color: #f1f5fb; }
+	.stat-card:hover .card-body::after { color: #212529; }
+	.stat-card:focus-visible {
+		outline: 3px solid #0099cc;
+		outline-offset: 2px;
+	}
+	.stat-card .card-title { padding-right: 24px; }
+	.stat-value { margin: 4px 0 0; }
+
+	.pie-table td {
+		padding-left: 4px;
+		padding-right: 4px;
+		font-size: 13px;
+	}
+	.chart-line {
+		height: 211px;
+		min-height: 211px;
+	}
+	</style>
 </head>
-<style>
-#cityList li {
-	display: inline;
-	margin-right: 20px;
-	text-decoration: underline;
-}
-.centered {
-    text-align: center;
-}
-.bold {
-	font-weight: bold;
-}
-.selected {
-	text-decoration: underline;
-}
-#data4 {
-	color: blue; /* Неисправности синим цветом */
-}
-#data7 {
-	color: orange; /* Ложные обращения жёлтым цветом */
-}
-#data3 {
-	color: red; /* Застревания красным цветом */
-}
-.color-blue {
-	color: blue;
-}
-.color-red {
-	color: red;
-}
-.color-orange {
-	color: orange;
-}
-.sizeName {
-	font-size: 22px;
-}
-.black-ramka {
-	border: 1px solid black;
-}
-.custom-button {
-    background-color: #4CAF50; /* Зеленый цвет кнопки */
-    color: white;  /* Белый текст */
-    padding: 10px 20px; /* Отступы вокруг текста */
-    text-align: center; /* Выравнивание текста по центру */
-    text-decoration: none;  /*  Убираем стандартное подчеркивание ссылок */
-    display: block; /* Отображаем элемент как блочный */
-    margin: 0 auto; /* Центрирование кнопки */
-    font-size: 16px; /* Размер шрифта */
-    cursor: pointer; /* Изменение вида курсора при наведении */
-}
-.custom-button:hover {
-    background-color: #45a049; /* Темнозеленый цвет кнопки при наведении */
-}
-.customSelectWrapper {
-	display: flex;
-	flex-wrap: wrap; /* ➕ добавляем перенос */
-	justify-content: center;
-	align-items: center;
-	gap: 20px; /* ➕ чтобы элементы не слипались */
-}
-@media (max-width: 768px) {
-.customSelectWrapper {
-    flex-direction: column; /* 🔁 Ставим вертикально на телефонах */
-    align-items: center;}
-.customSelectItem,
-.center-block {
-    width: 100%;
-    text-align: center;
-    align-items: center;}
-}
-.center-block img {
-	max-width: 100%;
-	height: auto;
-	display: block;
-	margin: 0 auto;
-}
-.customLabel {
-    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 30px;
-    color: #832018;
-    text-transform: uppercase;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    font-weight: 700; /* Используем полужирный вариант шрифта */
-}
-.customSelect {
-	width: 220px;
-	height: 40px;
-	font-size: 16px;
-	border: 2px solid #336699;
-	border-radius: 5px;
-	padding: 5px;
-	background-color: #f2f2f2;
-	color: #333;
-}
-.customSelect:focus {
-	outline: none;
-	border-color: #0099cc;
-	box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
-}
-.float-left {
-    float: none !important;
-}
-.body {
-	background-color: #FFF;
-}
-</style>
 <body>
-<div class="customSelectWrapper">
-	<div class="center-block">
-		<img src="{{ url_for('static', filename='vostok.jpg') }}" alt="Изображение">
+{% macro stat_card(title, path, value_id=none, value=none, text=none) %}
+<a class="card stat-card" href="{{ path }}" data-path="{{ path }}">
+	<div class="card-body">
+		<h5 class="card-title">{{ title }}</h5>
+		{% if value_id %}
+		<div class="h1 stat-value data" id="{{ value_id }}">{{ value }}</div>
+		{% else %}
+		<div class="h1 stat-value">{{ text }}</div>
+		{% endif %}
 	</div>
+</a>
+{% endmacro %}
 
-<div class="customSelectItem float-left">
+<header class="dash-header">
+	<img class="dash-logo" src="{{ url_for('static', filename='vostok.jpg') }}" alt="Логотип">
+	<!--В этом блоке находятся Город, Месяц и Год-->
+	<div class="dash-controls">
+		<div class="dash-filters">
+			{% block content %}{% endblock %}
+		</div>
+		<nav class="dash-nav">
+			<a class="btn btn-success" href="/_stat">Статистика</a>
+			<a class="btn btn-success" href="/_analytics">Аналитика</a>
+			<a class="btn btn-outline-secondary" href="/logout/">Выйти</a>
+		</nav>
+	</div>
+</header>
 
-<!--В этом блоке находятся Город и Месяц-->
-{% block content %}{% endblock %}
-
+<div class="dash-error" id="dashError" role="alert" hidden>
+	Не удалось обновить данные, на странице показаны прежние значения.
+	<button type="button" id="dashRetry">Повторить</button>
 </div>
 
-<script>
-document.querySelector(`option[value="${new Date().getMonth()+1}"]`)
-    .setAttribute('selected', 'true')
-</script>
-	<div>
-	<!--<button class="btn btn-success float-left" id="redirectButton0">Паспорт лифта</button>-->
-	<button class="btn btn-success float-left" id="ButtonStat">Статистика</button>
-	<button class="btn btn-success float-left" id="ButtonAnalytics">Аналитика</button>
-	</div>
-<script>
-	const button0 = document.getElementById('redirectButton0'); // Получаем кнопку по id
-	button0.addEventListener('click', function() {
-	const selectedCity = document.getElementById('cityList').value;
-	// Формируем URL с параметром selectedCity
-	const urlToRedirect = '/_passport?selectedCity=' + selectedCity;
-	// Перейти на указанную страницу
-	window.location.href = urlToRedirect;
-	});
-</script>
-<script>
-	const buttonStat = document.getElementById('ButtonStat'); // Получаем кнопку по id
-	buttonStat.addEventListener('click', function() {
-	// Формируем URL с параметром selectedCity
-	const urlToRedirect = '/_stat'
-	// Перейти на указанную страницу
-	window.location.href = urlToRedirect;
-	});
-</script>
-<script>
-	document.getElementById('ButtonAnalytics').addEventListener('click', function() {
-	window.location.href = '/_analytics';
-	});
-</script>
-</div>
-
-<script>
-window.onload = function() {
-  var selectElement = document.getElementById('cityList');
-  var monthList = document.getElementById('monthList').value;
-  // Выбираем первый город из списка
-  var defaultCity = selectElement.options[0].value;
-  changeCity(defaultCity, monthList);
-}
-function changeCity(city, monthList) {
-	
-	var monthList = document.getElementById('monthList').value;
-	var selectElement = document.getElementById('cityList');
-	const urlParams = new URLSearchParams(window.location.search);
-    const image_value = urlParams.get('image_value'); // Извлекаем значение
-	fetch('/base', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ selectedCity: city, monthList: monthList, image_value: image_value})
-  })
-  .then(response => response.json())
-  .then(updatedData => {
-
-    // Обновляем остальные данные на странице
-let elementsToUpdate = document.querySelectorAll(".data");
-elementsToUpdate.forEach((element) => {
-  let id = element.id; // Получаем ID элемента
-  let dataIndex = Number(id.replace('data', '')) - 1; // Извлекаем номер данных из ID
-  switch (id) {
-	case "data1":
-      element.innerText = updatedData.data1;
-      break;
-	case "vsego":
-      element.innerText = updatedData.vsego;
-      break;
-	case "svyaz":
-      element.innerText = updatedData.svyaz;
-      break;
-	case "stopped":
-      element.innerText = updatedData.stopped;
-      break;
-	case "lineynaya":
-      element.innerText = updatedData.lineynaya;
-      break;
-    case "uk":
-      element.innerText = updatedData.uk;
-      break;
-    case "data3":
-      element.innerText = updatedData.data3;
-      break;
-    case "data4":
-      element.innerText = updatedData.data4;
-      break;
-    case "data6":
-      element.innerText = updatedData.data6;
-      break;
-    case "data7":
-      element.innerText = updatedData.data7;
-      break;
-    case "data9":
-      element.innerText = updatedData.data9;
-      break;
-    case "data10":
-      element.innerText = updatedData.data10;
-      break;
-    case "data8":
-      element.innerText = updatedData.data8;
-      break;
-	case "data11":
-	  element.innerText = updatedData.data11;
-	  break;
-	case "data12":
-	  element.innerText = updatedData.data12;
-	  break;
-	case "data13":
-	  element.innerText = updatedData.data13;
-	  break;
-    case "data14":
-      element.innerText = updatedData.data14;
-      break;
-    case "data15":
-      element.innerText = updatedData.data15;
-      break;
-	case "procent1":
-      element.innerText = updatedData.procent1 + '%';
-      break;
-	case "procent2":
-      element.innerText = updatedData.procent2 + '%';
-      break;
-	case "procent3":
-      element.innerText = updatedData.procent3 + '%';
-      break;
-    // Добавьте другие случаи или условия для других данных
-  }
-});
-
-    // Вызываем функции обновления графиков
-    updatePieChart(updatedData.data4, updatedData.data7, updatedData.data3, updatedData);
-    updateLineChart(updatedData.data9[0]);
-	updateBarChart2(updatedData.data12, updatedData.data10, updatedData.data13);
-  });
-}
-</script>
-    <div class="wrapper">
-      <div class="main">
-        <main class="content">
-          <div class="container-fluid p-0">
-            <div class="row">
-              <div class="col-xl-6 col-xxl-5 d-flex">
-                <div class="w-100">
-                  <div class="row">
-                    <div class="col-sm-6">
-						<div class="card">
-							<div class="card-body black-ramka">
-								<div class="row">
-								  <div class="col mt-0">
-									<h5 class="card-title">Кол-во лифтов</h5>
-								  </div>
-								</div>
-								<div class="h1 mb-3">
-								  {% for dat in data1 %}
-									<h1 class="mt-1 mb-3 data" id="data1">{{dat[0]}}</h1>
-								  {% endfor %}
-								</div>
-								<div class="mb-0">
-								  <span class="text-success">
-									<i class="mdi mdi-arrow-bottom-right"></i>
-								  </span>
-								  <span class="text-muted"></span>
-								</div>
-								<div class="text-center">
-								  <button class="btn btn-success" id="redirectButton_kolvo">Показать</button>
+<div class="wrapper">
+	<div class="main">
+		<main class="content" id="dashContent">
+			<div class="container-fluid p-0">
+				<div class="row">
+					<div class="col-xl-6 col-xxl-5 d-flex">
+						<div class="w-100">
+							<div class="stat-grid">
+									{{ stat_card('Кол-во лифтов', '/kolvo_lifts', 'data1', data1[0][0]) }}
+									{{ stat_card('Обращений/мес.', '/_obrasch', 'vsego', data2[0][0]) }}
+									{{ stat_card('Связь', '/_svyaz', 'svyaz', data2[0][3]) }}
+									{{ stat_card('Проблемные лифты за 14 дней', '/_top_bad', text='Топ 30 лифтов') }}
+									<div class="stat-spacer"></div>
+									{{ stat_card('Остановленные', '/_ostanov', 'stopped', data2[0][1]) }}
+									{{ stat_card('Текущие заявки', '/_tekuschie', 'data14', data14[0][0]) }}
+									{{ stat_card('Линейные заявки', '/_lineynie', 'lineynaya', data2[0][2]) }}
+									{{ stat_card('УК заявки', '/_uk', 'data15', data15[0][0]) }}
+									{{ stat_card('Поиск заявок', '/_search', text='Найти') }}
+							</div>
+						</div>
+					</div>
+					<div class="col-xl-6 col-xxl-7">
+						<div class="card flex-fill w-100">
+							<div class="card-header">
+								<h5 class="card-title mb-0">Статистика обращений за <span id="chartYear">{{ selected_year }}</span> год (по месяцам)</h5>
+							</div>
+							<div class="card-body py-3">
+								<div class="chart chart-line">
+									<canvas id="chartjs-dashboard-line"></canvas>
 								</div>
 							</div>
 						</div>
-							<script>
-							const button_kolvo = document.getElementById('redirectButton_kolvo'); // Получаем кнопку по id
-							button_kolvo.addEventListener('click', function() {
-								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-								// Формируем URL с параметром selectedCity
-								const urlToRedirect = '/kolvo_lifts?selectedCity=' + selectedCity;
-								// Перейти на указанную страницу
-								window.location.href = urlToRedirect;
-							});
-							</script>
-                        <div class="card">
-							<div class="card-body black-ramka">
-								<div class="row">
-								  <div class="col mt-0">
-									<h5 class="card-title">Обращений/мес.</h5>
-								  </div>
-								</div>
-								<div class="h1 mb-3">
-									<h1 class="mt-1 mb-3 data" id="vsego">{{data2[0][0]}}</h1>
-								</div>
-								<div class="mb-0">
-								  <span class="text-success">
-									<i class="mdi mdi-arrow-bottom-right"></i>
-								  </span>
-								  <span class="text-muted"></span>
-								</div>
-								<div class="text-center">
-								  <button class="btn btn-success" id="redirectButton1">Показать</button>
-								</div>
-							</div>
-						</div>
-							<script>
-							const button1 = document.getElementById('redirectButton1'); // Получаем кнопку по id
-							button1.addEventListener('click', function() {
-								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-								const monthList = document.getElementById('monthList').value;
-								// Формируем URL с параметром selectedCity
-								const urlToRedirect = '/_obrasch?selectedCity=' + selectedCity + '&monthList=' + monthList;
-								// Перейти на указанную страницу
-								window.location.href = urlToRedirect;
-							});
-							</script>
-						<div class="card">
-							<div class="card-body black-ramka">
-								<div class="row">
-								  <div class="col mt-0">
-									<h5 class="card-title">Связь</h5>
-								  </div>
-								</div>
-								<div class="h1 mb-3">
-									<h1 class="mt-1 mb-3 data" id="svyaz">{{data2[0][3]}}</h1>
-								</div>
-								<div class="mb-0">
-								  <span class="text-success">
-									<i class="mdi mdi-arrow-bottom-right"></i>
-								  </span>
-								  <span class="text-muted"></span>
-								</div>
-								<div class="text-center">
-								  <button class="btn btn-success" id="redirectButton_svyaz">Показать</button>
-								</div>
-							</div>
-						</div>
-							<script>
-							const button_svyaz = document.getElementById('redirectButton_svyaz'); // Получаем кнопку по id
-							button_svyaz.addEventListener('click', function() {
-								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-								const monthList = document.getElementById('monthList').value;
-								// Формируем URL с параметром selectedCity
-								const urlToRedirect = '/_svyaz?selectedCity=' + selectedCity + '&monthList=' + monthList;
-								// Перейти на указанную страницу
-								window.location.href = urlToRedirect;
-							});
-							</script>
-						<div class="card">
-							<div class="card-body black-ramka">
-								<div class="row">
-									<div class="col mt-0">
-										<h5 class="card-title">Проблемные лифты за 14 дней</h5>
+						<div class="row">
+							<div class="row">
+								<div class="col-12 col-md-6 col-xxl-8 d-flex order-3 order-xxl-3 custom-height">
+									<div class="card flex-fill w-100">
+										<div class="card-header">
+											<h5 class="card-title mb-0">Количество <span class="c-fault">неисправностей, </span><span class="c-stuck">застреваний, </span><span class="c-false">ложных</span></h5>
+										</div>
+										<div class="card-body d-flex w-100">
+											<div class="align-self-center chart chart-lg">
+												<canvas id="chartjs-dashboard-bar2"></canvas>
+											</div>
+										</div>
 									</div>
 								</div>
-								<div class="h1 mb-3">
-									<h1 class="mt-1 mb-3">Топ 30 лифтов</h1>
-								</div>
-								<div class="text-center">
-									<button class="btn btn-success" id="myButton">Показать</button>
-								</div>
-							</div>
-						</div>
-							<script>
-							  document.querySelector("#myButton").addEventListener("click", function() {
-							  	const selectedCity = document.getElementById('cityList').value;
-								const urlToRedirect = '/_top_bad?selectedCity=' + selectedCity;
-								// Перейти на указанную страницу
-								window.location.href = urlToRedirect;
-							  });
-							</script>
-							<script>
-							const button3 = document.getElementById('redirectButton3'); // Получаем кнопку по id
-							button3.addEventListener('click', function() {
-								const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-								const monthList = document.getElementById('monthList').value;
-								// Формируем URL с параметром selectedCity
-								const urlToRedirect = '/_zastrev?selectedCity=' + selectedCity + '&monthList=' + monthList;
-								// Перейти на указанную страницу
-								window.location.href = urlToRedirect;
-							});
-							</script>
-                    </div>
-					<div class="col-sm-6">
-						<div class="card">
-							<div class="card-body black-ramka">
-								<div class="row">
-									<div class="col mt-0">
-										<h5 class="card-title">Остановленные</h5>
+								<div class="col-12 col-md-6 col-xxl-4 d-flex order-2 order-xxl-2 custom-height">
+									<div class="card flex-fill w-100">
+										<div class="card-header">
+											<h5 class="card-title mb-0">Обращения за месяц</h5>
+										</div>
+										<div class="card-body d-flex">
+											<div class="align-self-center w-100">
+												<div class="py-3">
+													<div class="chart chart-xs">
+														<canvas id="chartjs-dashboard-pie"></canvas>
+													</div>
+												</div>
+												<table class="table mb-0 pie-table">
+													<tbody>
+														<tr class="c-fault">
+															<td>Неисправности</td>
+															<td class="text-end data" id="data4">{{ data4[0][0] }}</td>
+															<td class="text-end data" id="procent2">{{ procent2 }}%</td>
+														</tr>
+														<tr class="c-stuck">
+															<td>Застревания</td>
+															<td class="text-end data" id="data3">{{ data3[0][0] }}</td>
+															<td class="text-end data" id="procent1">{{ procent1 }}%</td>
+														</tr>
+														<tr class="c-false">
+															<td>Ложные обращения</td>
+															<td class="text-end data" id="data7">{{ data7[0][0] }}</td>
+															<td class="text-end data" id="procent3">{{ procent3 }}%</td>
+														</tr>
+													</tbody>
+												</table>
+											</div>
+										</div>
 									</div>
 								</div>
-								<div class="h1 mb-3">
-									<h1 class="mt-1 mb-3 data" id="stopped">{{data2[0][1]}}</h1>
-								</div>
-								<div class="mb-0">
-									<span class="text-danger">
-										<i class="mdi mdi-arrow-bottom-right"></i>
-									</span>
-								  <span class="text-muted"></span>
-								</div>
-								<div class="text-center">
-									<button class="btn btn-success" id="redirectButton4">Показать</button>
-								</div>
-							</div>
-						</div>
-					<script>
-					const button4 = document.getElementById('redirectButton4'); // Получаем кнопку по id
-					button4.addEventListener('click', function() {
-						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-						const monthList = document.getElementById('monthList').value;
-						// Формируем URL с параметром selectedCity
-						const urlToRedirect = '/_ostanov?selectedCity=' + selectedCity + '&monthList=' + monthList;
-						// Перейти на указанную страницу
-						window.location.href = urlToRedirect;
-					});
-					</script>
-					<div class="card">
-						<div class="card-body black-ramka">
-							<div class="row">
-								<div class="col mt-0">
-									<h5 class="card-title">Текущие заявки</h5>
-								</div>
-							</div>
-							<div class="h1 mb-3">
-								<h1 class="mt-1 mb-3 data" id="data14">{{data14[0][0]}}</h1>
-							</div>
-							<div class="mb-0">
-								<span class="text-success">
-									<i class="mdi mdi-arrow-bottom-right"></i>
-								</span>
-								<span class="text-muted"></span>
-							</div>
-							<div class="text-center">
-								<button class="btn btn-success" id="redirectButton9">Показать</button>
 							</div>
 						</div>
 					</div>
-					<script>
-					const button9 = document.getElementById('redirectButton9'); // Получаем кнопку по id
-					button9.addEventListener('click', function() {
-						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-						const monthList = document.getElementById('monthList').value;
-						// Формируем URL с параметром selectedCity
-						const urlToRedirect = '/_tekuschie?selectedCity=' + selectedCity + '&monthList=' + monthList;
-						// Перейти на указанную страницу
-						window.location.href = urlToRedirect;
-					});
-					</script>
-					<div class="card">
-						<div class="card-body black-ramka">
-							<div class="row">
-								<div class="col mt-0">
-									<h5 class="card-title">Линейные заявки</h5>
-								</div>
-							</div>
-							<div class="h1 mb-3">
-								<h1 class="mt-1 mb-3 data" id="lineynaya">{{data2[0][2]}}</h1>
-							</div>
-							<div class="mb-0">
-								<span class="text-success">
-									<i class="mdi mdi-arrow-bottom-right"></i>
-								</span>
-							<span class="text-muted"></span>
-							</div>
-							<div class="text-center">
-								<button class="btn btn-success" id="redirectButton10">Показать</button>
-							</div>
-						</div>
-					</div>
-					<script>
-					const button10 = document.getElementById('redirectButton10'); // Получаем кнопку по id
-					button10.addEventListener('click', function() {
-						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-						const monthList = document.getElementById('monthList').value;
-						// Формируем URL с параметром selectedCity
-						const urlToRedirect = '/_lineynie?selectedCity=' + selectedCity + '&monthList=' + monthList;
-						// Перейти на указанную страницу
-						window.location.href = urlToRedirect;
-					});
-					</script>
-						<div class="card">
-						<div class="card-body black-ramka">
-							<div class="row">
-								<div class="col mt-0">
-									<h5 class="card-title">УК заявки</h5>
-								</div>
-							</div>
-							<div class="h1 mb-3">
-								<h1 class="mt-1 mb-3 data" id="data15">{{data15[0][0]}}</h1>
-							</div>
-							<div class="mb-0">
-								<span class="text-success">
-									<i class="mdi mdi-arrow-bottom-right"></i>
-								</span>
-							<span class="text-muted"></span>
-							</div>
-							<div class="text-center">
-								<button class="btn btn-success" id="redirectButton11">Показать</button>
-							</div>
-						</div>
-					</div>
-					<script>
-					const button11 = document.getElementById('redirectButton11'); // Получаем кнопку по id
-					button11.addEventListener('click', function() {
-						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-						const monthList = document.getElementById('monthList').value;
-						// Формируем URL с параметром selectedCity
-						const urlToRedirect = '/_uk?selectedCity=' + selectedCity + '&monthList=' + monthList;
-						// Перейти на указанную страницу
-						window.location.href = urlToRedirect;
-					});
-					</script>
-					<div class="card">
-						<div class="card-body black-ramka">
-							<div class="row">
-								<div class="col mt-0">
-									<h5 class="card-title">Поиск заявок</h5>
-								</div>
-							</div>
-							<div class="mb-0">
-								<span class="text-success">
-									<i class="mdi mdi-arrow-bottom-right"></i>
-								</span>
-							<span class="text-muted"></span>
-							</div>
-							<div class="text-center">
-								<button class="btn btn-success" id="search">Поиск</button>
-							</div>
-						</div>
-					</div>
-					<script>
-					const button_search = document.getElementById('search'); // Получаем кнопку по id
-					button_search.addEventListener('click', function() {
-						const selectedCity = document.getElementById('cityList').value; // Получаем выбранный город из выпадающего списка
-						const monthList = document.getElementById('monthList').value;
-						// Формируем URL с параметром selectedCity
-						const urlToRedirect = '/_search?selectedCity=' + selectedCity + '&monthList=' + monthList;
-						// Перейти на указанную страницу
-						window.location.href = urlToRedirect;
-					});
-					</script>
-					</div>
-                  </div>
-                  <div class="row">
-                    <div class="col-sm-6">
-                    </div>
-                    <div class="col-sm-6">
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-xl-6 col-xxl-7">
-                <div class="card flex-fill w-100">
-                  <div class="card-header">
-                    <h5 class="card-title mb-0">Статистика обращений(за каждый месяц)</h5>
-                  </div>
-<style>
-.time-switcher {
-    display: flex;
-    justify-content: center;
-}
-
-.time-switcher-label {
-	margin: 0 15px; /* Увеличение горизонтального расстояния вокруг каждой кнопки */
-    padding: 5px 10px; /* Добавление внутреннего заполнения для большего радиуса нажатия */
-    cursor: pointer;
-    border: 1px solid transparent; /* Добавление границы для отображения размера кнопки */
-    border-radius: 5px; /* Закругление углов кнопки */==
-}
-
-.time-switcher-radio {
-    display: none;
-}
-
-.time-switcher-radio:checked + .time-switcher-label {
-    color: blue;
-    font-weight: bold;
-}
-.time-switcher-label:hover {
-    background-color: #f0f0f0; /* Изменение цвета фона при наведении для наглядности */
-}
-
-.time-switcher-radio:checked + .time-switcher-label {
-    color: blue;
-    font-weight: bold;
-    border: 1px solid blue; /* Изменение границы для выделенной кнопки */
-}
-</style>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var timeSwitcherRadios = document.querySelectorAll('.time-switcher-radio');
-    timeSwitcherRadios.forEach(function(radio) {
-        radio.addEventListener('change', function() {
-            var selectedLabel = document.querySelector('.time-switcher-label[for="' + this.id + '"]');
-            var timeSwitcherLabels = document.querySelectorAll('.time-switcher-label');
-            timeSwitcherLabels.forEach(function(label) {
-                label.style.fontWeight = 'normal';
-                label.style.color = 'black';
-                label.style.border = 'none'; // Убираем рамку у всех меток
-            });
-            selectedLabel.style.fontWeight = 'bold';
-            selectedLabel.style.color = 'blue';
-            selectedLabel.style.border = '1px solid blue'; // Добавляем рамку к выбранной метке
-        });
-    });
-});
-</script>
-                  <div
-                    class="card-body py-3"
-                    style="height: 211px; top: -30px; position: relative">
-                    <div class="chart chart-sm">
-                      <div class="chartjs-size-monitor">
-                        <div class="chartjs-size-monitor-expand">
-                          <div class=""></div>
-                        </div>
-                        <div class="chartjs-size-monitor-shrink">
-                          <div class=""></div>
-                        </div>
-                      </div>
-                      <canvas
-                        id="chartjs-dashboard-line"
-                        style="display: block; width: 852px; height: 211px"
-                        width="852"
-                        height="211"
-                        class="chartjs-render-monitor"
-                      ></canvas>
-                    </div>
-                  </div>
-                </div>
-                <div class="row">
-               <div class="row">
-<div class="col-12 col-md-6 col-xxl-8 d-flex order-3 order-xxl-3 custom-height">
-<div class="card flex-fill w-100">
-<div class="card-header">
-<h5 class="card-title mb-0">Количество <span style="color: blue;">неисправностей, </span><span style="color: red;">застреваний, </span><span style="color: orange;">ложных</span></h5>
-</div>
-<div class="card-body d-flex w-100">
-<div class="align-self-center chart chart-lg">
-<canvas id="chartjs-dashboard-bar2"></canvas>
-</div>
-</div>
-</div>
-</div>
-                <div class="col-12 col-md-6 col-xxl-4 d-flex order-2 order-xxl-2 custom-height">
-                  <div class="card flex-fill w-100">
-                    <div class="card-header">
-                      <h5 class="card-title mb-0">Обращения за месяц</h5>
-                    </div>
-                    <div class="card-body d-flex">
-                      <div class="align-self-center w-150">
-                        <div class="py-3">
-                          <div class="chart chart-xs">
-                            <canvas id="chartjs-dashboard-pie" style="display: block;
-                            box-sizing: border-box; height: 217px; width: 217px;"
-                                    width="271" height="271"></canvas>
-                          </div>
-                        </div>
-                        <table class="table mb-0">
-							<tbody>
-							  <tr>
-								<td class="color-blue">Неисправности</td>
-								{% for dat in data4 %}
-								<td class="text-end data" id="data4">{{dat[0]}}</td>
-								<td class="text-end data" id="procent2">{{procent2}}%</td>
-								{%endfor%}
-							  </tr>
-							  <tr>
-								<td class="color-red">Застревания</td>
-								{% for dat in data3 %}
-								<td class="text-end data" id="data3">{{dat[0]}}</td>
-								<td class="text-end data" id="procent1">{{procent1}}%</td>
-								{%endfor%}
-							  </tr>
-							  <tr>
-								<td class="color-orange">Ложные обращения</td>
-								{% for dat in data7 %}
-								<td class="text-end data" id="data7">{{dat[0]}}</td>
-								<td class="text-end data" id="procent3">{{procent3}}%</td>
-								{%endfor%}
-							  </tr>
-							</tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 				</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-<script>
-        let lineChart;
-
-        function updateLineChart(data9) {
-            if (lineChart) {
-                lineChart.data.datasets[0].data = data9; // Обновляем данные
-                lineChart.update();
-            } else {
-                var ctx = document.getElementById("chartjs-dashboard-line").getContext("2d");
-                var gradient = ctx.createLinearGradient(0, 0, 0, 225);
-                gradient.addColorStop(0, "rgba(215, 227, 244, 1)");
-                gradient.addColorStop(1, "rgba(215, 227, 244, 0)");
-                
-                var labels = [
-                    "Янв", "Фев", "Март", "Апр", "Май", "Июнь",
-                    "Июль", "Авг", "Сен", "Окт", "Ноя", "Дек"
-                ];
-                
-                lineChart = new Chart(ctx, {
-                    type: "line",
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: "Обращений",
-                                fill: true,
-                                backgroundColor: gradient,
-                                borderColor: "#808080",
-                                data: data9,
-                            }
-                        ]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        legend: {
-                            display: false
-                        },
-                        tooltips: {
-                            intersect: false
-                        },
-                        hover: {
-                            intersect: true
-                        },
-                        plugins: {
-                            filler: {
-                                propagate: false
-                            }
-                        },
-                        scales: {
-                            xAxes: [
-                                {
-                                    reverse: true,
-                                    gridLines: {
-                                        color: "#808080"
-                                    }
-                                }
-                            ],
-                            yAxes: [
-                                {
-                                    ticks: {
-                                        stepSize: 50
-                                    },
-                                    display: true,
-                                    borderDash: [3, 3],
-                                    gridLines: {
-                                        color: "#808080"
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                });
-            }
-        }
-    </script>
+			</div>
+		</main>
+	</div>
+</div>
 
 <script>
-        let myPieChart;
+const MONTH_LABELS = ["Янв", "Фев", "Март", "Апр", "Май", "Июнь", "Июль", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
-        function updatePieChart(data4, data7, data3) {
-            function toNum(v) {
-                if (Array.isArray(v)) return Array.isArray(v[0]) ? (v[0][0] || 0) : (v[0] || 0);
-                return Number(v) || 0;
-            }
-            const n4 = toNum(data4), n7 = toNum(data7), n3 = toNum(data3);
-            const isEmpty = n4 === 0 && n7 === 0 && n3 === 0;
-            const chartData = isEmpty ? [1, 1, 1] : [n4, n7, n3];
-            const chartColors = isEmpty
-                ? ['#d0d0d0', '#d0d0d0', '#d0d0d0']
-                : [window.theme.primary, window.theme.warning, window.theme.danger];
+// Шаг оси подбирает сам Chart.js: у маленького города и у всех городов разный масштаб
+const countTicks = {
+	beginAtZero: true,
+	callback: function(value) { return Number.isInteger(value) ? value : null; },
+};
 
-            const canvas = document.getElementById("chartjs-dashboard-pie");
-            let noDataLabel = document.getElementById("pie-no-data");
-            if (!noDataLabel) {
-                noDataLabel = document.createElement("div");
-                noDataLabel.id = "pie-no-data";
-                noDataLabel.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:#999;text-align:center;pointer-events:none;";
-                noDataLabel.textContent = "Нет данных";
-                canvas.parentElement.style.position = "relative";
-                canvas.parentElement.appendChild(noDataLabel);
-            }
-            noDataLabel.style.display = isEmpty ? "block" : "none";
+// Сервер отдаёт счётчики строками результата: [[12]] -> 12
+function scalar(value) {
+	while (Array.isArray(value)) value = value[0];
+	return value;
+}
 
-            if (myPieChart) {
-                myPieChart.data.datasets[0].data = chartData;
-                myPieChart.data.datasets[0].backgroundColor = chartColors;
-                myPieChart.update();
-            } else {
-                myPieChart = new Chart(canvas, {
-                    type: "pie",
-                    data: {
-                        labels: ["Неисправности", "Ложные обращения", "Застревания"],
-                        datasets: [{
-                            data: chartData,
-                            backgroundColor: chartColors,
-                            borderWidth: 0,
-                        }],
-                    },
-                    options: {
-                        responsive: !window.MSInputMethodContext,
-                        maintainAspectRatio: false,
-                        legend: {
-                            display: false,
-                        },
-                        cutoutPercentage: 75,
-                        tooltips: {
-                            filter: function() { return !isEmpty; }
-                        },
-                    },
-                });
-            }
-        }
-    </script>
+let lineChart;
+function updateLineChart(data9) {
+	if (lineChart) {
+		lineChart.data.datasets[0].data = data9;
+		lineChart.update();
+		return;
+	}
+	const ctx = document.getElementById("chartjs-dashboard-line").getContext("2d");
+	const gradient = ctx.createLinearGradient(0, 0, 0, 225);
+	gradient.addColorStop(0, "rgba(215, 227, 244, 1)");
+	gradient.addColorStop(1, "rgba(215, 227, 244, 0)");
+	lineChart = new Chart(ctx, {
+		type: "line",
+		data: {
+			labels: MONTH_LABELS,
+			datasets: [{
+				label: "Обращений",
+				fill: true,
+				backgroundColor: gradient,
+				borderColor: "#808080",
+				data: data9,
+			}],
+		},
+		options: {
+			maintainAspectRatio: false,
+			legend: { display: false },
+			tooltips: { intersect: false },
+			hover: { intersect: true },
+			plugins: { filler: { propagate: false } },
+			scales: {
+				xAxes: [{ reverse: true, gridLines: { color: "#808080" } }],
+				yAxes: [{ ticks: countTicks, display: true, borderDash: [3, 3], gridLines: { color: "#808080" } }],
+			},
+		},
+	});
+}
 
+let myPieChart;
+function updatePieChart(data4, data7, data3) {
+	const n4 = Number(scalar(data4)) || 0, n7 = Number(scalar(data7)) || 0, n3 = Number(scalar(data3)) || 0;
+	const isEmpty = n4 === 0 && n7 === 0 && n3 === 0;
+	const chartData = isEmpty ? [1, 1, 1] : [n4, n7, n3];
+	const chartColors = isEmpty
+		? ['#d0d0d0', '#d0d0d0', '#d0d0d0']
+		: [window.theme.primary, window.theme.warning, window.theme.danger];
 
-<script>
+	const canvas = document.getElementById("chartjs-dashboard-pie");
+	let noDataLabel = document.getElementById("pie-no-data");
+	if (!noDataLabel) {
+		noDataLabel = document.createElement("div");
+		noDataLabel.id = "pie-no-data";
+		noDataLabel.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:#555;text-align:center;pointer-events:none;";
+		noDataLabel.textContent = "Нет данных";
+		canvas.parentElement.style.position = "relative";
+		canvas.parentElement.appendChild(noDataLabel);
+	}
+	noDataLabel.style.display = isEmpty ? "block" : "none";
+
+	if (myPieChart) {
+		myPieChart.data.datasets[0].data = chartData;
+		myPieChart.data.datasets[0].backgroundColor = chartColors;
+		myPieChart.update();
+		return;
+	}
+	myPieChart = new Chart(canvas, {
+		type: "pie",
+		data: {
+			labels: ["Неисправности", "Ложные обращения", "Застревания"],
+			datasets: [{ data: chartData, backgroundColor: chartColors, borderWidth: 0 }],
+		},
+		options: {
+			responsive: !window.MSInputMethodContext,
+			maintainAspectRatio: false,
+			legend: { display: false },
+			tooltips: {
+				filter: function() {
+					return myPieChart.data.datasets[0].backgroundColor[0] !== '#d0d0d0';
+				},
+			},
+		},
+	});
+}
+
 let BarChart2;
 function updateBarChart2(data12, data10, data13) {
-  if (BarChart2) {
-    // Если график уже существует, обновляем данные
-    BarChart2.data.datasets[0].data = data12[0];
-    BarChart2.update();
-	BarChart2.data.datasets[1].data = data10[0];
-    BarChart2.update();
-	BarChart2.data.datasets[2].data = data13[0];
-    BarChart2.update();
-  } else {
-    // Если графика еще нет, создаем новый экземпляр
-    BarChart2 = new Chart(document.getElementById("chartjs-dashboard-bar2"), {
-      type: "bar",
-      data: {
-        labels: [
-          "Янв",
-          "Фев",
-          "Март",
-          "Апр",
-          "Май",
-          "Июнь",
-          "Июль",
-          "Авг",
-          "Сен",
-          "Окт",
-          "Ноя",
-          "Дек",
-        ],
-        datasets: [
-  {
-    // Данные для текущего года
-    label: "Этот год",
-    backgroundColor: "#0000FF",
-    borderColor: "#0000FF",
-    hoverBackgroundColor: "#0000FF",
-    hoverBorderColor: "#0000FF",
-    data: data12[0],
-    barPercentage: 0.75,
-    categoryPercentage: 0.9,
-  },
-  {
-    // Данные для предыдущего года
-    label: "Этот год",
-    backgroundColor: "#FF0000", 
-    borderColor: "#FF0000",  
-    hoverBackgroundColor: "#FF0000",
-    hoverBorderColor: "#FF0000",
-    data: data10[0],
-    barPercentage: 0.75,
-    categoryPercentage: 0.9,
-  },
-  {
-    // Данные для предыдущего года
-    label: "Этот год",
-    backgroundColor: window.theme.warning, 
-    borderColor: window.theme.warning,  
-    hoverBackgroundColor: window.theme.warning,
-    hoverBorderColor: window.theme.warning,
-    data: data13[0],
-    barPercentage: 0.75,
-    categoryPercentage: 0.9,
-  },
-],
-      },
-      options: {
-        maintainAspectRatio: false,
-        legend: {
-          display: false,
-        },
-        scales: {
-          yAxes: [
-            {
-              gridLines: {
-                display: true,
-              },
-              stacked: false,
-              ticks: {
-                stepSize: 20,
-              },
-            },
-          ],
-          xAxes: [
-            {
-              stacked: false,
-              gridLines: {
-                color: "black",
-              },
-            },
-          ],
-        },
-      },
-    });
-  }
+	if (BarChart2) {
+		BarChart2.data.datasets[0].data = data12[0];
+		BarChart2.data.datasets[1].data = data10[0];
+		BarChart2.data.datasets[2].data = data13[0];
+		BarChart2.update();
+		return;
+	}
+	const barDataset = (label, color, data) => ({
+		label: label,
+		backgroundColor: color,
+		borderColor: color,
+		hoverBackgroundColor: color,
+		hoverBorderColor: color,
+		data: data,
+		barPercentage: 0.75,
+		categoryPercentage: 0.9,
+	});
+	BarChart2 = new Chart(document.getElementById("chartjs-dashboard-bar2"), {
+		type: "bar",
+		data: {
+			labels: MONTH_LABELS,
+			datasets: [
+				barDataset("Неисправности", "#0000FF", data12[0]),
+				barDataset("Застревания", "#FF0000", data10[0]),
+				barDataset("Ложные", window.theme.warning, data13[0]),
+			],
+		},
+		options: {
+			maintainAspectRatio: false,
+			legend: { display: false },
+			scales: {
+				yAxes: [{ gridLines: { display: true }, stacked: false, ticks: countTicks }],
+				xAxes: [{ stacked: false, gridLines: { color: "black" } }],
+			},
+		},
+	});
 }
-window.onload = function() {
-            const data12 = {{ data12 | tojson }};
-            const data10 = {{ data10 | tojson }};
-            const data13 = {{ data13 | tojson }};
-            const data4 = {{ data4 | tojson }};
-            const data7 = {{ data7 | tojson }};
-            const data3 = {{ data3 | tojson }};
-			const data9 = {{ data9 | tojson }};
+</script>
 
-            updateBarChart2(data12, data10, data13); // Обновляем столбчатый график
-            updatePieChart(data4, data7, data3); // Обновляем круговой график
-			updateLineChart(data9); // Обновляем график волн
-        };
- </script>
-  </body>
+<script>
+const cityList = document.getElementById('cityList');
+const monthList = document.getElementById('monthList');
+const yearList = document.getElementById('yearList');
+const dashContent = document.getElementById('dashContent');
+const dashError = document.getElementById('dashError');
+const defaults = { month: '{{ default_month }}', year: '{{ default_year }}' };
+let lastRequest = 0;
+
+// Фильтры хранятся в URL: так они не теряются при возврате со страницы заявок
+function syncFilters() {
+	const query = new URLSearchParams();
+	if (cityList.value !== 'all') query.set('city', cityList.value);
+	if (monthList.value !== defaults.month) query.set('month', monthList.value);
+	if (yearList.value !== defaults.year) query.set('year', yearList.value);
+	const search = query.toString() ? '?' + query.toString() : '';
+	history.replaceState(null, '', location.pathname + search);
+	try {
+		// Для кнопок «Назад» на страницах, которые возвращаются сюда по адресу
+		sessionStorage.setItem('baseSearch', search);
+	} catch (e) {}
+
+	document.querySelectorAll('.stat-card').forEach(card => {
+		const params = new URLSearchParams({
+			selectedCity: cityList.value,
+			monthList: monthList.value,
+			year: yearList.value,
+		});
+		card.href = card.dataset.path + '?' + params.toString();
+	});
+	document.getElementById('chartYear').textContent = yearList.value;
+}
+
+function renderData(data) {
+	document.querySelectorAll('.data').forEach(element => {
+		if (!(element.id in data)) return;
+		const value = scalar(data[element.id]);
+		element.textContent = element.id.startsWith('procent') ? value + '%' : value;
+	});
+	updatePieChart(data.data4, data.data7, data.data3);
+	updateLineChart(data.data9[0]);
+	updateBarChart2(data.data12, data.data10, data.data13);
+}
+
+async function refresh() {
+	const request = ++lastRequest; // Ответ на устаревший запрос игнорируем
+	syncFilters();
+	dashError.hidden = true;
+	dashContent.classList.remove('is-stale');
+	dashContent.classList.add('is-loading');
+	try {
+		const response = await fetch('/base', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				selectedCity: cityList.value,
+				monthList: monthList.value,
+				year: yearList.value,
+			}),
+		});
+		if (response.redirected) {
+			// Сессия истекла: сервер перенаправил на вход
+			location.reload();
+			return;
+		}
+		if (!response.ok) throw new Error('HTTP ' + response.status);
+		const data = await response.json();
+		if (request === lastRequest) renderData(data);
+	} catch (error) {
+		if (request === lastRequest) {
+			console.error('Не удалось обновить данные:', error);
+			dashError.hidden = false;
+			dashContent.classList.add('is-stale');
+		}
+	} finally {
+		if (request === lastRequest) dashContent.classList.remove('is-loading');
+	}
+}
+
+[cityList, monthList, yearList].forEach(select => select.addEventListener('change', refresh));
+document.getElementById('dashRetry').addEventListener('click', refresh);
+
+window.addEventListener('load', function() {
+	updateBarChart2({{ data12 | tojson }}, {{ data10 | tojson }}, {{ data13 | tojson }});
+	updatePieChart({{ data4 | tojson }}, {{ data7 | tojson }}, {{ data3 | tojson }});
+	updateLineChart({{ data9 | tojson }});
+	syncFilters(); // Данные уже за фильтры из адреса: сервер учёл их при загрузке
+});
+</script>
+</body>
 </html>

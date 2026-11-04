@@ -6,6 +6,7 @@
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/print-table.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
@@ -39,14 +40,15 @@
         .fixed-header thead th {
             position: sticky;
             top: 0;
-            background-color: #63B2F3;
+            color: #fff;
+            background-color: #4b5563;
         }
 
         .card-toggle-cell, .card-toggle {
             display: none;
         }
 
-        @media (max-width: 768px) {
+        @media screen and (max-width: 768px) {
             body {
                 padding: 8px;
                 overflow-x: hidden;
@@ -89,8 +91,8 @@
                 margin: -6px 0;
                 padding: 6px 12px;
                 font-weight: 600;
-                color: #495057;
-                background-color: #63B2F3;
+                color: #fff;
+                background-color: #4b5563;
             }
 
             /* У строки с кнопкой «Подробнее» подписи нет */
@@ -135,6 +137,50 @@
         }
         .fixed-header tr.card-open {
             background-color: #e8e8e8;
+        }
+
+        @media (min-width: 769px) {
+            .fixed-header tbody tr:nth-child(even):not(.row-stopped) {
+                background-color: #f5f6f8;
+            }
+        }
+        /* Широкая таблица не помещается на экран ноутбука, делаем её компактнее */
+        @media (min-width: 769px) and (max-width: 1700px) {
+            .fixed-header {
+                font-size: 15px;
+            }
+            .fixed-header th,
+            .fixed-header td {
+                padding: 8px;
+            }
+        }
+
+        /* Плашка вместо пустой таблицы */
+        .stop-banner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 24px;
+            margin: 0 12px 14px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            color: #fff;
+            background: #1cbb8c;
+        }
+        .stop-banner b {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        @media screen and (max-width: 768px) {
+            .stop-banner {
+                margin: 0 0 10px;
+                padding: 10px 14px;
+            }
+            .stop-banner b {
+                font-size: 22px;
+            }
         }
     </style>
     {% block extra_style %}{% endblock %}
@@ -189,9 +235,13 @@ function sortTable(n) {
 <div class="page-header">
     <button class="btn btn-success" onclick="goBack()">Назад</button>
     <h2>{% block content %}{% endblock %}</h2>
+    {% if data1 %}<button class="btn btn-primary print-button" type="button" onclick="window.print()">Печать</button>{% endif %}
 </div>
 
-<table class="fixed-header">
+{% if not data1 %}
+<div class="stop-banner"><b>{% block empty_text %}Заявок нет{% endblock %}</b></div>
+{% endif %}
+<table class="fixed-header"{% if not data1 %} style="display: none"{% endif %}>
     <thead>
         <tr>
             <th onclick="sortTable(0)">№ заявки</th>

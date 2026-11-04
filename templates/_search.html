@@ -6,6 +6,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/print-table.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/xlsx.full.min.js') }}"></script>
     <link
@@ -81,7 +82,13 @@ overflow-x: auto; /* Позволяет прокручивать таблицу 
 .fixed-header thead th {
 position: sticky; /* Фиксация заголовков */
 top: 0; /* Закрепление заголовков в верхней части окна */
-background-color: #63B2F3; /* Цвет фона заголовков, как на других страницах */
+color: #fff;
+background-color: #4b5563; /* Цвет фона заголовков, как на других страницах */
+}
+@media (min-width: 1221px) {
+    .fixed-header tbody tr:nth-child(even) {
+        background-color: #f5f6f8;
+    }
 }
 .float-left {
 float: left;
@@ -253,7 +260,7 @@ font-size: 20px;
 
 /* Обычная таблица шириной около 1350px. Если она не помещается, страница становится
    шире экрана, а планшеты и телефоны из-за этого уменьшают её целиком. Поэтому карточки. */
-@media (max-width: 1220px) {
+@media screen and (max-width: 1220px) {
     table {
         font-size: 13px;
         width: 100%;
@@ -299,8 +306,8 @@ font-size: 20px;
         margin: -6px 0;
         padding: 6px 12px;
         font-weight: 600;
-        color: #495057;
-        background-color: #63B2F3;
+        color: #fff;
+        background-color: #4b5563;
     }
 
     /* У строки с кнопкой «Подробнее» подписи нет */
@@ -389,7 +396,9 @@ window.onload = function() {
     <div class="search-title">
         <h2>Поиск заявок</h2>
         <p class="search-subtitle">По городу, УК, адресу и датам</p>
+        <p class="search-criteria" id="searchCriteria"></p>
     </div>
+    <button class="btn btn-primary print-button" id="printButton" type="button" onclick="window.print()" hidden>Печать</button>
 </div>
 
 <script>
@@ -499,7 +508,39 @@ window.onload = function() {
 </table>
 
 <script>
+    (function () {
+        const rows = document.getElementById('data1');
+        const button = document.getElementById('printButton');
+        const update = function () { button.hidden = !rows.rows.length; };
+        new MutationObserver(update).observe(rows, {childList: true});
+        update();
+    })();
+
+    // Условия для печати запоминаем при запросе: форму могут изменить уже после поиска
+    function formatDate(value) {
+        return value.split('-').reverse().join('.');
+    }
+
+    function rememberCriteria(withDetails) {
+        const city = document.getElementById('cityList').value;
+        const uk = document.getElementById('ukList');
+        const parts = [];
+        if (city) parts.push('Город: ' + city);
+        if (uk.value) parts.push('УК: ' + uk.options[uk.selectedIndex].text);
+        if (withDetails) {
+            const address = document.getElementById('addressesInput').value.trim();
+            const start = document.getElementById('start_calendar').value;
+            const end = document.getElementById('end_calendar').value;
+            if (address) parts.push('Адрес: ' + address);
+            if (start && end) parts.push('Период: ' + formatDate(start) + ' – ' + formatDate(end));
+            else if (start) parts.push('Период: с ' + formatDate(start));
+            else if (end) parts.push('Период: по ' + formatDate(end));
+        }
+        document.getElementById('searchCriteria').textContent = parts.join(', ');
+    }
+
     function updateData() {
+        rememberCriteria(false); // Адрес и даты в этом запросе не участвуют: ответ их сбросит
         const city = document.getElementById('cityList').value;
         const ukId = document.getElementById('ukList').value;
 
@@ -629,6 +670,7 @@ window.onload = function() {
     }
 
     function performSearch() {
+        rememberCriteria(true);
         var formData = new FormData(document.getElementById('searchForm'));
         fetch('/_search', {
             method: 'POST',

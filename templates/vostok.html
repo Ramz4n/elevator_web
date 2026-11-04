@@ -1,39 +1,30 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<script>
-.float-left {
-    float: right;
-}
-</script>
-<div class="float-left">
-	<form method="post">
-        <label for="cityList" class="customLabel">Город:</label>
-        <select class="customSelect float-left" name="city" id="cityList" onchange="changeCity(this.value, monthList)">
-            <option value="all">Все города</option>
-            {% for city in data8 %}
-                <option value="{{ city }}">{{ city }}</option>	
-            {% endfor %}
-        </select>
-    </form>
-    <form action="/base" method="post">
-        <label for="monthList" class="customLabel">Месяц:</label>
-        <select class="customSelect float-left" name="monthList" id="monthList"
-                onchange="changeCity(document.getElementById('cityList').value, this.value)">
-            <OPTION value=1>Январь
-			<OPTION value=2>Февраль
-			<OPTION value=3>Март
-			<OPTION value=4>Апрель
-			<OPTION value=5>Май
-			<OPTION value=6>Июнь
-			<OPTION value=7>Июль
-			<OPTION value=8>Август
-			<OPTION value=9>Сентябрь
-			<OPTION value=10>Октябрь
-			<OPTION value=11>Ноябрь
-			<OPTION value=12>Декабрь</OPTION>
-        </select>
-    </form>
+{% set months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'] %}
+<div class="filter">
+	<label for="cityList" class="customLabel">Город</label>
+	<select class="customSelect" id="cityList" autocomplete="off">
+		<option value="all"{% if not town %} selected{% endif %}>Все города</option>
+		{% for city in data8 %}
+		<option value="{{ city }}"{% if city == town %} selected{% endif %}>{{ city }}</option>
+		{% endfor %}
+	</select>
+</div>
+<div class="filter">
+	<label for="monthList" class="customLabel">Месяц</label>
+	<select class="customSelect" id="monthList" autocomplete="off">
+		{% for month in months %}
+		<option value="{{ loop.index }}"{% if loop.index == selected_month %} selected{% endif %}>{{ month }}</option>
+		{% endfor %}
+	</select>
+</div>
+<div class="filter">
+	<label for="yearList" class="customLabel">Год</label>
+	<select class="customSelect customSelect-short" id="yearList" autocomplete="off">
+		{% for year in years %}
+		<option value="{{ year }}"{% if year == selected_year %} selected{% endif %}>{{ year }}</option>
+		{% endfor %}
+	</select>
 </div>
 {% endblock %}
-	

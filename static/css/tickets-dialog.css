@@ -151,6 +151,7 @@
         margin-right: 6px;
     }
 
+    /* Подпись тёмно-серая: синей остаётся только шапка окна */
     .tickets-table td::before {
         content: attr(data-label);
         flex: 0 0 122px;
@@ -158,9 +159,9 @@
         margin: -6px 0;
         padding: 6px 12px;
         font-weight: 600;
-        color: #495057;
+        color: #fff;
         text-align: left;
-        background-color: #63B2F3;
+        background-color: #4b5563;
     }
 }
 

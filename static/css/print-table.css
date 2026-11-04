@@ -1,0 +1,117 @@
+/* На телефоне кнопки в один ряд, заголовок под ними: иначе он зажат между кнопками */
+@media screen and (max-width: 768px) {
+    .page-header:has(.print-button) {
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .page-header:has(.print-button) > .btn + * {
+        order: 1;
+        flex: 1 0 100%;
+        padding-left: 0;
+        border-left: none;
+    }
+}
+
+/* Условия поиска видны только на листе: на экране они есть в форме */
+.search-criteria {
+    display: none;
+}
+
+/* Печать страниц со списками: остаются заголовок и таблица */
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    html,
+    body {
+        height: auto;
+        padding: 0;
+        color: #000;
+        background: #fff;
+    }
+
+    .page-header .btn,
+    .card-toggle-cell,
+    .card-expand-hint,
+    .ios-toggle,
+    .print-hide,
+    .lifts-search-box,
+    .lifts-mobile,
+    .search-subtitle,
+    .search-container,
+    form {
+        display: none !important;
+    }
+
+    .page-header {
+        margin: 0 0 8px;
+        padding: 0;
+    }
+
+    .page-header > .btn + * {
+        padding-left: 0;
+        border-left: none;
+    }
+
+    .page-header h2 {
+        font-size: 18px;
+    }
+
+    .search-criteria {
+        display: block;
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: #000;
+        text-align: center;
+    }
+
+    .fixed-header {
+        width: 100%;
+        overflow: visible;
+    }
+
+    /* Шапка таблицы повторяется на каждом листе */
+    .fixed-header thead {
+        display: table-header-group;
+    }
+
+    .fixed-header thead th {
+        position: static;
+    }
+
+    .fixed-header th,
+    .fixed-header td {
+        padding: 4px 6px;
+        font-size: 11px;
+        color: #000;
+    }
+
+    .fixed-header tr {
+        break-inside: avoid;
+    }
+
+    .fixed-header thead th {
+        color: #fff;
+    }
+
+    /* Без этого браузер не печатает фон: белый текст шапки был бы не виден */
+    .fixed-header thead th,
+    .fixed-header tbody tr,
+    .stop-banner,
+    .lifts-total,
+    .days {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .lifts-toolbar {
+        position: static;
+        justify-content: flex-start;
+        height: auto;
+        margin-bottom: 8px;
+        padding: 0;
+    }
+}

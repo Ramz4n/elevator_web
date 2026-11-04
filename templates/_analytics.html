@@ -15,9 +15,13 @@
 </head>
 <body>
 <script>
+function baseSearch() {
+  // Фильтры главной: город, месяц и год
+  try { return sessionStorage.getItem('baseSearch') || ''; } catch (e) { return ''; }
+}
 // Не history.back(): после страницы города и смены года она вернула бы на предыдущую страницу аналитики
 function goBack() {
-  window.location.href = '/base';
+  window.location.href = '/base' + baseSearch();
 }
 </script>
 

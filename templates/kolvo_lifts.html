@@ -5,6 +5,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/print-table.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
@@ -36,7 +37,8 @@ overflow-x: auto; /* Позволяет прокручивать таблицу 
 .fixed-header thead th {
 position: sticky; /* Фиксация заголовков */
 top: 60px; /* Под закреплённой строкой с итогом и поиском */
-background-color: #63B2F3; /* Цвет фона заголовков */
+color: #fff;
+background-color: #4b5563; /* Цвет фона заголовков */
 }
 
 /* Итог и поиск: и на компьютере, и на телефоне */
@@ -54,6 +56,12 @@ background-color: #63B2F3; /* Цвет фона заголовков */
     background: #fff;
 }
 
+@media (min-width: 769px) {
+    .fixed-header tbody tr:nth-child(even) {
+        background-color: #f5f6f8;
+    }
+}
+
 .lifts-total {
     display: flex;
     flex: none;
@@ -63,8 +71,8 @@ background-color: #63B2F3; /* Цвет фона заголовков */
     border-radius: 8px;
     font-size: 16px;
     font-weight: 600;
-    color: #2b3a4a;
-    background: #63B2F3;
+    color: #fff;
+    background: #4b5563;
 }
 
 .lifts-total strong {
@@ -111,7 +119,7 @@ background-color: #63B2F3; /* Цвет фона заголовков */
     display: none;
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
     body {
         padding: 8px;
     }
@@ -163,8 +171,8 @@ background-color: #63B2F3; /* Цвет фона заголовков */
         padding: 8px 12px;
         font-size: 14px;
         font-weight: 700;
-        color: #2b3a4a;
-        background: #63B2F3;
+        color: #fff;
+        background: #4b5563;
     }
 
     .lift-row {
@@ -205,6 +213,7 @@ function goBack() {
 	<div class="page-header">
     <button class="btn btn-success" onclick="goBack()">Назад</button>
     <h2>Кол-во лифтов {{ 'всех городов' if all_towns else 'города ' ~ town }}</h2>
+    <button class="btn btn-primary print-button" type="button" onclick="window.print()">Печать</button>
 </div>
 
 <div class="lifts-page">

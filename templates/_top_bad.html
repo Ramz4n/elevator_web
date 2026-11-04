@@ -7,6 +7,7 @@
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/print-table.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tickets-dialog.css') }}">
 	<script src="{{ url_for('static', filename='js/tickets-dialog.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
@@ -40,12 +41,57 @@
 	.fixed-header thead th {
 		position: sticky;
 		top: 0;
-		background-color: #63B2F3;
+		color: #fff;
+		background-color: #4b5563;
 	}
 
 	.card-expand-hint { display: none; }
 
-	@media (max-width: 768px) {
+        @media (min-width: 769px) {
+            .fixed-header tbody tr:nth-child(even):not(.row-stopped) {
+                background-color: #f5f6f8;
+            }
+        }
+        /* Широкая таблица не помещается на экран ноутбука, делаем её компактнее */
+        @media (min-width: 769px) and (max-width: 1700px) {
+            .fixed-header {
+                font-size: 15px;
+            }
+            .fixed-header th,
+            .fixed-header td {
+                padding: 8px;
+            }
+        }
+
+        /* Плашка вместо пустой таблицы */
+        .stop-banner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 24px;
+            margin: 0 12px 14px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            color: #fff;
+            background: #1cbb8c;
+        }
+        .stop-banner b {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        @media screen and (max-width: 768px) {
+            .stop-banner {
+                margin: 0 0 10px;
+                padding: 10px 14px;
+            }
+            .stop-banner b {
+                font-size: 22px;
+            }
+        }
+
+	@media screen and (max-width: 768px) {
 		body { padding: 8px; overflow-x: hidden; }
 
 		.fixed-header thead { display: none; }
@@ -80,8 +126,8 @@
 			margin: -6px 0;
 			padding: 6px 12px;
 			font-weight: 600;
-			color: #495057;
-			background-color: #63B2F3;
+			color: #fff;
+			background-color: #4b5563;
 		}
 
 		/* У строки «Посмотреть заявки» подписи нет */
@@ -112,8 +158,12 @@
 </style>
 
 <script>
-	function goBack() {
-	  window.location.href = '/base';
+	function baseSearch() {
+  // Фильтры главной: город, месяц и год
+  try { return sessionStorage.getItem('baseSearch') || ''; } catch (e) { return ''; }
+}
+function goBack() {
+	  window.location.href = '/base' + baseSearch();
 	}
 	function toggleMode() {
 	    const url = new URL(window.location.href);
@@ -129,14 +179,15 @@
 <div class="page-header">
     <button class="btn btn-success" onclick="goBack()">Назад</button>
     <h2>Проблемные лифты за последние {{ days_limit }} дней</h2>
+    {% if data1 %}<button class="btn btn-primary print-button" type="button" onclick="window.print()">Печать</button>{% endif %}
 </div>
 <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px;">
-    <span id="label-bad" style="font-size: 16px; font-weight: {% if not is_svyaz %}700{% else %}400{% endif %}; color: {% if not is_svyaz %}#34c759{% else %}#999{% endif %};">Неисправности</span>
+    <span id="label-bad" class="{% if is_svyaz %}print-hide{% endif %}" style="font-size: 16px; font-weight: {% if not is_svyaz %}700{% else %}400{% endif %}; color: {% if not is_svyaz %}#34c759{% else %}#999{% endif %};">Неисправности</span>
     <label class="ios-toggle">
         <input type="checkbox" id="mode-toggle" {% if is_svyaz %}checked{% endif %} onchange="toggleMode()">
         <span class="ios-slider"></span>
     </label>
-    <span id="label-svyaz" style="font-size: 16px; font-weight: {% if is_svyaz %}700{% else %}400{% endif %}; color: {% if is_svyaz %}#34c759{% else %}#999{% endif %};">Связь</span>
+    <span id="label-svyaz" class="{% if not is_svyaz %}print-hide{% endif %}" style="font-size: 16px; font-weight: {% if is_svyaz %}700{% else %}400{% endif %}; color: {% if is_svyaz %}#34c759{% else %}#999{% endif %};">Связь</span>
 </div>
 <style>
     .ios-toggle {
@@ -170,11 +221,20 @@
 </style>
 
 <style>
-    .fixed-header tbody tr:hover {
+    /* Второй селектор нужен, чтобы подсветка перекрывала фон чётных строк */
+    .fixed-header tbody tr:hover,
+    .fixed-header tbody tr:nth-child(even):not(.row-stopped):hover {
         background-color: #C4C5C7; /* Серый цвет подсветки */
+    }
+    /* Число в этой колонке по центру, заголовок над ним */
+    .fixed-header thead th:last-child {
+        text-align: center;
     }
 </style>
 
+{% if not data1 %}
+<div class="stop-banner"><b>Проблемных лифтов нет</b></div>
+{% else %}
 <table class="fixed-header">
     <thead>
         <tr>
@@ -198,6 +258,7 @@
         {% endfor %}
     </tbody>
 </table>
+{% endif %}
 
 <script>
 const TICKET_COLUMNS = [

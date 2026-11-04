@@ -220,6 +220,7 @@ def base():
                                 WHERE Город = ?
                                 AND NOT LOWER(Комментарий) LIKE '%электр%'
                                 AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                AND NOT LOWER(Комментарий) LIKE '%фаз%'
                                 AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                 AND NOT LOWER(Комментарий) LIKE '%пож%'
@@ -233,6 +234,7 @@ def base():
                                 JOIN goroda g ON z.id_город = g.id
                                 WHERE NOT LOWER(Комментарий) LIKE '%электр%'
                                 AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                AND NOT LOWER(Комментарий) LIKE '%фаз%'
                                 AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                 AND NOT LOWER(Комментарий) LIKE '%пож%'
@@ -459,6 +461,7 @@ def base():
                                 AND Причина IN ('Неисправность', 'Остановлен')
                                 AND NOT LOWER(Комментарий) LIKE '%электр%'
                                 AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                AND NOT LOWER(Комментарий) LIKE '%фаз%'
                                 AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                 AND NOT LOWER(Комментарий) LIKE '%пож%'
@@ -485,6 +488,7 @@ def base():
                                 WHERE Причина IN ('Неисправность', 'Остановлен')
                                 AND NOT LOWER(Комментарий) LIKE '%электр%'
                                 AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                AND NOT LOWER(Комментарий) LIKE '%фаз%'
                                 AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                 AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                 AND NOT LOWER(Комментарий) LIKE '%пож%'
@@ -755,6 +759,7 @@ def base():
                                     WHERE Причина IN ('Неисправность', 'Остановлен')
                                     AND NOT LOWER(Комментарий) LIKE '%электр%'
                                     AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                    AND NOT LOWER(Комментарий) LIKE '%фаз%'
                                     AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                     AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                     AND NOT LOWER(Комментарий) LIKE '%пож%'
@@ -986,6 +991,7 @@ def base():
                 sql_query += '''Причина IN ('Неисправность', 'Остановлен')
                                     AND NOT LOWER(Комментарий) LIKE '%электр%'
                                     AND NOT LOWER(Комментарий) LIKE '%скачок%'
+                                    AND NOT LOWER(Комментарий) LIKE '%фаз%'
                                     AND NOT (LOWER(Комментарий) LIKE '%ложная%' OR LOWER(Комментарий) LIKE '%на момент%')
                                     AND NOT LOWER(Комментарий) LIKE '%вандал%'
                                     AND NOT LOWER(Комментарий) LIKE '%пож%'
@@ -1264,6 +1270,7 @@ def get_results_from_db(address, city):
 
 
 @tester.route('/search', methods=['POST'])
+@login_required
 def search():
     address = request.get_json()['address']
     city = request.get_json()['city']

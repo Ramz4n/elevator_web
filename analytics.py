@@ -87,15 +87,15 @@ def _change(current, previous):
 
 
 def _change_view(change):
-    # Больше заявок на лифт значит хуже, поэтому плюс нельзя показывать как успех:
-    # на чёрно-белом листе смысл передаёт слово, а не цвет
+    # Знак показывает оценку, а не рост заявок: заявок меньше значит лучше и плюс, больше значит хуже и минус.
+    # На чёрно-белом листе смысл передаёт слово, а не цвет
     if change is None:
         return {'text': '—', 'direction': 'none'}
     rounded = round(change, 1)
     if rounded > 0:
-        return {'text': f'Хуже: +{format_number(rounded)}%', 'direction': 'up'}
+        return {'text': f'Хуже: −{format_number(rounded)}%', 'direction': 'up'}
     if rounded < 0:
-        return {'text': f'Лучше: −{format_number(abs(rounded))}%', 'direction': 'down'}
+        return {'text': f'Лучше: +{format_number(abs(rounded))}%', 'direction': 'down'}
     return {'text': 'Без изменений', 'direction': 'none'}
 
 

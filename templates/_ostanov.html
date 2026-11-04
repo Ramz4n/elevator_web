@@ -2,16 +2,169 @@
 {% block title %} Остановленные {% endblock %}
 {% block extra_style %}
 <style>
+    /* На этой странице остановлены все лифты, поэтому розовый фон строк ничего не выделял.
+       Цветом выделяется только срок простоя. */
     .row-stopped {
-        outline: 2px solid #E53935;
-        outline-offset: -1px;
+        background-color: transparent;
     }
-    .fixed-header thead th {
-        background-color: #EF9A9A;
+    .page-header h2 {
+        color: #B71C1C;
+    }
+    .fixed-header thead th,
+    .fixed-header td::before {
+        background-color: #B71C1C;
         color: #fff;
     }
-    .fixed-header th:nth-child(10), .fixed-header td[data-label="Дата запуска"] { display: none !important; }
+    /* Колонка «Дата запуска» стала 11-й, потому что первой добавляется «Простой» */
+    .fixed-header th:nth-child(11), .fixed-header td[data-label="Дата запуска"] { display: none !important; }
+
+    .stop-banner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 24px;
+        margin: 0 12px 14px;
+        padding: 12px 18px;
+        border-radius: 8px;
+        color: #fff;
+        background: #1cbb8c;
+    }
+    .stop-banner b {
+        font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .days {
+        display: inline-block;
+        min-width: 76px;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.4;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .days-high { color: #fff; background: #B71C1C; }
+    .days-mid { color: #fff; background: #E65100; }
+    .days-low { color: #5d4300; background: #FFE082; }
+
+    @media (min-width: 769px) {
+        .fixed-header tbody tr:nth-child(even) {
+            background-color: #fbf6f6;
+        }
+    }
+
+    /* С новой колонкой обычная таблица шире экрана ноутбука, делаем её компактнее */
+    @media (min-width: 769px) and (max-width: 1700px) {
+        .fixed-header {
+            font-size: 15px;
+        }
+        .fixed-header th,
+        .fixed-header td {
+            padding: 8px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stop-banner {
+            margin: 0 0 10px;
+            padding: 10px 14px;
+        }
+        .stop-banner b {
+            font-size: 22px;
+        }
+    }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const DAY_HOURS = 24;
+    const RED_FROM_DAYS = 3; // столько полных дней простоя и больше считается срочным
+    const table = document.querySelector('.fixed-header');
+    const tbody = table.tBodies[0];
+    const rows = Array.from(tbody.rows);
+
+    function plural(n, one, few, many) {
+        const a = n % 100, b = n % 10;
+        if (a >= 11 && a <= 14) return many;
+        if (b === 1) return one;
+        if (b >= 2 && b <= 4) return few;
+        return many;
+    }
+
+    // Сравниваем полные дни, как на метке: «2 дня» остаётся оранжевым, «3 дня» уже красное
+    function isUrgent(hours) {
+        return Math.floor(hours / DAY_HOURS) >= RED_FROM_DAYS;
+    }
+
+    function daysText(hours) {
+        if (hours < DAY_HOURS) return hours + ' ч';
+        const d = Math.floor(hours / DAY_HOURS);
+        return d + ' ' + plural(d, 'день', 'дня', 'дней');
+    }
+
+    // Дата приходит из базы в виде «26.10.2026, 09:15». Если формат другой, вернётся null.
+    function hoursSince(text) {
+        const m = /^(\d{2})\.(\d{2})\.(\d{4}), (\d{2}):(\d{2})/.exec(text.trim());
+        if (!m) return null;
+        const start = new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]);
+        return Math.max(0, Math.floor((Date.now() - start.getTime()) / 3600000));
+    }
+
+    rows.forEach(function (row) {
+        const hours = hoursSince(row.querySelector('td[data-label="Дата заявки"]').textContent);
+        const cell = row.insertCell(0);
+        const badge = document.createElement('span');
+        cell.className = 'data';
+        cell.dataset.label = 'Простой';
+        row.dataset.hours = hours === null ? -1 : hours;
+        if (hours === null) {
+            cell.textContent = '—';
+        } else {
+            badge.className = 'days ' + (isUrgent(hours) ? 'days-high' : hours >= DAY_HOURS ? 'days-mid' : 'days-low');
+            badge.textContent = daysText(hours);
+            cell.appendChild(badge);
+        }
+    });
+
+    // Новая первая колонка сдвинула номера остальных, обновляем их сортировку
+    const headRow = table.tHead.rows[0];
+    const th = document.createElement('th');
+    th.textContent = 'Простой';
+    headRow.insertBefore(th, headRow.firstChild);
+    Array.from(headRow.cells).forEach(function (cell, i) {
+        if (i > 0) cell.setAttribute('onclick', 'sortTable(' + i + ')');
+    });
+
+    let longestFirst = true;
+    function sortByDowntime() {
+        Array.from(tbody.rows)
+            .sort(function (x, y) {
+                const diff = x.dataset.hours - y.dataset.hours;
+                return longestFirst ? -diff : diff;
+            })
+            .forEach(function (row) { tbody.appendChild(row); });
+    }
+    th.addEventListener('click', function () {
+        longestFirst = !longestFirst;
+        sortByDowntime();
+    });
+    sortByDowntime();
+
+    // Если остановленных лифтов нет, вместо пустой таблицы показываем сообщение
+    if (!rows.length) {
+        const banner = document.createElement('div');
+        const title = document.createElement('b');
+        banner.className = 'stop-banner';
+        title.textContent = 'Остановленных лифтов нет';
+        banner.appendChild(title);
+        table.parentNode.insertBefore(banner, table);
+        table.style.display = 'none';
+    }
+});
+</script>
 {% endblock %}
 {% block content %}
 	Остановленные лифты {{ 'во всех городах' if (town == 'all' or not town) else 'в городе ' ~ town }}

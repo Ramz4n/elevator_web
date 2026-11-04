@@ -6,6 +6,9 @@
     <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tickets-dialog.css') }}">
+	<script src="{{ url_for('static', filename='js/tickets-dialog.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
@@ -41,57 +44,57 @@
 	}
 
 	.card-expand-hint { display: none; }
-	.collapse-bottom-btn { display: none; }
 
 	@media (max-width: 768px) {
-		.collapse-bottom-btn {
-			display: block;
-			width: calc(100% - 16px);
-			margin: 8px;
-			padding: 8px;
-			background: #e8f0fe;
-			border: 1px solid #aac4f5;
-			border-radius: 6px;
-			color: #007bff;
-			font-size: 13px;
-			cursor: pointer;
-			text-align: center;
-		}
-
 		body { padding: 8px; overflow-x: hidden; }
 
 		.fixed-header thead { display: none; }
 
-		.fixed-header > tbody > tr:not(.details) {
+		.fixed-header > tbody > tr {
 			display: block;
 			border: 1px solid #ddd;
 			border-radius: 8px;
 			margin-bottom: 10px;
-			padding: 4px 0;
+			overflow: hidden; /* скругляет углы цветной колонки */
 			background: #fff;
 			box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 			cursor: pointer;
 		}
 
-		.fixed-header > tbody > tr:not(.details) td {
+		.fixed-header > tbody > tr td {
 			display: flex;
 			justify-content: space-between;
-			align-items: flex-start;
-			padding: 6px 12px;
+			align-items: center;
+			padding: 6px 12px 6px 0;
 			border-bottom: 1px solid #f0f0f0;
 			font-size: 13px;
 			gap: 10px;
 		}
 
-		.fixed-header > tbody > tr:not(.details) td::before {
+		/* Подпись в карточке того же цвета, что шапка таблицы на компьютере */
+		.fixed-header > tbody > tr td::before {
 			content: attr(data-label);
+			text-align: left;
+			align-self: stretch;
+			flex: 0 0 135px;
+			margin: -6px 0;
+			padding: 6px 12px;
 			font-weight: 600;
-			color: #555;
-			flex-shrink: 0;
-			min-width: 110px;
+			color: #495057;
+			background-color: #63B2F3;
 		}
 
-		.fixed-header > tbody > tr:not(.details) td.card-extra {
+		/* У строки «Посмотреть заявки» подписи нет */
+		.fixed-header > tbody > tr td.card-expand-hint {
+			justify-content: center;
+			padding: 6px 12px;
+		}
+
+		.fixed-header > tbody > tr td.card-expand-hint::before {
+			display: none;
+		}
+
+		.fixed-header > tbody > tr td.card-extra {
 			display: none;
 		}
 
@@ -105,50 +108,6 @@
 		}
 
 		.card-expand-hint::before { content: none; }
-
-		.details td {
-			display: block;
-			padding: 0;
-		}
-
-		.details td {
-			padding: 8px !important;
-		}
-
-		.details-table thead { display: none; }
-
-		.details-table tbody tr {
-			display: block;
-			border: 1px solid #ccc;
-			border-radius: 6px;
-			margin: 8px;
-			padding: 4px 0;
-			background: #fff;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-		}
-
-		.details-table tbody td {
-			display: flex !important;
-			justify-content: space-between;
-			align-items: flex-start;
-			padding: 5px 10px !important;
-			border-bottom: 1px solid #eee;
-			font-size: 12px;
-			gap: 8px;
-			text-align: left !important;
-		}
-
-		.details-table tbody td:last-child {
-			border-bottom: none;
-		}
-
-		.details-table tbody td::before {
-			content: attr(data-label);
-			font-weight: 600;
-			color: #555;
-			flex-shrink: 0;
-			min-width: 100px;
-		}
 	}
 </style>
 
@@ -167,10 +126,10 @@
 	}
 </script>
 {% set is_svyaz = (mode == 'svyaz') %}
-<h2 style="text-align: center">
+<div class="page-header">
     <button class="btn btn-success" onclick="goBack()">Назад</button>
-    Проблемные лифты за последние 14 дней
-</h2>
+    <h2>Проблемные лифты за последние {{ days_limit }} дней</h2>
+</div>
 <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px;">
     <span id="label-bad" style="font-size: 16px; font-weight: {% if not is_svyaz %}700{% else %}400{% endif %}; color: {% if not is_svyaz %}#34c759{% else %}#999{% endif %};">Неисправности</span>
     <label class="ios-toggle">
@@ -210,22 +169,6 @@
     .ios-toggle input:checked + .ios-slider::before { transform: translateX(22px); }
 </style>
 
-<button id="float-collapse-btn" onclick="collapseDetails()" style="
-    display: none;
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    padding: 10px 28px;
-    background: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 24px;
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    cursor: pointer;
-">Скрыть ▲</button>
 <style>
     .fixed-header tbody tr:hover {
         background-color: #C4C5C7; /* Серый цвет подсветки */
@@ -244,169 +187,54 @@
     </thead>
     <tbody>
         {% for dat in data1 %}
-        <tr onclick="toggleDetails(this, '{{dat[0]}}', '{{dat[1]}}', '{{dat[2]}}', {{ loop.index }});" style="cursor: pointer;">
+        <tr class="lift-row" tabindex="0" style="cursor: pointer;" data-city="{{ dat[0] }}" data-address="{{ dat[1] }}" data-lift="{{ dat[2] }}">
             <td class="data" data-label="№">{{ loop.index }}</td>
             <td class="data" data-label="Город">{{dat[0]}}</td>
             <td class="data" data-label="Адрес">{{dat[1]}}</td>
             <td class="data card-extra" data-label="Тип лифта">{{dat[2]}}</td>
             <td class="data" data-label="Кол-во обращений" style='text-align: center;'>{{dat[3]}}</td>
-            <td class="card-expand-hint">Раскрыть ▼</td>
-        </tr>
-        <tr class="details" style="display: none;">
-            <td colspan="5"> <!-- Изменяем colspan на 5, чтобы учесть новую колонку -->
-                <div id="details-{{dat[0]}}">
-                    <table class="details-table" style="width: 100%; border-collapse: collapse; background-color: #f0f0f0;">
-                        <thead>
-                            <tr>
-                                <th>№ заявки</th>
-                                <th>Дата заявки</th>
-                                <th>Диспетчер</th>
-                                <th>Город</th>
-                                <th>Адрес</th>
-                                <th>Лифт</th>
-                                <th>Причина</th>
-                                <th>Механик</th>
-                                <th>Дата запуска</th>
-                                <th>Комментарий</th>
-                            </tr>
-                        </thead>
-                        <tbody id="details-body-row-{{ loop.index }}"> <!-- Используем индекс строки -->
-                            <!-- Данные будут загружены сюда -->
-                        </tbody>
-                    </table>
-                    <button class="collapse-bottom-btn" onclick="collapseDetails(this)">Скрыть ▲</button>
-                </div>
-            </td>
+            <td class="card-expand-hint">Посмотреть заявки</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
 <script>
-const floatBtn = document.getElementById('float-collapse-btn');
+const TICKET_COLUMNS = [
+    {key: 'Номер_заявки', label: '№ заявки', nowrap: true},
+    {key: 'Дата_заявки', label: 'Дата заявки', nowrap: true, date: true},
+    {key: 'Диспетчер', label: 'Диспетчер'},
+    {key: 'Причина', label: 'Причина'},
+    {key: 'Механик', label: 'Механик'},
+    {key: 'Дата_запуска', label: 'Дата запуска', nowrap: true, date: true},
+    {key: 'Ремонт', label: 'Время ремонта', nowrap: true},
+    {key: 'Комментарий', label: 'Комментарий', wide: true}
+];
 
-function showFloatBtn() {
-    if (window.innerWidth <= 768) floatBtn.style.display = 'block';
-}
-function hideFloatBtn() {
-    floatBtn.style.display = 'none';
-}
-
-function collapseDetails(btn) {
-    let mainRow = null;
-
-    // вызов из встроенной кнопки внутри строки
-    if (btn) {
-        const detailsRow = btn.closest('tr.details');
-        if (detailsRow) {
-            detailsRow.style.display = 'none';
-            mainRow = detailsRow.previousElementSibling;
-            const hint = mainRow && mainRow.querySelector('.card-expand-hint');
-            if (hint) hint.textContent = 'Раскрыть ▼';
-            currentlyOpenRow = null;
-            hideFloatBtn();
-        }
-    // вызов из плавающей кнопки
-    } else if (currentlyOpenRow) {
-        mainRow = currentlyOpenRow.previousElementSibling;
-        currentlyOpenRow.style.display = 'none';
-        const hint = mainRow && mainRow.querySelector('.card-expand-hint');
-        if (hint) hint.textContent = 'Раскрыть ▼';
-        currentlyOpenRow = null;
-        hideFloatBtn();
-    }
-
-    if (mainRow) {
-        mainRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-}
-
-let currentlyOpenRow = null; // Переменная для отслеживания открытой строки
-
-function toggleDetails(row, city, adres, lift, rowIndex) {
-    const nextRow = row.nextElementSibling; // Получаем следующую строку (выпадающую)
-
-    // Закрываем текущую открытую строку, если она не равна следующей
-    if (currentlyOpenRow && currentlyOpenRow !== nextRow) {
-        currentlyOpenRow.style.display = 'none';
-        const prevHint = currentlyOpenRow.previousElementSibling && currentlyOpenRow.previousElementSibling.querySelector('.card-expand-hint');
-        if (prevHint) prevHint.textContent = 'Раскрыть ▼';
-    }
-
-    const hint = row.querySelector('.card-expand-hint');
-
-    if (nextRow && nextRow.classList.contains('details')) {
-        // Переключаем видимость следующей строки
-        if (nextRow.style.display === 'none') {
-            if (hint) hint.textContent = 'Скрыть ▲';
-            console.log(`Fetching data for: city=${city}, adres=${adres}, lift=${lift}`); // Отладка
-            // Отправляем данные на сервер через POST-запрос
-            fetch('/_top_bad', {
+function openLiftTickets(row) {
+    const d = row.dataset;
+    TicketsDialog.open({
+        title: d.city + ', ' + d.address + ', ' + d.lift,
+        columns: TICKET_COLUMNS,
+        subtitle: function (tickets) { return 'Заявок: ' + tickets.length; },
+        load: function () {
+            return fetch('/_top_bad', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    city: city,
-                    adres: adres,
-                    lift: lift,
-                    mode: '{{ mode }}'
-                })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({city: d.city, adres: d.address, lift: d.lift, mode: {{ mode|tojson }}})
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Формируем ID для tbody на основе номера строки
-                const detailsBodyId = `details-body-row-${rowIndex}`; // Используем индекс строки
-                console.log(`Attempting to get element with ID: ${detailsBodyId}`); // Отладка
-                const detailsBody = document.getElementById(detailsBodyId); // Получаем элемент
-
-                if (detailsBody) {
-                    detailsBody.innerHTML = ''; // Очищаем предыдущие данные
-
-                    // Проверяем, есть ли данные в ответе
-                    if (data.query_bd && Array.isArray(data.query_bd)) {
-                        data.query_bd.forEach(item => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td data-label="№ заявки">${item.Номер_заявки}</td>
-                                <td data-label="Дата заявки">${item.Дата_заявки}</td>
-                                <td data-label="Диспетчер">${item.Диспетчер}</td>
-                                <td data-label="Город">${item.Город}</td>
-                                <td data-label="Адрес">${item.Адрес}</td>
-                                <td data-label="Лифт">${item.Тип_лифта}</td>
-                                <td data-label="Причина">${item.Причина}</td>
-                                <td data-label="Механик">${item.Механик}</td>
-                                <td data-label="Дата запуска">${item.Дата_запуска ?? ''}</td>
-                                <td data-label="Комментарий">${item.Комментарий}</td>
-                            `;
-                            detailsBody.appendChild(row);
-                        });
-                    } else {
-                        console.error('No data found in response');
-                    }
-                } else {
-                    console.error(`Element with ID ${detailsBodyId} not found.`);
-                }
-            })
-            .catch(error => {
-                console.error('There was a problem with the fetch operation:', error);
-            });
-            nextRow.style.display = window.innerWidth <= 768 ? 'block' : 'table-row'; // Показываем строку
-            currentlyOpenRow = nextRow; // Устанавливаем текущую открытую строку
-            showFloatBtn();
-        } else {
-            nextRow.style.display = 'none';
-            if (hint) hint.textContent = 'Раскрыть ▼';
-            currentlyOpenRow = null;
-            hideFloatBtn();
+            .then(TicketsDialog.json)
+            .then(function (data) { return data.query_bd; });
         }
-    }
+    });
 }
+
+document.querySelectorAll('.lift-row').forEach(function (row) {
+    row.addEventListener('click', function () { openLiftTickets(row); });
+    row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') openLiftTickets(row);
+    });
+});
 </script>
 </body>
 </html>

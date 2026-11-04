@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- minimum-scale=1: без него Chrome при открытии DevTools (ширина на миг 2-6px) залипает на масштабе 4 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/xlsx.full.min.js') }}"></script>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Roboto:wght@400;700&display=swap"
       rel="stylesheet"
     />
     <title>Поиск заявок</title>
 <style>
-	/* Стили для контейнера формы */
-	.search-container {
-		position: relative; /* Устанавливаем относительное позиционирование для контейнера */
-		display: inline-block; /* Чтобы контейнер не занимал всю ширину */
-	}
-
-
 	/* Стили для выпадающего списка */
 	#results {
 		border: 1px solid #ccc;
@@ -86,7 +81,7 @@ overflow-x: auto; /* Позволяет прокручивать таблицу 
 .fixed-header thead th {
 position: sticky; /* Фиксация заголовков */
 top: 0; /* Закрепление заголовков в верхней части окна */
-background-color: white; /* Цвет фона заголовков */
+background-color: #63B2F3; /* Цвет фона заголовков, как на других страницах */
 }
 .float-left {
 float: left;
@@ -101,47 +96,107 @@ font-size: 20px;
 }
 
 
+.search-title {
+    text-align: center;
+}
+
+.search-subtitle {
+    margin: 3px 0 0;
+    font-size: 14px;
+    color: #666;
+}
+
 .search-container {
-    display: flex;
-    flex-direction: column;
+    max-width: 1100px;
+    margin: 0 auto 20px;
+    padding: 16px 20px 20px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .form-horizontal {
-    display: flex;
-    flex-wrap: wrap; /* Позволяет элементам переноситься на новую строку, если не хватает места */
-	justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px 16px;
+    align-items: end;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    margin-right: 20px; /* Отступ между элементами */
+    min-width: 0;
 }
 
-.form-group label {
-    margin-bottom: 5px; /* Отступ между меткой и полем ввода */
+.form-group-wide {
+    grid-column: span 2;
 }
 
-.form-group input,
-.form-group select {
-    width: 150px; /* Ширина полей ввода и выбора */
+.customLabel {
+    margin-bottom: 5px;
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #832018;
+    text-transform: uppercase;
 }
+
+/* Те же поля, что и на главной странице (.customSelect в base.html) */
+.customSelect,
+.customInput {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 16px;
+    color: #333;
+    background-color: #f2f2f2;
+    border: 2px solid #336699;
+    border-radius: 5px;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.customSelect {
+    padding-right: 32px;
+    text-overflow: ellipsis;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23336699' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 10px center;
+    background-repeat: no-repeat;
+    background-size: 14px 12px;
+}
+
+.customInput::placeholder {
+    color: #777;
+}
+
+.customSelect:focus,
+.customInput:focus {
+    outline: none;
+    border-color: #0099cc;
+    box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
+}
+
 .btn1 {
-    margin-top: 30px;
+    width: 100%;
+    height: 40px;
+    font-size: 15px;
 }
 
 .card-toggle-cell, .card-toggle {
     display: none;
 }
 
-.customSelect {
-    width: auto;
-    min-width: 200px;
-    max-width: 100%;
-}
-
-#addressesInput {
-    width: 600px;
+/* Планшет: по два поля в строке */
+@media (max-width: 992px) {
+    .form-horizontal {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -150,31 +205,55 @@ font-size: 20px;
         overflow-x: hidden;
     }
 
+    .search-subtitle {
+        font-size: 13px;
+    }
+
+    /* Самые узкие экраны: подпись переносится и съедает место, форма важнее */
+    @media (max-width: 360px) {
+        .search-subtitle {
+            display: none;
+        }
+    }
+
+    .search-container {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
     .form-horizontal {
-        flex-direction: column;
-        align-items: center;
+        gap: 10px;
     }
 
-    .form-group {
-        margin-right: 0;
-        margin-bottom: 10px;
-        width: 92%;
+    /* Город, УК и адрес на всю ширину; даты и кнопки остаются парами */
+    .form-group-full {
+        grid-column: 1 / -1;
     }
 
-    .form-group input,
-    .form-group select,
+    /* 44px: удобно попадать пальцем */
     .customSelect,
-    #addressesInput {
-        width: 100% !important;
-        box-sizing: border-box;
-        font-size: 16px; /* чтобы iOS не зумил при фокусе */
-    }
-
+    .customInput,
     .btn1 {
-        margin-top: 0;
-        width: 100%;
+        height: 44px;
     }
 
+    /* Узкие экраны: текст кнопки в одну строку */
+    .btn1 {
+        padding-left: 4px;
+        padding-right: 4px;
+        white-space: nowrap;
+    }
+
+    /* Чтобы дата и значок календаря помещались в половину ширины */
+    input[type="date"].customInput {
+        padding: 5px 6px;
+    }
+
+}
+
+/* Обычная таблица шириной около 1350px. Если она не помещается, страница становится
+   шире экрана, а планшеты и телефоны из-за этого уменьшают её целиком. Поэтому карточки. */
+@media (max-width: 1220px) {
     table {
         font-size: 13px;
         width: 100%;
@@ -190,7 +269,7 @@ font-size: 20px;
         border: 1px solid #ddd;
         border-radius: 8px;
         margin-bottom: 12px;
-        padding: 4px 0;
+        overflow: hidden; /* скругляет углы цветной колонки */
         background: #fff;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
@@ -198,8 +277,8 @@ font-size: 20px;
     .table td {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
-        padding: 6px 12px;
+        align-items: center;
+        padding: 6px 12px 6px 0;
         border-bottom: 1px solid #f0f0f0;
         font-size: 13px;
         gap: 10px;
@@ -212,12 +291,25 @@ font-size: 20px;
         border-bottom: none;
     }
 
+    /* Подпись в карточке того же цвета, что шапка таблицы на компьютере */
     .table td::before {
         content: attr(data-label);
+        align-self: stretch;
+        flex: 0 0 135px;
+        margin: -6px 0;
+        padding: 6px 12px;
         font-weight: 600;
-        color: #555;
-        flex-shrink: 0;
-        min-width: 110px;
+        color: #495057;
+        background-color: #63B2F3;
+    }
+
+    /* У строки с кнопкой «Подробнее» подписи нет */
+    .table td.card-toggle-cell {
+        padding: 0;
+    }
+
+    .table td.card-toggle-cell::before {
+        display: none;
     }
 
     .table td.card-extra {
@@ -247,6 +339,32 @@ font-size: 20px;
         text-align: center;
     }
 }
+
+/* Планшет: карточки широкие, поэтому подпись и значение рядом, а не по разным краям */
+@media (min-width: 769px) and (max-width: 1220px) {
+    .table {
+        max-width: 1100px;
+    }
+
+    .table td {
+        justify-content: flex-start;
+    }
+
+    .table td::before {
+        min-width: 170px;
+    }
+}
+
+/* Ноутбуки: таблица остаётся, но компактнее, чтобы поместиться */
+@media (min-width: 1221px) and (max-width: 1600px) {
+    table {
+        font-size: 15px;
+    }
+
+    th, td {
+        padding: 8px;
+    }
+}
  </style>
 </head>
 <body>
@@ -266,9 +384,12 @@ window.onload = function() {
   }
 };
 </script>
-<h2 style="text-align: center;"> 
-<div style='margin-bottom: 5px; margin-top: 5pt;'>
-<button class="btn btn-success" onclick="goBack()">Назад</button> Поиск заявок
+<div class="page-header">
+    <button class="btn btn-success" onclick="goBack()">Назад</button>
+    <div class="search-title">
+        <h2>Поиск заявок</h2>
+        <p class="search-subtitle">По городу, УК, адресу и датам</p>
+    </div>
 </div>
 
 <script>
@@ -292,8 +413,8 @@ window.onload = function() {
 
 <div class="search-container">
         <form id="searchForm" action="/_search" method="get" class="form-horizontal">
-            <div class="form-group">
-                <label for="cityList" class="customLabel">Город:</label>
+            <div class="form-group form-group-full">
+                <label for="cityList" class="customLabel">Город</label>
                 <select class="customSelect" name="city" id="cityList" onchange="onCityChange()">
                     <option value="" disabled selected>Выберите город</option>
                     {% for city in town %}
@@ -302,9 +423,8 @@ window.onload = function() {
                 </select>
             </div>
 
-
-            <div class="form-group">
-                <label for="ukList" class="customLabel">УК:</label>
+            <div class="form-group form-group-full">
+                <label for="ukList" class="customLabel">УК</label>
                 <select class="customSelect" name="uk_id" id="ukList" onchange="updateData()">
                     <option value="">Все УК</option>
                     {% for item in uk %}
@@ -313,8 +433,8 @@ window.onload = function() {
                 </select>
             </div>
 
-            <div class="form-group">
-                <label for="addressesInput" class="customLabel">Адрес:</label>
+            <div class="form-group form-group-wide form-group-full">
+                <label for="addressesInput" class="customLabel">Адрес</label>
                 <input list="addresses" class="customInput" id="addressesInput" name="addresses" placeholder="Введите адрес" autocomplete="off">
                 <datalist id="addresses">
                     {% for address in addresses %}
@@ -324,26 +444,23 @@ window.onload = function() {
             </div>
 
             <div class="form-group">
-                <label for="start_calendar" class="customLabel">Дата начала:</label>
-                <input type="date" name="start_calendar" id="start_calendar">
+                <label for="start_calendar" class="customLabel">Дата начала</label>
+                <input type="date" class="customInput" name="start_calendar" id="start_calendar">
             </div>
             <div class="form-group">
-                <label for="end_calendar" class="customLabel">Дата окончания:</label>
-                <input type="date" name="end_calendar" id="end_calendar">
+                <label for="end_calendar" class="customLabel">Дата окончания</label>
+                <input type="date" class="customInput" name="end_calendar" id="end_calendar">
             </div>
 
             <div class="form-group">
-                <label for="button_search" class="customLabel"></label>
                 <button class="btn btn1 btn-success" type="submit" name="button_search" id="button_search">Поиск</button>
             </div>
 
             <div class="form-group">
-                <label class="customLabel"></label>
                 <button class="btn btn1 btn-primary" type="button" onclick="exportToExcel()">Скачать Excel</button>
             </div>
         </form>
     </div>
-    </h2>
 
 <table class="table fixed-header">
     <thead>

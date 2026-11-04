@@ -5,6 +5,7 @@
     <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 	<script src="C:\Server\bin\Apache24\htdocs\templates\project.js"></script>
 	<script src="C:\Server\bin\Apache24\htdocs\templates\project.css"></script>
@@ -37,7 +38,10 @@ function goBack() {
   window.history.back();
 }
 </script>
-	<h2 style="text-align: center"> <button class="btn btn-success" onclick="goBack()">Назад</button>Самые проблемные лифты за 30 дней</h2>
+	<div class="page-header">
+    <button class="btn btn-success" onclick="goBack()">Назад</button>
+    <h2>Самые проблемные лифты за 30 дней</h2>
+</div>
 <table>
   <thead>
     <tr>

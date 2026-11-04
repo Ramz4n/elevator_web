@@ -5,6 +5,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
@@ -60,7 +61,7 @@
                 border: 1px solid #ddd;
                 border-radius: 8px;
                 margin-bottom: 12px;
-                padding: 4px 0;
+                overflow: hidden; /* скругляет углы цветной колонки */
                 background: #fff;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             }
@@ -68,8 +69,8 @@
             .fixed-header td {
                 display: flex;
                 justify-content: space-between;
-                align-items: flex-start;
-                padding: 6px 12px;
+                align-items: center;
+                padding: 6px 12px 6px 0;
                 border-bottom: 1px solid #f0f0f0;
                 font-size: 13px;
                 text-align: left;
@@ -80,12 +81,25 @@
                 border-bottom: none;
             }
 
+            /* Подпись в карточке того же цвета, что шапка таблицы на компьютере */
             .fixed-header td::before {
                 content: attr(data-label);
+                align-self: stretch;
+                flex: 0 0 135px;
+                margin: -6px 0;
+                padding: 6px 12px;
                 font-weight: 600;
-                color: #555;
-                flex-shrink: 0;
-                min-width: 110px;
+                color: #495057;
+                background-color: #63B2F3;
+            }
+
+            /* У строки с кнопкой «Подробнее» подписи нет */
+            .fixed-header td.card-toggle-cell {
+                padding: 0;
+            }
+
+            .fixed-header td.card-toggle-cell::before {
+                display: none;
             }
 
             .fixed-header td.card-extra {
@@ -172,10 +186,10 @@ function sortTable(n) {
 }
 </script>
 
-<h2 style="text-align: center">
+<div class="page-header">
     <button class="btn btn-success" onclick="goBack()">Назад</button>
-    {% block content %}{% endblock %}
-</h2>
+    <h2>{% block content %}{% endblock %}</h2>
+</div>
 
 <table class="fixed-header">
     <thead>

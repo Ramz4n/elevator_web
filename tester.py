@@ -20,6 +20,7 @@ from flask_caching import Cache
 from db_manager import DataBaseManager
 from datetime import datetime
 from waitress import serve
+from analytics import build_analytics, build_city, choose_period, complete_months, repair_text, ticket_view
 from yearly_stats_cache import yearly_cache  # Кэширование годовой статистики
 
 UPLOAD_FOLDER = 'static'
@@ -1250,6 +1251,11 @@ def search():
     return jsonify(results)
 
 
+# За сколько дней считаются проблемные лифты. Для локальной проверки на старой копии базы
+# можно задать TOP_BAD_DAYS в .env (не больше 20000: иначе дата уйдёт раньше 1970 года и строк не будет)
+TOP_BAD_DAYS = int(os.getenv('TOP_BAD_DAYS', 14))
+
+
 @tester.route('/_top_bad', methods=['GET', 'POST'])
 @login_required
 def _top_bad():
@@ -1272,9 +1278,9 @@ def _top_bad():
                                             JOIN street s ON z.id_улица = s.id
                                             JOIN doma d ON z.id_дом = d.id
                                             JOIN padik p ON z.id_подъезд = p.id
-                                            WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                            WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
                                             AND NOT pc_id IS NULL AND z.Причина = "Связь"
-                                            GROUP BY Адрес, Тип_лифта
+                                            GROUP BY g.город, Адрес, Тип_лифта
                                             ORDER BY address_count DESC
                                             LIMIT 30;''')
                     else:
@@ -1287,18 +1293,19 @@ def _top_bad():
                                             JOIN street s ON z.id_улица = s.id
                                             JOIN doma d ON z.id_дом = d.id
                                             JOIN padik p ON z.id_подъезд = p.id
-                                            WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                            WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
                                             AND NOT (LOWER(Комментарий) LIKE '%скачок%'
                                             OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
                                             OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
                                             OR LOWER(Комментарий) LIKE '%пож%' OR LOWER(Комментарий) LIKE '%вандал%'
                                             OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
                                             AND NOT pc_id IS NULL AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
-                                            GROUP BY Адрес, Тип_лифта
+                                            GROUP BY g.город, Адрес, Тип_лифта
                                             ORDER BY address_count DESC
                                             LIMIT 30;''')
                     data1 = cursor.fetchall()
-                return render_template('_top_bad.html', data1=data1, mode=mode)
+                return render_template('_top_bad.html', data1=data1, mode=mode,
+                                       days_limit=TOP_BAD_DAYS)
             except Exception as e:
                 print('Проблема в наихудших:', e)
                 return render_template('error.html')
@@ -1316,9 +1323,9 @@ def _top_bad():
                                             JOIN street s ON z.id_улица = s.id
                                             JOIN doma d ON z.id_дом = d.id
                                             JOIN padik p ON z.id_подъезд = p.id
-                                            WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                            WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
                                             AND NOT pc_id IS NULL AND z.Причина = "Связь"
-                                            GROUP BY Адрес, Тип_лифта
+                                            GROUP BY g.город, Адрес, Тип_лифта
                                             ORDER BY address_count DESC
                                             LIMIT 30;''', (town,))
                     else:
@@ -1331,7 +1338,7 @@ def _top_bad():
                                             JOIN street s ON z.id_улица = s.id
                                             JOIN doma d ON z.id_дом = d.id
                                             JOIN padik p ON z.id_подъезд = p.id
-                                            WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                            WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
                                             AND NOT (LOWER(Комментарий) LIKE '%скачок%'
                                             OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
                                             OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
@@ -1339,11 +1346,12 @@ def _top_bad():
                                             OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
                                             AND NOT pc_id IS NULL
                                             AND NOT z.Причина IN ("Линейная", "Связь", "Т.О.", "УК")
-                                            GROUP BY Адрес, Тип_лифта
+                                            GROUP BY g.город, Адрес, Тип_лифта
                                             ORDER BY address_count DESC
                                             LIMIT 30;''', (town,))
                     data1 = cursor.fetchall()
-                return render_template('_top_bad.html', data1=data1, mode=mode)
+                return render_template('_top_bad.html', data1=data1, mode=mode,
+                                       days_limit=TOP_BAD_DAYS)
             except Exception as e:
                 print('Проблема в наихудших:', e)
                 return render_template('error.html')
@@ -1369,7 +1377,8 @@ def _top_bad():
                                           z.Причина,
                                           m.фио,
                                           FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                                          z.Комментарий
+                                          z.Комментарий,
+                                          z.Дата_запуска - z.Дата_заявки
                                           FROM {table_name} z
                                           JOIN workers di ON z.id_диспетчер = di.id
                                           JOIN goroda g ON z.id_город = g.id
@@ -1377,7 +1386,7 @@ def _top_bad():
                                           JOIN doma d ON z.id_дом = d.id
                                           JOIN padik p ON z.id_подъезд = p.id
                                           JOIN workers m ON z.id_механик = m.id
-                                       WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                       WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
                                        AND g.город = ?
                                        AND s.`Улица` = ?
                                        AND d.`Номер` = ?
@@ -1385,8 +1394,7 @@ def _top_bad():
                                        AND z.`Тип_лифта` = ?
                                        AND z.Причина = "Связь"
                                        AND NOT pc_id is NULL
-                                       GROUP BY z.Дата_заявки desc
-                                       limit 30;''', (city, adres[0], adres[1], adres[2], lift))
+                                       ORDER BY z.Дата_заявки DESC;''', (city, adres[0], adres[1], adres[2], lift))
                 else:
                     cursor.execute(f'''SELECT z.Номер_заявки,
                                           FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y, %H:%i') as Дата_заявки,
@@ -1397,7 +1405,8 @@ def _top_bad():
                                           z.Причина,
                                           m.фио,
                                           FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                                          z.Комментарий
+                                          z.Комментарий,
+                                          z.Дата_запуска - z.Дата_заявки
                                           FROM {table_name} z
                                           JOIN workers di ON z.id_диспетчер = di.id
                                           JOIN goroda g ON z.id_город = g.id
@@ -1405,7 +1414,7 @@ def _top_bad():
                                           JOIN doma d ON z.id_дом = d.id
                                           JOIN padik p ON z.id_подъезд = p.id
                                           JOIN workers m ON z.id_механик = m.id
-                                       WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 14 DAY))
+                                       WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
                                        AND NOT (LOWER(Комментарий) LIKE '%скачок%'
                                        OR LOWER(Комментарий) LIKE '%напряж%' OR LOWER(Комментарий) LIKE '%фаз%'
                                        OR LOWER(Комментарий) LIKE '%отсутствие электр%' OR LOWER(Комментарий) LIKE '%свет%'
@@ -1413,13 +1422,12 @@ def _top_bad():
                                        OR LOWER(Комментарий) LIKE '%на момент%' OR LOWER(Комментарий) LIKE '%ложн%')
                                        AND g.город = ?
                                        AND s.`Улица` = ?
-                                       AND NOT z.Причина in ("Линейная", "Связь")
+                                       AND NOT z.Причина in ("Линейная", "Связь", "Т.О.", "УК")
                                        AND d.`Номер` = ?
                                        AND p.`Номер` = ?
                                        AND z.`Тип_лифта` = ?
                                        AND NOT pc_id is NULL
-                                       GROUP BY z.Дата_заявки desc
-                                       limit 30;''', (city, adres[0], adres[1], adres[2], lift))
+                                       ORDER BY z.Дата_заявки DESC;''', (city, adres[0], adres[1], adres[2], lift))
                 query_bd = cursor.fetchall()
 
                 query = []
@@ -1435,6 +1443,7 @@ def _top_bad():
                         'Механик': row[7],
                         'Дата_запуска': row[8],
                         'Комментарий': row[9],
+                        'Ремонт': repair_text(row[10]),
                     })
             return jsonify({'query_bd': query})
         except Exception as e:
@@ -1823,6 +1832,133 @@ def _stat():
         except Exception as e:
             print('Проблема в stat:', e)
             return render_template('error.html')
+
+
+def _load_analytics(cursor, table_name, selected_year):
+    # Данные для страниц аналитики: год, список годов, сводка и строки заявок
+    cursor.execute(f'''SELECT YEAR(FROM_UNIXTIME(Дата_заявки)), MONTH(FROM_UNIXTIME(Дата_заявки)), COUNT(*)
+                    FROM {table_name}
+                    WHERE NOT pc_id IS NULL
+                    GROUP BY 1, 2;''')
+    monthly = {(row[0], row[1]): row[2] for row in cursor.fetchall()}
+    years = sorted({year for year, _ in complete_months(monthly)}, reverse=True)
+    if selected_year not in years:
+        selected_year = years[0] if years else None
+    if not selected_year:
+        return None, years, None, [], monthly
+    cursor.execute(f'''SELECT g.город,
+                    YEAR(FROM_UNIXTIME(z.Дата_заявки)),
+                    MONTH(FROM_UNIXTIME(z.Дата_заявки)),
+                    z.Причина,
+                    z.Дата_запуска - z.Дата_заявки,
+                    LOWER(COALESCE(z.Комментарий, '')) LIKE '%на момент осмотра%'
+                        OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%ложн%'
+                        OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%вандал%'
+                        OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%пож%',
+                    d.is_active = 1,
+                    z.id_лифт,
+                    ls.улица,
+                    ld.номер,
+                    lp.номер,
+                    l.Тип_лифта
+                    FROM {table_name} z
+                    JOIN goroda g ON z.id_город = g.id
+                    LEFT JOIN doma d ON z.id_дом = d.id
+                    LEFT JOIN lifts l ON z.id_лифт = l.id
+                    LEFT JOIN doma ld ON l.id_дом = ld.id
+                    LEFT JOIN street ls ON ld.id_улица = ls.id
+                    LEFT JOIN padik lp ON l.id_подъезд = lp.id
+                    WHERE NOT z.pc_id IS NULL
+                    AND YEAR(FROM_UNIXTIME(z.Дата_заявки)) IN (?, ?);''',
+                   (selected_year, selected_year - 1))
+    tickets = cursor.fetchall()
+    cursor.execute('''SELECT g.город, COUNT(*)
+                    FROM lifts l
+                    JOIN doma d ON l.id_дом = d.id
+                    JOIN street s ON d.id_улица = s.id
+                    JOIN goroda g ON s.id_город = g.id
+                    WHERE d.is_active = 1
+                    GROUP BY g.город;''')
+    lifts = {row[0]: row[1] for row in cursor.fetchall()}
+    return selected_year, years, build_analytics(tickets, lifts, monthly, selected_year), tickets, monthly
+
+
+@tester.route('/_analytics')
+@login_required
+def _analytics():
+    # Сводка для руководства
+    table_name = session.get('table_name', db_table)
+    db_manager = DataBaseManager()
+    try:
+        with closing(db_manager.connect()) as connection:
+            selected_year, years, analytics, _, _ = _load_analytics(
+                connection.cursor(), table_name, request.args.get('year', type=int))
+        return render_template('_analytics.html', a=analytics, years=years, selected_year=selected_year)
+    except Exception as e:
+        print('Проблема в аналитике:', e)
+        return render_template('error.html')
+
+
+@tester.route('/_analytics/lift_tickets', endpoint='analytics_lift_tickets')
+@login_required
+def _analytics_lift_tickets():
+    # Заявки одного лифта за период страницы города, для окна на этой странице
+    table_name = session.get('table_name', db_table)
+    db_manager = DataBaseManager()
+    lift_id = request.args.get('lift', type=int)
+    year = request.args.get('year', type=int)
+    if lift_id is None or year is None:
+        return jsonify({'error': 'Не указан лифт или год'}), 400
+    try:
+        with closing(db_manager.connect()) as connection:
+            cursor = connection.cursor()
+            cursor.execute(f'''SELECT YEAR(FROM_UNIXTIME(Дата_заявки)), MONTH(FROM_UNIXTIME(Дата_заявки)), COUNT(*)
+                            FROM {table_name}
+                            WHERE NOT pc_id IS NULL
+                            GROUP BY 1, 2;''')
+            monthly = {(row[0], row[1]): row[2] for row in cursor.fetchall()}
+            months, _ = choose_period(year, complete_months(monthly))
+            if not months:
+                return jsonify({'tickets': []})
+            placeholders = ', '.join('?' for _ in months)
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                            FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y %H:%i'),
+                            z.Причина,
+                            z.Дата_запуска - z.Дата_заявки,
+                            z.Комментарий
+                            FROM {table_name} z
+                            JOIN doma d ON z.id_дом = d.id
+                            WHERE NOT z.pc_id IS NULL
+                            AND d.is_active = 1
+                            AND z.id_лифт = ?
+                            AND YEAR(FROM_UNIXTIME(z.Дата_заявки)) = ?
+                            AND MONTH(FROM_UNIXTIME(z.Дата_заявки)) IN ({placeholders})
+                            ORDER BY z.Дата_заявки DESC;''', (lift_id, year, *months))
+            tickets = [ticket_view(*row) for row in cursor.fetchall()]
+        return jsonify({'tickets': tickets})
+    except Exception as e:
+        print('Проблема в заявках лифта:', e)
+        return jsonify({'error': 'Не удалось загрузить заявки'}), 500
+
+
+@tester.route('/_analytics/city', endpoint='analytics_city')
+@login_required
+def _analytics_city():
+    # Подробности по одному городу
+    table_name = session.get('table_name', db_table)
+    db_manager = DataBaseManager()
+    city = request.args.get('city', '')
+    try:
+        with closing(db_manager.connect()) as connection:
+            selected_year, years, analytics, tickets, monthly = _load_analytics(
+                connection.cursor(), table_name, request.args.get('year', type=int))
+        data = build_city(city, tickets, analytics, monthly, selected_year) if analytics else None
+        if data is None:
+            return redirect(url_for('_analytics'))
+        return render_template('_analytics_city.html', c=data, years=years, selected_year=selected_year)
+    except Exception as e:
+        print('Проблема в аналитике города:', e)
+        return render_template('error.html')
 
 
 @tester.route('/_ostanov', methods=['GET', 'POST'])

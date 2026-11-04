@@ -1,217 +1,507 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
       rel="stylesheet"
     />
     <title>Статистика по лифтам</title>
-</head>
-<body>
-	<style>
-table {
-border-spacing: 0;
-empty-cells: hide;
-margin: 0 auto;
-font-size: 20px;
-background-color: white;
-}
-
-tr {
-border-bottom: 1px solid #ddd;
-}
-
-th, td {
-padding: 15px;
-text-align: center;
-}
-.fixed-header {
-width: 100%; /* Ширина таблицы */
-overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
-}
-
-.fixed-header thead th {
-    position: sticky;
-    top: 0;
-    background-color: #63B2F3;
-}
-
-.card-toggle-cell, .card-toggle { display: none; }
-
-@media (max-width: 768px) {
-    body { padding: 8px; overflow-x: hidden; }
-
-    .fixed-header thead { display: none; }
-
-    .fixed-header tbody tr:not(.separator) {
-        display: block;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        padding: 4px 0;
-        background: #fff;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    }
-
-    .fixed-header tbody tr.separator { display: none; }
-
-    .fixed-header td {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 6px 12px;
-        border-bottom: 1px solid #f0f0f0;
-        font-size: 13px;
-        text-align: left;
-        gap: 10px;
-    }
-
-    .fixed-header td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #555;
-        flex-shrink: 0;
-        min-width: 110px;
-    }
-
-    .fixed-header td.card-extra { display: none; }
-    .fixed-header tr.card-open td.card-extra { display: flex; }
-    .fixed-header tbody tr.card-open { background: #e8e8e8; }
-
-    .card-toggle-cell, .card-toggle { display: block; }
-
-    .card-toggle {
-        width: 100%;
-        padding: 6px;
-        background: none;
-        border: none;
-        color: #007bff;
-        font-size: 13px;
-        cursor: pointer;
-        text-align: center;
-    }
-
-    table { font-size: 13px; width: 100%; }
-}
-    </style>
-<script>
-function goBack() {
-
-  window.history.back();
-}
-
-</script>
-<h2 style="text-align: center"><button class="btn btn-success" onclick="goBack()">Назад</button>Статистика по городам</h2>
 <style>
+body {
+    padding: 0 12px 20px;
+}
+
+.print-only {
+    display: none;
+}
+
 .controls-row {
     display: flex;
     justify-content: center;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 15px;
     flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
 }
-.year-wrapper { position: relative; }
-#yearList.show { display: block !important; }
-#yearList a:hover { background-color: #e8e8e8; }
+
+.stat-select {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    min-width: 190px;
+    height: 40px;
+    padding: 5px 32px 5px 10px;
+    font-family: inherit;
+    font-size: 16px;
+    color: #333;
+    background-color: #f2f2f2;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23336699' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 10px center;
+    background-repeat: no-repeat;
+    background-size: 14px 12px;
+    border: 2px solid #336699;
+    border-radius: 5px;
+}
+
+.stat-select:focus {
+    outline: none;
+    border-color: #0099cc;
+    box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
+}
+
+.print-button {
+    height: 40px;
+    padding: 0 22px;
+    font-size: 15px;
+}
+
+.city-block {
+    max-width: 1200px;
+    margin: 0 auto 16px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.city-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 9px 14px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #2b3a4a;
+    background: #63B2F3;
+}
+
+.city-total {
+    flex: none;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.city-total b {
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.stat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-table th {
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #5a6672;
+    text-align: right;
+    background: #f7f9fb;
+    border-bottom: 2px solid #d5dbe2;
+}
+
+.stat-table td {
+    padding: 8px 14px;
+    text-align: right;
+    border-bottom: 1px solid #ececec;
+}
+
+.stat-table th:first-child,
+.stat-table td:first-child {
+    text-align: left;
+}
+
+.stat-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.stat-table tfoot td {
+    font-weight: 700;
+    background: #f7f9fb;
+    border-top: 2px solid #d5dbe2;
+    border-bottom: none;
+}
+
+.total-cell {
+    width: 36%;
+}
+
+.bar-line {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.bar-track {
+    flex: 1;
+    min-width: 0;
+}
+
+.bar {
+    height: 10px;
+    background: #63B2F3;
+    border-radius: 0 4px 4px 0;
+}
+
+.bar-num {
+    flex: none;
+    min-width: 42px;
+    font-weight: 600;
+}
+
+.toggle-cell {
+    display: none;
+}
+
+.stat-empty {
+    padding: 30px 8px;
+    font-size: 16px;
+    color: #666;
+    text-align: center;
+}
+
+/* Только экран: на листе A4 ширина меньше 768px, и без screen бумага получила бы телефонный вид */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 8px;
+    }
+
+    .controls-row {
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    /* Два списка в строке, кнопка под ними на всю ширину */
+    .stat-select {
+        flex: 1 1 40%;
+        min-width: 0;
+        height: 44px;
+    }
+
+    .print-button {
+        flex: 1 1 100%;
+        height: 44px;
+    }
+
+    .city-block {
+        margin-bottom: 10px;
+    }
+
+    .city-head {
+        padding: 8px 12px;
+        font-size: 15px;
+    }
+
+    .stat-table,
+    .stat-table tbody,
+    .stat-table tfoot {
+        display: block;
+    }
+
+    .stat-table thead {
+        display: none;
+    }
+
+    .stat-table tr {
+        display: grid;
+        grid-template-columns: 76px minmax(0, 1fr) 36px;
+        align-items: center;
+        border-bottom: 1px solid #ececec;
+    }
+
+    .stat-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .stat-table td {
+        padding: 7px 0 7px 12px;
+        font-size: 14px;
+        border-bottom: none;
+    }
+
+    .stat-table tfoot tr {
+        background: #f7f9fb;
+        border-top: 2px solid #d5dbe2;
+        border-bottom: none;
+    }
+
+    .stat-table tfoot td {
+        border-top: none;
+    }
+
+    .total-cell {
+        width: auto;
+    }
+
+    .stat-table td.extra {
+        display: none;
+        grid-column: 1 / -1;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 12px 6px 0;
+        font-weight: 400;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .stat-table tr.open td.extra {
+        display: flex;
+    }
+
+    /* Подпись того же цвета, что на карточках других страниц */
+    .stat-table td.extra::before {
+        content: attr(data-label);
+        flex: 0 0 135px;
+        align-self: stretch;
+        margin: -6px 0;
+        padding: 6px 12px;
+        font-weight: 600;
+        color: #495057;
+        text-align: left;
+        background-color: #63B2F3;
+    }
+
+    /* Месяц, полоска и стрелка всегда в первой строке, подробности открываются под ними */
+    .stat-table td:first-child {
+        grid-row: 1;
+        grid-column: 1;
+    }
+
+    .stat-table td.total-cell {
+        grid-row: 1;
+        grid-column: 2;
+    }
+
+    .stat-table td.toggle-cell {
+        display: block;
+        grid-row: 1;
+        grid-column: 3;
+        padding: 0;
+    }
+
+    .row-toggle {
+        width: 100%;
+        height: 36px;
+        padding: 0;
+        font-size: 13px;
+        color: #007bff;
+        cursor: pointer;
+        background: none;
+        border: none;
+    }
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    html,
+    body {
+        height: auto;
+        padding: 0;
+        color: #000;
+        background: #fff;
+    }
+
+    .page-header .btn,
+    .controls-row,
+    .toggle-cell {
+        display: none !important;
+    }
+
+    .print-only {
+        display: inline;
+    }
+
+    .page-header {
+        display: block;
+        margin: 0 0 4mm;
+        padding: 0;
+    }
+
+    .page-header > .btn + * {
+        padding-left: 0;
+        border-left: none;
+    }
+
+    .page-header h2 {
+        font-size: 16pt;
+        color: #000;
+    }
+
+    /* Город не разрывается между листами */
+    .city-block {
+        max-width: none;
+        margin-bottom: 5mm;
+        overflow: visible;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border: 1px solid #000;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    /* Фон по умолчанию не печатается, а чёрно-белый принтер его и не передаст:
+       заголовок города держится на чёрной линии */
+    .city-head {
+        padding: 4px 8px;
+        font-size: 12pt;
+        color: #000;
+        background: none;
+        border-bottom: 2px solid #000;
+    }
+
+    .city-total {
+        font-size: 10pt;
+    }
+
+    .city-total b {
+        font-size: 13pt;
+    }
+
+    .stat-table {
+        font-size: 10pt;
+    }
+
+    .stat-table th {
+        padding: 3px 8px;
+        font-size: 9pt;
+        color: #000;
+        background: none;
+        border-bottom: 1px solid #000;
+    }
+
+    .stat-table td {
+        padding: 3px 8px;
+        border-bottom: 1px solid #bbb;
+    }
+
+    .stat-table tfoot td {
+        background: none;
+        border-top: 2px solid #000;
+    }
+
+    /* Полоска рисуется рамкой, а не фоном: рамки печатаются при любых настройках принтера */
+    .bar {
+        height: 0;
+        background: none;
+        border-top: 8px solid #555;
+        border-radius: 0;
+    }
+}
 </style>
+</head>
+<body>
+<script>
+function goBack() {
+  window.history.back();
+}
 
-<div class="controls-row">
-  <div class="year-wrapper">
-    <button onclick="document.getElementById('yearList').classList.toggle('show')"
-            style="padding: 8px 20px; font-size: 18px; border-radius: 5px; border: none;
-                   background-color: #63B2F3; color: white; cursor: pointer;">
-      Год: {{ selected_year }} &#9662;
-    </button>
-    <div id="yearList" style="display: none; position: absolute; left: 50%; transform: translateX(-50%);
-         background: white; border: 1px solid #ddd; border-radius: 5px; margin-top: 5px;
-         box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10;">
-      {% for year in years %}
-        <a href="/_stat?year={{ year }}"
-           style="display: block; padding: 8px 30px; text-decoration: none; font-size: 17px;
-                  color: {% if year == selected_year %}white{% else %}#333{% endif %};
-                  background-color: {% if year == selected_year %}#2e7d32{% else %}white{% endif %};">
-          {{ year }}
-        </a>
-      {% endfor %}
-    </div>
-  </div>
+function toggleRow(btn) {
+  const open = btn.closest('tr').classList.toggle('open');
+  btn.textContent = open ? '▲' : '▼';
+  btn.setAttribute('aria-expanded', open);
+}
 
-  <select id="cityFilter" onchange="filterCity(this.value)"
-          style="padding: 8px 16px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; min-width: 200px;">
-    <option value="">Все города</option>
-    {% set seen = namespace(cities=[]) %}
-    {% for stat in statistic %}
-      {% if stat[0] not in seen.cities %}
-        {% set seen.cities = seen.cities + [stat[0]] %}
-        <option value="{{ stat[0] }}">{{ stat[0] }}</option>
-      {% endif %}
-    {% endfor %}
-  </select>
+function filterCity(city) {
+  document.querySelectorAll('.city-block').forEach(function (block) {
+    block.style.display = (!city || block.dataset.city === city) ? '' : 'none';
+  });
+}
+</script>
+
+<div class="page-header">
+    <button class="btn btn-success" onclick="goBack()">Назад</button>
+    <h2>Статистика по городам{% if selected_year %}<span class="print-only">, {{ selected_year }} год</span>{% endif %}</h2>
 </div>
 
-<script>
-document.addEventListener('click', function(e) {
-  var list = document.getElementById('yearList');
-  if (!list.contains(e.target) && !e.target.closest('.year-wrapper button')) {
-    list.classList.remove('show');
-  }
-});
-</script>
+{% set cities = statistic|groupby('0') %}
 
-<table class="table fixed-header">
-  <thead>
-    <tr>
-      <th>Город</th>
-      <th>Месяц</th>
-      <th>Всего заявок</th>
-      <th>Неисправности</th>
-      <th>Застревания</th>
-      <th>Линейные</th>
-      <th>Прочее</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for stat in statistic %}
-      <tr>
-        <td class="data" data-label="Город">{{ stat[0] }}</td>
-        <td class="data" data-label="Месяц">{{ stat[1] }}</td>
-        <td class="data" data-label="Всего заявок">{{ stat[2] }}</td>
-        <td class="data card-extra" data-label="Неисправности">{{ stat[3] }}</td>
-        <td class="data card-extra" data-label="Застревания">{{ stat[4] }}</td>
-        <td class="data card-extra" data-label="Линейные">{{ stat[5] }}</td>
-        <td class="data card-extra" data-label="Прочее">{{ stat[6] }}</td>
-        <td class="card-toggle-cell"><button class="card-toggle" onclick="toggleCard(this)">Подробнее ▼</button></td>
-      </tr>
-      {% if loop.index != loop.length and stat[0] != statistic[loop.index].0 %}
-        <tr class="separator"><td colspan="8">&nbsp;</td></tr>
-      {% endif %}
+<div class="controls-row">
+  {% if years %}
+  <select class="stat-select" aria-label="Год" onchange="location.href='/_stat?year=' + this.value">
+    {% for year in years %}
+      <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>Год: {{ year }}</option>
     {% endfor %}
-  </tbody>
-</table>
+  </select>
+  {% endif %}
 
-<script>
-    function toggleCard(btn) {
-        const row = btn.closest('tr');
-        const open = row.classList.toggle('card-open');
-        btn.textContent = open ? 'Скрыть ▲' : 'Подробнее ▼';
-    }
+  <select class="stat-select" id="cityFilter" aria-label="Город" onchange="filterCity(this.value)">
+    <option value="">Все города</option>
+    {% for city in cities %}
+      <option value="{{ city.grouper }}">{{ city.grouper }}</option>
+    {% endfor %}
+  </select>
 
-    function filterCity(city) {
-        document.querySelectorAll('.fixed-header tbody tr:not(.separator)').forEach(row => {
-            const cityCell = row.querySelector('td[data-label="Город"]');
-            if (!cityCell) return;
-            row.style.display = (!city || cityCell.textContent.trim() === city) ? '' : 'none';
-        });
-        document.querySelectorAll('.fixed-header tbody tr.separator').forEach(sep => {
-            sep.style.display = city ? 'none' : '';
-        });
-    }
-</script>
+  <button class="btn btn-primary print-button" type="button" onclick="window.print()">Печать</button>
+</div>
+
+{% macro extra_cells(values) %}
+    <td class="extra" data-label="Неисправности">{{ values[0] }}</td>
+    <td class="extra" data-label="Застревания">{{ values[1] }}</td>
+    <td class="extra" data-label="Линейные">{{ values[2] }}</td>
+    <td class="extra" data-label="Прочее">{{ values[3] }}</td>
+    <td class="toggle-cell"><button class="row-toggle" type="button" onclick="toggleRow(this)" aria-label="Подробнее" aria-expanded="false">▼</button></td>
+{% endmacro %}
+
+{% for city in cities %}
+  {% set city_total = city.list|sum(attribute='2') %}
+  {% set peak = city.list|map(attribute='2')|max %}
+  <div class="city-block" data-city="{{ city.grouper }}">
+    <div class="city-head">
+      <span>{{ city.grouper }}</span>
+      <span class="city-total">за год: <b>{{ city_total }}</b></span>
+    </div>
+    <table class="stat-table">
+      <thead>
+        <tr>
+          <th>Месяц</th>
+          <th>Всего заявок</th>
+          <th>Неисправности</th>
+          <th>Застревания</th>
+          <th>Линейные</th>
+          <th>Прочее</th>
+          <th class="toggle-cell"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stat in city.list %}
+        <tr>
+          <td>{{ stat[1] }}</td>
+          <td class="total-cell">
+            <div class="bar-line">
+              <div class="bar-track"><div class="bar" style="width: {{ ((stat[2]|float) / (peak|float) * 100)|round(1) if peak else 0 }}%"></div></div>
+              <span class="bar-num">{{ stat[2] }}</span>
+            </div>
+          </td>
+          {{ extra_cells([stat[3], stat[4], stat[5], stat[6]]) }}
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Итого</td>
+          <td class="total-cell"><span class="bar-num">{{ city_total }}</span></td>
+          {{ extra_cells([city.list|sum(attribute='3'), city.list|sum(attribute='4'), city.list|sum(attribute='5'), city.list|sum(attribute='6')]) }}
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+{% else %}
+  <div class="stat-empty">Нет данных за этот период</div>
+{% endfor %}
 </body>
 </html>

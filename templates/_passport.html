@@ -5,6 +5,7 @@
     <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
     <link rel="canonical" href="https://demo-basic.adminkit.io/" />
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
@@ -32,10 +33,11 @@ window.onload = function() {
   }
 };
 </script>
-<h2 style="text-align: center;"> 
-<div style='margin-bottom: 5px; margin-top: 5pt;'>
-<button class="btn btn-success" onclick="goBack()">Назад</button> Паспорт лифта
+<div class="page-header">
+    <button class="btn btn-success" onclick="goBack()">Назад</button>
+    <h2>Паспорт лифта</h2>
 </div>
+<div class="h2" style="text-align: center;">
 <form action="/_passport" method="post">
     <label for="cityList" class="customLabel">Город:</label>
     <select class="customSelect" name="city" id="cityList" onchange="postPoisk()">
@@ -231,7 +233,7 @@ function postPoisk() {
     });
 }
 </script>
-</h2> 
+</div> 
 <style>
 .columns {
 display: flex;

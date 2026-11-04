@@ -138,6 +138,7 @@ document.querySelector(`option[value="${new Date().getMonth()+1}"]`)
 	<div>
 	<!--<button class="btn btn-success float-left" id="redirectButton0">Паспорт лифта</button>-->
 	<button class="btn btn-success float-left" id="ButtonStat">Статистика</button>
+	<button class="btn btn-success float-left" id="ButtonAnalytics">Аналитика</button>
 	</div>
 <script>
 	const button0 = document.getElementById('redirectButton0'); // Получаем кнопку по id
@@ -156,6 +157,11 @@ document.querySelector(`option[value="${new Date().getMonth()+1}"]`)
 	const urlToRedirect = '/_stat'
 	// Перейти на указанную страницу
 	window.location.href = urlToRedirect;
+	});
+</script>
+<script>
+	document.getElementById('ButtonAnalytics').addEventListener('click', function() {
+	window.location.href = '/_analytics';
 	});
 </script>
 </div>

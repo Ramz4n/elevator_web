@@ -1,0 +1,42 @@
+/* Общая шапка страниц: кнопка «Назад» и заголовок рядом, вместе по центру */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+.page-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    margin: 5px auto 15px;
+    padding: 0 12px; /* на многих страницах у body нет отступов */
+}
+
+.page-header .btn {
+    flex: none;
+}
+
+/* Черта между кнопкой и заголовком */
+.page-header > .btn + * {
+    padding-left: 14px;
+    border-left: 2px solid #bbb;
+}
+
+.page-header h2 {
+    margin: 0;
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 25px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #832018;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .page-header h2 {
+        font-size: 20px;
+    }
+}

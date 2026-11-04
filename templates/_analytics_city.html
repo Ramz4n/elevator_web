@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/analytics.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tickets-dialog.css') }}">
+<script src="{{ url_for('static', filename='js/tickets-dialog.js') }}"></script>
+    <title>Аналитика: {{ c.city }}</title>
+</head>
+<body>
+<script>
+function goBack() {
+  window.location.href = '{{ url_for("_analytics", year=c.year) }}';
+}
+</script>
+
+<div class="page-header">
+    <button class="btn btn-success" onclick="goBack()">Назад</button>
+    <h2>Аналитика: {{ c.city }}</h2>
+</div>
+
+<div class="an-page">
+  <div class="controls-row">
+    <select class="stat-select" aria-label="Год" id="yearSelect">
+      {% for year in years %}
+        <option value="{{ url_for('analytics_city', city=c.city, year=year) }}" {% if year == selected_year %}selected{% endif %}>Год: {{ year }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-primary print-button" type="button" onclick="window.print()">Печать</button>
+  </div>
+
+  <p class="an-period">Период: {{ c.period }} {{ c.year }}</p>
+
+  <div class="an-tiles">
+    <div class="an-tile">
+      <div class="an-tile-label">Заявок на один лифт</div>
+      <div class="an-tile-value">{{ c.per_lift.text }} шт.</div>
+      <div class="an-tile-note">{{ c.position }}-е место из {{ c.cities_count }} (1-е: больше всего заявок). В среднем по городам {{ c.per_lift_total }} шт.</div>
+    </div>
+    <div class="an-tile{% if c.compare and c.compare.view.direction == 'up' %} an-tile-bad{% endif %}">
+      <div class="an-tile-label">Изменение за год</div>
+      {% if c.compare %}
+      <div class="an-tile-value change-{{ c.compare.view.direction }}">{{ c.compare.view.text }}</div>
+      <div class="an-tile-note">те же {{ c.compare.lifts }} лифтов: {{ c.compare.prev_text }} → {{ c.compare.cur_text }} шт. на лифт. Новых лифтов: {{ c.compare.new_lifts }} ({{ c.compare.new_tickets }} заявок).{% if c.compare.unstable %} Лифтов мало, процент ненадёжен.{% endif %}</div>
+      {% else %}
+      <div class="an-tile-value">—</div>
+      <div class="an-tile-note">сравнивать не с чем</div>
+      {% endif %}
+    </div>
+    <div class="an-tile">
+      <div class="an-tile-label">Обычное время ремонта</div>
+      <div class="an-tile-value">{{ c.downtime.fault }}</div>
+      <div class="an-tile-note">при неисправности. Больше суток заняли {{ c.downtime.over_day }} ремонтов: {{ c.downtime.over_day_count }} из {{ c.downtime.repairs }}</div>
+    </div>
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">1. Заявки по месяцам</div>
+    <div class="an-chart">
+      {% set ch = c.chart %}
+      <svg viewBox="0 0 {{ ch.width }} {{ ch.height }}" role="img" aria-label="Заявки по месяцам, цифры в таблице ниже">
+        {% for line in ch.grid %}
+          <line class="chart-grid" x1="{{ ch.left }}" x2="{{ ch.right }}" y1="{{ line.y }}" y2="{{ line.y }}"></line>
+          <text class="chart-axis" x="{{ ch.left - 6 }}" y="{{ line.y + 4 }}" text-anchor="end">{{ line.label }}</text>
+        {% endfor %}
+        {% for group in ch.groups %}
+          {% for b in group.bars %}
+            <rect class="chart-bar bar-{{ b.series }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="2"
+                  data-tip="{{ group.name }} {{ c.previous_year if b.series == 'prev' else c.year }}: {{ b.value }}"></rect>
+          {% endfor %}
+          <text class="chart-axis chart-axis-x" x="{{ group.x }}" y="{{ ch.axis_y }}" text-anchor="middle">{{ group.label }}</text>
+        {% endfor %}
+      </svg>
+    </div>
+    {% if c.has_previous %}
+    <div class="chart-legend">
+      <span><svg viewBox="0 0 12 12" aria-hidden="true"><rect class="bar-prev" width="12" height="12" rx="2"></rect></svg>{{ c.previous_year }}</span>
+      <span><svg viewBox="0 0 12 12" aria-hidden="true"><rect class="bar-cur" width="12" height="12" rx="2"></rect></svg>{{ c.year }}</span>
+    </div>
+    {% endif %}
+    <div class="an-scroll">
+      <table class="an-table">
+        <thead><tr><th>Месяц</th>{% if c.has_previous %}<th>{{ c.previous_year }}</th>{% endif %}<th>{{ c.year }}</th></tr></thead>
+        <tbody>
+          {% for row in c.months_rows %}
+          <tr>
+            <td>{{ row.name }}</td>
+            {% if c.has_previous %}<td>{{ row.previous if row.previous is not none else '—' }}</td>{% endif %}
+            <td>{{ row.current }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">2. Причины заявок</div>
+    <div class="an-scroll">
+      <table class="an-table">
+        <thead><tr><th>Причина</th><th>Заявок</th><th>Доля от {{ c.total }} заявок</th></tr></thead>
+        <tbody>
+          {% for row in c.reasons %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.count }}</td>
+            <td class="bar-cell">
+              <div class="bar-line">
+                <div class="bar-track"><div class="bar" style="width: {{ row.bar }}%"></div></div>
+                <span class="bar-num">{{ row.share }}</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">3. Обычное время ремонта</div>
+    <p class="an-summary">Половина заявок закрывается быстрее указанного времени. Последняя колонка: сколько ремонтов из всех заняло больше суток.</p>
+    <div class="an-scroll">
+      <table class="an-table">
+        <thead><tr><th></th><th>Неисправность</th><th>Застревание</th><th>Остановка</th><th>Ремонтов дольше суток</th></tr></thead>
+        <tbody>
+          {% for t in [c.downtime, c.downtime_all] %}
+          <tr><td>{{ t.name }}</td><td>{{ t.fault }}</td><td>{{ t.stuck }}</td><td>{{ t.stopped }}</td><td>{{ t.over_day_count }} из {{ t.repairs }} ({{ t.over_day }})</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="an-block" id="worstBlock">
+    <div class="an-head">4. Адреса от худшего</div>
+    <p class="an-summary">{{ c.top_count }} худших лифтов дают {{ c.top_share }}% заявок города.{% if c.lifts_without_tickets %} Без заявок за период: {{ c.lifts_without_tickets }} лифтов.{% endif %}</p>
+    <div class="an-scroll">
+      <table class="an-table">
+        <thead><tr><th>Адрес</th><th>Заявок</th><th>Неисправности</th><th>Застревания</th><th>Остановки</th><th>Прочие</th></tr></thead>
+        <tbody>
+          {% for lift in c.worst %}
+          <tr{% if lift.position > 20 %} class="an-row-extra"{% endif %}>
+            <td><span class="rank">{{ lift.position }}.</span> {{ lift.address }} <span class="addr-type">{{ lift.type }}</span>
+              <button class="tickets-button" type="button" data-lift="{{ lift.id }}" data-title="{{ lift.address }}, {{ lift.type }}">Посмотреть заявки</button></td>
+            <td class="bar-cell bar-cell-sm">
+              <div class="bar-line">
+                <div class="bar-track"><div class="bar" style="width: {{ lift.bar }}%"></div></div>
+                <span class="bar-num">{{ lift.tickets }}</span>
+              </div>
+            </td>
+            <td>{{ lift['Неисправность'] }}</td>
+            <td>{{ lift['Застревание'] }}</td>
+            <td>{{ lift['Остановлен'] }}</td>
+            <td>{{ lift.other }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if c.worst|length > 20 %}
+    <div class="an-more"><button class="btn btn-primary" type="button" id="showAll">Показать все {{ c.worst|length }}</button></div>
+    {% endif %}
+  </div>
+
+  <ul class="an-notes">
+    <li>«Заявок» считаются все, как на странице «Статистика». В разделе 4 колонки в сумме дают число заявок. «Прочие»: линейные, связь, Т.О., УК, а также ложные, вандальные, пожарные и «на момент осмотра» с любой причиной.</li>
+    <li>Адреса: только дома в работе, строка соответствует одному лифту.</li>
+    <li>На графике и в таблице по месяцам все лифты города. Изменение за год считается только по лифтам с заявками в оба года, поэтому эти числа могут расходиться.</li>
+    {% if c.has_previous %}<li>«—» в таблице по месяцам: данных за этот месяц прошлого года мало, в сравнение он не входит.</li>{% endif %}
+  </ul>
+</div>
+
+<div class="chart-tip" id="chartTip"></div>
+
+<script>
+document.getElementById('yearSelect').addEventListener('change', function () {
+  location.href = this.value;
+});
+
+var showAll = document.getElementById('showAll');
+if (showAll) {
+  showAll.addEventListener('click', function () {
+    var open = document.getElementById('worstBlock').classList.toggle('show-all');
+    showAll.textContent = open ? 'Показать первые 20' : 'Показать все {{ c.worst|length }}';
+  });
+}
+
+var TICKET_COLUMNS = [
+  {key: 'number', label: '№ заявки', nowrap: true},
+  {key: 'date', label: 'Дата', nowrap: true},
+  {key: 'reason', label: 'Причина'},
+  {key: 'repair', label: 'Ремонт', nowrap: true},
+  {key: 'comment', label: 'Комментарий', wide: true}
+];
+
+document.querySelectorAll('.tickets-button').forEach(function (button) {
+  button.addEventListener('click', function () {
+    TicketsDialog.open({
+      title: button.dataset.title,
+      columns: TICKET_COLUMNS,
+      subtitle: function (tickets) {
+        return 'Заявок: ' + tickets.length + ', {{ c.period }} {{ c.year }}, сначала новые';
+      },
+      load: function () {
+        return fetch('{{ url_for("analytics_lift_tickets") }}?lift=' + encodeURIComponent(button.dataset.lift) + '&year={{ c.year }}')
+          .then(TicketsDialog.json)
+          .then(function (data) { return data.tickets; });
+      }
+    });
+  });
+});
+
+var tip = document.getElementById('chartTip');
+document.querySelectorAll('.chart-bar').forEach(function (bar) {
+  bar.addEventListener('mousemove', function (e) {
+    tip.textContent = bar.getAttribute('data-tip');
+    tip.style.display = 'block';
+    tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px';
+    tip.style.top = (e.clientY - 34) + 'px';
+  });
+  bar.addEventListener('mouseleave', function () {
+    tip.style.display = 'none';
+  });
+});
+</script>
+</body>
+</html>

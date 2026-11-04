@@ -1,0 +1,626 @@
+body {
+    padding: 0 12px 24px;
+}
+
+.print-only {
+    display: none;
+}
+
+.an-page {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.controls-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.stat-select {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    min-width: 190px;
+    height: 40px;
+    padding: 5px 32px 5px 10px;
+    font-family: inherit;
+    font-size: 16px;
+    color: #333;
+    background-color: #f2f2f2;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23336699' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 10px center;
+    background-repeat: no-repeat;
+    background-size: 14px 12px;
+    border: 2px solid #336699;
+    border-radius: 5px;
+}
+
+.print-button {
+    height: 40px;
+    padding: 0 22px;
+    font-size: 15px;
+}
+
+.an-period {
+    margin: 0 0 14px;
+    font-size: 15px;
+    color: #555;
+    text-align: center;
+}
+
+.an-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.an-tile {
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.an-tile-bad {
+    border-left: 5px solid #B71C1C;
+}
+
+.an-tile-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #5a6672;
+}
+
+.an-tile-value {
+    margin: 2px 0;
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #2b3a4a;
+}
+
+.an-tile-note {
+    font-size: 13px;
+    color: #666;
+}
+
+.an-block {
+    margin-bottom: 16px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.an-head {
+    padding: 9px 14px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #2b3a4a;
+    background: #63B2F3;
+}
+
+.an-summary {
+    margin: 0;
+    padding: 9px 14px;
+    font-size: 15px;
+    color: #333;
+    border-bottom: 1px solid #ececec;
+}
+
+.an-scroll {
+    overflow-x: auto;
+}
+
+.an-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+.an-table th {
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #5a6672;
+    text-align: right;
+    background: #f7f9fb;
+    border-bottom: 2px solid #d5dbe2;
+}
+
+.an-table td {
+    padding: 8px 14px;
+    text-align: right;
+    border-bottom: 1px solid #ececec;
+}
+
+.an-table th:first-child,
+.an-table td:first-child {
+    text-align: left;
+}
+
+.an-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.an-table tfoot td {
+    font-weight: 700;
+    background: #f7f9fb;
+    border-top: 2px solid #d5dbe2;
+    border-bottom: none;
+}
+
+.bar-cell {
+    width: 42%;
+}
+
+.an-table-nowrap th,
+.an-table-nowrap td {
+    white-space: nowrap;
+}
+
+.bar-cell-sm {
+    width: 24%;
+}
+
+.bar-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bar-track {
+    flex: 1;
+    min-width: 0;
+}
+
+.bar {
+    height: 10px;
+    background: #63B2F3;
+    border-radius: 0 4px 4px 0;
+}
+
+.bar-num {
+    flex: none;
+    min-width: 42px;
+    font-weight: 600;
+}
+
+.change {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.change-up { color: #B71C1C; }
+.change-down { color: #2e7d32; }
+.change-none { color: #666; }
+
+.an-notes {
+    margin: 0;
+    padding: 0 0 0 18px;
+    font-size: 13px;
+    color: #666;
+}
+
+.an-notes li {
+    margin-bottom: 3px;
+}
+
+.an-empty {
+    padding: 30px 8px;
+    font-size: 16px;
+    color: #666;
+    text-align: center;
+}
+
+/* Только экран: лист A4 уже 768px, и без screen бумага получила бы телефонный вид */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 8px;
+    }
+
+    .stat-select,
+    .print-button {
+        flex: 1 1 40%;
+        min-width: 0;
+        height: 44px;
+    }
+
+    .an-tiles {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .an-tile {
+        padding: 10px 12px;
+    }
+
+    .an-tile-value {
+        font-size: 26px;
+    }
+
+    .an-block {
+        margin-bottom: 10px;
+    }
+
+    .an-head {
+        padding: 8px 12px;
+        font-size: 15px;
+    }
+
+    .an-summary {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .an-table {
+        font-size: 14px;
+    }
+
+    .an-table th {
+        padding: 7px 8px;
+        font-size: 12px;
+    }
+
+    .an-table td {
+        padding: 7px 8px;
+    }
+
+    .an-table th:first-child,
+    .an-table td:first-child {
+        padding-left: 12px;
+    }
+
+    .bar-cell,
+    .bar-cell-sm {
+        width: auto;
+    }
+
+    /* График сжимается вдвое, подписи увеличиваем, чтобы читались */
+    .an-chart .chart-axis {
+        font-size: 24px;
+    }
+
+    .an-block .an-chart {
+        padding: 8px;
+    }
+
+    .an-chart .chart-axis-x {
+        transform: translateY(8px);
+    }
+
+    /* Адреса: на узком экране оставляем адрес и число заявок, иначе адрес сжимается в столбик */
+    #worstBlock .an-table th:nth-child(n+3),
+    #worstBlock .an-table td:nth-child(n+3) {
+        display: none;
+    }
+
+    #worstBlock .bar-track {
+        min-width: 40px;
+    }
+
+    .bar-track {
+        min-width: 50px;
+    }
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 8mm 10mm;
+    }
+
+    html,
+    body {
+        height: auto;
+        padding: 0;
+        color: #000;
+        background: #fff;
+    }
+
+    .page-header .btn,
+    .controls-row {
+        display: none !important;
+    }
+
+    .print-only {
+        display: inline;
+    }
+
+    .an-page {
+        max-width: none;
+    }
+
+    .page-header {
+        display: block;
+        margin: 0 0 1mm;
+        padding: 0;
+    }
+
+    .page-header > .btn + * {
+        padding-left: 0;
+        border-left: none;
+    }
+
+    .page-header h2 {
+        font-size: 15pt;
+        color: #000;
+    }
+
+    .an-period {
+        margin-bottom: 3mm;
+        font-size: 10pt;
+        color: #000;
+    }
+
+    .an-tiles {
+        gap: 3mm;
+        margin-bottom: 3mm;
+    }
+
+    .an-tile,
+    .an-block {
+        border: 1px solid #000;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .an-tile {
+        padding: 1mm 2.5mm;
+    }
+
+    .an-tile-bad {
+        border-left: 3px solid #000;
+    }
+
+    .an-tile-label,
+    .an-tile-note,
+    .an-tile-value {
+        color: #000;
+    }
+
+    .an-tile-label {
+        font-size: 9pt;
+    }
+
+    .an-tile-note {
+        font-size: 8pt;
+    }
+
+    .an-tile-value {
+        margin: 0;
+        font-size: 14pt;
+    }
+
+    .an-block {
+        margin-bottom: 3mm;
+        overflow: visible;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .an-scroll {
+        overflow: visible;
+    }
+
+    /* Фон по умолчанию не печатается, заголовок держится на чёрной линии */
+    .an-head {
+        padding: 0.5mm 2.5mm;
+        font-size: 10.5pt;
+        color: #000;
+        background: none;
+        border-bottom: 2px solid #000;
+    }
+
+    .an-summary {
+        padding: 0.5mm 2.5mm;
+        font-size: 9pt;
+        color: #000;
+        border-bottom: 1px solid #000;
+    }
+
+    .an-table {
+        font-size: 9pt;
+    }
+
+    .an-table th {
+        padding: 1px 6px;
+        font-size: 8pt;
+        color: #000;
+        background: none;
+        border-bottom: 1px solid #000;
+    }
+
+    .an-table td {
+        padding: 1px 6px;
+        border-bottom: 1px solid #bbb;
+    }
+
+    .an-table tfoot td {
+        background: none;
+        border-top: 2px solid #000;
+    }
+
+    /* Рост и снижение на чёрно-белом листе различаются стрелкой и знаком */
+    .change-up,
+    .change-down,
+    .change-none {
+        color: #000;
+    }
+
+    /* Полоска рисуется рамкой: рамки печатаются при любых настройках принтера */
+    .bar {
+        height: 0;
+        background: none;
+        border-top: 7px solid #555;
+        border-radius: 0;
+    }
+
+    .an-notes {
+        font-size: 7.5pt;
+        line-height: 1.25;
+        color: #000;
+    }
+
+    .an-notes li {
+        margin-bottom: 0;
+    }
+}
+
+/* Ссылка на страницу города */
+.city-link {
+    color: #336699;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+/* График по месяцам */
+.an-chart {
+    padding: 8px 14px 4px;
+}
+
+.an-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.chart-grid {
+    stroke: #e3e7ec;
+    stroke-width: 1;
+}
+
+.chart-axis {
+    font-size: 12px;
+    fill: #5a6672;
+}
+
+.bar-prev { fill: #B8C2CC; }
+.bar-cur { fill: #336699; }
+
+.chart-bar:hover {
+    opacity: 0.8;
+}
+
+.chart-legend {
+    display: flex;
+    gap: 18px;
+    padding: 0 14px 8px;
+    font-size: 13px;
+    color: #444;
+}
+
+.chart-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-legend svg {
+    width: 12px;
+    height: 12px;
+}
+
+.chart-tip {
+    position: fixed;
+    z-index: 5;
+    display: none;
+    padding: 5px 9px;
+    font-size: 13px;
+    color: #fff;
+    pointer-events: none;
+    background: #2b3a4a;
+    border-radius: 4px;
+}
+
+.an-row-extra {
+    display: none;
+}
+
+.show-all .an-row-extra {
+    display: table-row;
+}
+
+.an-more {
+    padding: 8px 14px 10px;
+    text-align: center;
+}
+
+.addr-type {
+    display: block;
+    font-size: 13px;
+    color: #666;
+}
+
+.tickets-button {
+    margin-left: 6px;
+    padding: 1px 9px;
+    font-size: 13px;
+    color: #fff;
+    cursor: pointer;
+    background: #3b7ddd;
+    border: none;
+    border-radius: 4px;
+}
+
+.tickets-button:hover {
+    background: #336699;
+}
+
+.rank {
+    display: inline-block;
+    min-width: 24px;
+    color: #666;
+}
+
+@media print {
+    .screen-only,
+    .an-more,
+    .chart-tip,
+    .tickets-button {
+        display: none !important;
+    }
+
+    .city-link {
+        color: #000;
+        font-weight: 400;
+        text-decoration: none;
+    }
+
+    .an-chart {
+        padding: 1mm 2.5mm 0;
+    }
+
+    .chart-legend {
+        padding: 0 2.5mm 1mm;
+        font-size: 8.5pt;
+        color: #000;
+    }
+
+    .chart-axis {
+        fill: #000;
+    }
+
+    .chart-grid {
+        stroke: #bbb;
+    }
+
+    /* На чёрно-белом листе годы различаются по светлоте */
+    .bar-prev { fill: #c4c4c4; }
+    .bar-cur { fill: #333; }
+
+    .addr-type {
+        display: inline;
+        font-size: 8pt;
+        color: #000;
+    }
+}

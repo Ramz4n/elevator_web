@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>Аналитика</title>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/analytics.css') }}">
+</head>
+<body>
+<script>
+// Не history.back(): после страницы города и смены года она вернула бы на предыдущую страницу аналитики
+function goBack() {
+  window.location.href = '/base';
+}
+</script>
+
+<div class="page-header">
+    <button class="btn btn-success" onclick="goBack()">Назад</button>
+    <h2>Аналитика</h2>
+</div>
+
+<div class="an-page">
+  <div class="controls-row">
+    {% if years %}
+    <select class="stat-select" aria-label="Год" onchange="location.href='/_analytics?year=' + this.value">
+      {% for year in years %}
+        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>Год: {{ year }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <button class="btn btn-primary print-button" type="button" onclick="window.print()">Печать</button>
+  </div>
+
+{% if not a %}
+  <div class="an-empty">За этот год нет полных месяцев, считать пока не по чему</div>
+{% else %}
+  <p class="an-period">
+    Период: {{ a.period }} {{ a.year }}{% if a.has_previous %}, сравнение с теми же месяцами {{ a.previous_year }}{% else %}, сравнивать не с чем: за {{ a.previous_year }} год нет полных данных за эти месяцы{% endif %}
+  </p>
+
+  <div class="an-tiles">
+    <div class="an-tile">
+      <div class="an-tile-label">Заявок на один лифт</div>
+      <div class="an-tile-value">{{ a.per_lift_total }} шт.</div>
+      <div class="an-tile-note">за период, в среднем по {{ a.lifts_total }} лифтам</div>
+    </div>
+    <div class="an-tile{% if a.yoy_total.view.direction == 'up' %} an-tile-bad{% endif %}">
+      <div class="an-tile-label">Изменение за год</div>
+      <div class="an-tile-value change-{{ a.yoy_total.view.direction }}">{{ a.yoy_total.view.text }}</div>
+      <div class="an-tile-note">{% if a.has_previous %}те же {{ a.yoy_total.lifts }} лифтов: {{ a.yoy_total.prev_text }} → {{ a.yoy_total.cur_text }} шт. на лифт{% else %}сравнивать не с чем{% endif %}</div>
+    </div>
+    <div class="an-tile">
+      <div class="an-tile-label">Обычное время ремонта</div>
+      <div class="an-tile-value">{{ a.fault_median }}</div>
+      <div class="an-tile-note">при неисправности. Больше суток заняли {{ a.downtime_total.over_day }} ремонтов: {{ a.downtime_total.over_day_count }} из {{ a.downtime_total.repairs }}</div>
+    </div>
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">1. Заявок на один лифт</div>
+    {% if a.leader %}<p class="an-summary">Больше всего: {{ a.leader.name }}, {{ a.leader.text }} шт. на лифт при среднем {{ a.per_lift_total }} шт. <span class="screen-only">Нажмите на город, чтобы открыть подробности.</span></p>{% endif %}
+    <div class="an-scroll">
+      <table class="an-table">
+        <thead><tr><th>Город</th><th>Лифтов</th><th>Заявок</th><th>На один лифт, шт.</th></tr></thead>
+        <tbody>
+          {% for row in a.per_lift %}
+          <tr>
+            <td><a class="city-link" href="{{ url_for('analytics_city', city=row.name, year=a.year) }}">{{ row.name }}</a></td>
+            <td>{{ row.lifts }}</td>
+            <td>{{ row.tickets }}</td>
+            <td class="bar-cell">
+              <div class="bar-line">
+                <div class="bar-track"><div class="bar" style="width: {{ row.bar }}%"></div></div>
+                <span class="bar-num">{{ row.text }}</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><td>Все города</td><td>{{ a.lifts_total }}</td><td>{{ a.active_total }}</td><td>{{ a.per_lift_total }}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">2. Сравнение с прошлым годом</div>
+    {% if a.yoy %}
+    <p class="an-summary">
+      Сравниваются одни и те же лифты: с заявками в оба года. Новые и ушедшие лифты показаны отдельно и в процент не входят.
+      {% if a.worst %}Сильнее всего ухудшилось: {{ a.worst.name }}.{% endif %}
+      {% if a.best %}Сильнее всего улучшилось: {{ a.best.name }}.{% endif %}
+    </p>
+    <div class="an-scroll">
+      <table class="an-table an-table-nowrap">
+        <thead>
+          <tr>
+            <th>Город</th>
+            <th>Мес.</th>
+            <th>Лифтов</th>
+            <th>Заявок, {{ a.previous_year }} → {{ a.year }}</th>
+            <th>На лифт, шт.</th>
+            <th>Изменение</th>
+            <th>Новые (заявок)</th>
+            <th>Ушедшие (заявок)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in a.yoy %}
+          <tr>
+            <td>{{ row.name }}{% if row.unstable %} *{% endif %}</td>
+            <td>{{ row.months }}</td>
+            <td>{{ row.lifts }}</td>
+            <td>{{ row.prev_tickets }} → {{ row.cur_tickets }}</td>
+            <td>{{ row.prev_text }} → {{ row.cur_text }}</td>
+            <td><span class="change change-{{ row.view.direction }}">{{ row.view.text }}</span></td>
+            <td>{{ row.new_lifts }} ({{ row.new_tickets }})</td>
+            <td>{{ row.gone_lifts }} ({{ row.gone_tickets }})</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          {% set y = a.yoy_total %}
+          <tr>
+            <td>Все города</td>
+            <td></td>
+            <td>{{ y.lifts }}</td>
+            <td>{{ y.prev_tickets }} → {{ y.cur_tickets }}</td>
+            <td>{{ y.prev_text }} → {{ y.cur_text }}</td>
+            <td><span class="change change-{{ y.view.direction }}">{{ y.view.text }}</span></td>
+            <td>{{ y.new_lifts }} ({{ y.new_tickets }})</td>
+            <td>{{ y.gone_lifts }} ({{ y.gone_tickets }})</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {% else %}
+    <p class="an-summary">За {{ a.previous_year }} год нет полных данных за эти месяцы, сравнивать не с чем.</p>
+    {% endif %}
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">3. Обычное время ремонта</div>
+    <p class="an-summary">Половина заявок закрывается быстрее указанного времени. Последняя колонка: сколько ремонтов из всех (неисправности, застревания и остановки вместе) заняло больше суток.</p>
+    <div class="an-scroll">
+      <table class="an-table">
+        <thead><tr><th>Город</th><th>Неисправность</th><th>Застревание</th><th>Остановка</th><th>Ремонтов дольше суток</th></tr></thead>
+        <tbody>
+          {% for row in a.downtime %}
+          <tr><td>{{ row.name }}</td><td>{{ row.fault }}</td><td>{{ row.stuck }}</td><td>{{ row.stopped }}</td><td>{{ row.over_day_count }} из {{ row.repairs }} ({{ row.over_day }})</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          {% set t = a.downtime_total %}
+          <tr><td>{{ t.name }}</td><td>{{ t.fault }}</td><td>{{ t.stuck }}</td><td>{{ t.stopped }}</td><td>{{ t.over_day_count }} из {{ t.repairs }} ({{ t.over_day }})</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <ul class="an-notes">
+    <li>Заявки считаются так же, как на странице «Статистика». В разделе 1: дома в работе и текущее число лифтов.</li>
+    <li>В разделе 2: только месяцы с полными данными по городу в оба года (всего в периоде {{ a.all_months }}) и только лифты с заявками в оба года. Новые: заявки были только в {{ a.year }}, ушедшие: только в {{ a.previous_year }}. Поэтому числа отличаются от раздела 1.</li>
+    {% if a.has_unstable %}<li>* В сравнении меньше {{ a.min_compare_lifts }} лифтов: процент ненадёжен, в выводы такой город не входит.</li>{% endif %}
+    {% if a.lifts_are_current %}<li>Для прошлого года заявки на лифт приблизительные: истории лифтов нет, берётся их текущее число.</li>{% endif %}
+    <li>Во времени ремонта нет ложных, вандальных и пожарных заявок и обращений «на момент осмотра». Не учтены ещё открытые заявки ({{ a.open_count }}) и заявки с ошибкой в датах ({{ a.bad_dates }}). «—»: меньше {{ a.min_repairs }} ремонтов.</li>
+    {% if a.no_tickets %}<li>Нет заявок за период, в расчёт не вошли: {{ a.no_tickets|join(', ') }}.</li>{% endif %}
+  </ul>
+{% endif %}
+</div>
+</body>
+</html>

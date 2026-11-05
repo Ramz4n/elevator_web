@@ -622,6 +622,58 @@ body {
 .status-less { color: var(--color-warning); }
 .status-quiet { color: var(--color-good); }
 
+/* Сводка над списком лифтов: сколько в каком состоянии */
+.attention-counts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--color-border-soft);
+}
+
+.attention-counts b {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    color: var(--color-ink);
+}
+
+.attention-counts span {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.attention-counts small {
+    display: block;
+    font-size: 13px;
+    color: var(--color-subtle);
+}
+
+@media screen and (max-width: 768px) {
+    .attention-counts {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 8px 12px;
+    }
+}
+
+@media print {
+    .attention-counts {
+        padding: 1mm 2.5mm;
+        border-bottom: 1px solid #000;
+    }
+
+    .attention-counts b {
+        font-size: 12pt;
+        color: #000;
+    }
+
+    .attention-counts span,
+    .attention-counts small {
+        font-size: 8pt;
+        color: #000;
+    }
+}
+
 .mechanic-high {
     margin-top: 2px;
     font-size: 13px;

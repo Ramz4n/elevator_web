@@ -175,7 +175,13 @@ function goBack() {
   <div class="an-block" id="attentionBlock">
     <div class="an-head">4. На что обратить внимание</div>
     {% if attention.rows %}
-    <p class="an-summary">Лифтов с выводами: {{ attention.rows|length }} из {{ attention.lifts_with_tickets }} с заявками в домах в работе. Сейчас продолжается: {{ attention.counts['active'] }}, стало реже: {{ attention.counts['less'] }}, давно не ломается: {{ attention.counts['quiet'] }}. Сверху лифты, где проблема продолжается и выводов больше. Подробности и фамилии в карточке лифта.</p>
+    <p class="an-summary">Из {{ attention.lifts_with_tickets }} лифтов с заявками есть о чём задуматься по {{ attention.rows|length }}: часто ломались, долго стояли, закрывались перезапуском или много ложных заявок. Что с ними сейчас:</p>
+    <div class="attention-counts">
+      <div><b>{{ attention.counts['active'] }}</b> <span class="status-active">Продолжается</span><small>заявки идут и сейчас</small></div>
+      <div><b>{{ attention.counts['less'] }}</b> <span class="status-less">Стало реже</span><small>за {{ attention.recent_days }} дней заявок минимум вдвое меньше обычного</small></div>
+      <div><b>{{ attention.counts['quiet'] }}</b> <span class="status-quiet">Давно не ломается</span><small>{{ attention.recent_days }} дней и больше без заявок</small></div>
+    </div>
+    <p class="an-summary">В таблице сначала те, что продолжаются. Причины и фамилии в карточке лифта.</p>
     <div class="an-scroll">
       <table class="an-table an-table-left">
         <thead><tr><th>Лифт</th><th>Неисправностей</th><th>Простой</th><th>Сейчас</th><th>Выводы за период</th><th class="lift-card-cell">Карточка</th></tr></thead>
@@ -204,10 +210,12 @@ function goBack() {
   <div class="an-block">
     <div class="an-head">5. Механики: перезапуски и ложные заявки</div>
     {% if mechanics.rows %}
-    <p class="an-summary">Только перезапуск: обычно {{ mechanics.usual }}{% if mechanics.high_count %}, заметно выше у {{ mechanics.high_count }} из {{ mechanics.rows|length }}{% endif %}. Ложные заявки: обычно {{ mechanics.usual_inspections }}. Высокая доля — повод разобрать заявки, а не готовая оценка: причиной могут быть короткие комментарии или сбои, которые к приезду проходят сами.</p>
+    <p class="an-summary"><b>Перезапуск:</b> неисправность закрыта только перезапуском, без ремонта. Обычно так закрыто {{ mechanics.usual }} неисправностей механика{% if mechanics.high_count %}, заметно больше у {{ mechanics.high_count }} из {{ mechanics.rows|length }}{% endif %}.<br>
+    <b>Ложная заявка:</b> механик приехал, а лифт работал. Обычно это {{ mechanics.usual_inspections }} заявок механика.<br>
+    Большая доля сама по себе не говорит о плохой работе: комментарии могут быть короткими, а сбой мог пройти до приезда.</p>
     <div class="an-scroll">
       <table class="an-table">
-        <thead><tr><th>Механик</th><th>Неисправностей</th><th>Лифтов</th><th>Только перезапуск</th><th>Доля</th><th>Ложные заявки</th><th>Доля от всех заявок</th></tr></thead>
+        <thead><tr><th>Механик</th><th>Неисправностей</th><th>Разных лифтов</th><th>Закрыто перезапуском</th><th>Доля перезапусков среди неисправностей</th><th>Ложных заявок</th><th>Доля ложных среди всех заявок</th></tr></thead>
         <tbody>
           {% for row in mechanics.rows %}
           <tr>

@@ -41,7 +41,7 @@ STATUS_LESS_SHARE = 0.5  # «стало реже»: от обычной част
 STATUS_FIXED_EXPECTED = 2  # вывод о тишине пишем, если за такой срок обычно было хотя бы столько заявок
 STATUS_LIKELY_FIXED_DAYS = 60  # раньше этого срока пишем «наблюдаем», а не «похоже, устранили»
 STATUS_ORDER = {'active': 0, 'less': 1, 'quiet': 2}
-ATTENTION_SHOWN = 20  # сколько лифтов блока «На что обратить внимание» видно сразу
+ATTENTION_SHOWN = 10  # сколько лифтов блока «На что обратить внимание» видно сразу
 MECHANIC_MIN_FAULTS = 50  # на меньшем числе заявок доля перезапусков случайна
 MECHANIC_HIGH_RATIO = 3  # доля считается высокой, если она во столько раз больше обычной
 MECHANIC_HIGH_SHARE = 0.1  # и не меньше этого: иначе при почти нулевой обычной доле высокими станут все
@@ -530,7 +530,7 @@ def _is_pattern(count, total):
     return count >= FINDING_MIN_COUNT and (count / total >= FINDING_SHARE or count >= FINDING_MANY)
 
 
-def _worker_note(items, several, one):
+def _worker_note(items, several):
     """Один механик или разные: текст с фамилией, если больше половины случаев у него."""
     workers = Counter(item['worker'] for item in items if item['worker'])
     top = workers.most_common(1)[0] if workers else None
@@ -538,7 +538,7 @@ def _worker_note(items, several, one):
         return ''
     if len(workers) > 1 and top[1] / len(items) < FINDING_MECHANIC_SHARE:
         return several
-    return f'Больше всего таких заявок у механика: {top[0]} ({top[1]} из {len(items)}). {one}'
+    return f'Больше всего таких заявок у механика: {top[0]} ({top[1]} из {len(items)}).'
 
 
 def _lift_findings(faults, city_average, inspections=()):
@@ -565,8 +565,7 @@ def _lift_findings(faults, city_average, inspections=()):
             and longest['seconds'] >= downtime * FINDING_ONE_REPAIR_SHARE):
         findings.append({'title': 'Простой из-за одного ремонта',
                          'text': f'Заявка №{longest["number"]} заняла {_age_text(longest["seconds"])}: '
-                                 f'это {round(longest["seconds"] / downtime * 100)}% всего простоя. '
-                                 'Стоит узнать, что задержало ремонт.'})
+                                 f'это {round(longest["seconds"] / downtime * 100)}% всего простоя.'})
     elif (total >= FINDING_MIN_FAULTS and ratio and ratio >= FINDING_REPEAT_RATIO
           and usual is not None and usual <= FINDING_QUICK_HOURS):
         findings.append({'title': 'Ремонты короткие, но поломки повторялись',
@@ -576,8 +575,7 @@ def _lift_findings(faults, city_average, inspections=()):
     restarts = [f for f in faults if _only_restart(f['comment'])]
     if _is_pattern(len(restarts), total):
         text = f'Закрыты только перезапуском, без ремонта: {len(restarts)} из {total}. '
-        text += _worker_note(restarts, 'Закрывали разные механики, поэтому вероятнее причина в самом лифте.',
-                             'Стоит разобрать эти случаи с механиком: почему причина не найдена.')
+        text += _worker_note(restarts, 'Закрывали разные механики, поэтому вероятнее причина в самом лифте.')
         findings.append({'title': 'Перезапуск вместо ремонта', 'text': text})
 
     # Жители жалуются, а механик пишет, что лифт работает
@@ -587,8 +585,7 @@ def _lift_findings(faults, city_average, inspections=()):
         last = max(item['date'] for item in inspections)
         text = (f'Ложные заявки: {checked} из {all_tickets}, последняя {_date_text(last)}. '
                 'Либо лифт сбоит и к приезду снова работает, либо поломку не отмечают. ')
-        text += _worker_note(inspections, 'Отмечали разные механики, поэтому вероятнее, что лифт сбоит время от времени.',
-                             'Стоит проверить эти выезды.')
+        text += _worker_note(inspections, 'Отмечали разные механики, поэтому вероятнее, что лифт сбоит время от времени.')
         findings.append({'title': 'Жалобы не подтвердились', 'text': text})
 
     # Одна и та же поломка: по узлам и кодам ошибок из комментариев

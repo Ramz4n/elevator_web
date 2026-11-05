@@ -1932,7 +1932,7 @@ def _load_analytics(cursor, table_name, selected_year):
 
 
 def _load_period_faults(cursor, table_name, year, monthly):
-    # Неисправности и заявки «на момент осмотра» за период страницы аналитики:
+    # Неисправности и ложные заявки за период страницы аналитики:
     # для блоков «На что обратить внимание» и «Механики».
     # Если исполнитель не указан (почти весь 2025 год), берём механика, принявшего заявку
     months, _ = choose_period(year, complete_months(monthly))
@@ -1958,7 +1958,7 @@ def _load_period_faults(cursor, table_name, year, monthly):
 
 
 def _load_lift_activity(cursor, table_name, now):
-    # Для статуса «Сейчас»: неисправности и заявки «на момент осмотра» за все годы, аргументы lift_status без now
+    # Для статуса «Сейчас»: неисправности и ложные заявки за все годы, аргументы lift_status без now
     recent_start, base_start = status_period(now)
     reasons = ', '.join('?' for _ in DOWNTIME_REASONS)
     cursor.execute(f'''SELECT z.id_лифт,

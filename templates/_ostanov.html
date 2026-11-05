@@ -52,32 +52,40 @@ document.addEventListener('DOMContentLoaded', function () {
         return Math.floor(hours / DAY_HOURS) >= RED_FROM_DAYS;
     }
 
-    function daysText(hours) {
-        if (hours < DAY_HOURS) return hours + ' ч';
+    // «50 мин», «5 ч 20 мин», «3 дня»
+
+    function daysText(minutes) {
+        const hours = Math.floor(minutes / 60);
+        if (hours < DAY_HOURS) {
+            const rest = minutes % 60;
+            if (!hours) return rest + ' мин';
+            return rest ? hours + ' ч ' + rest + ' мин' : hours + ' ч';
+        }
         const d = Math.floor(hours / DAY_HOURS);
         return d + ' ' + plural(d, 'день', 'дня', 'дней');
     }
 
     // Дата приходит из базы в виде «26.10.2026, 09:15». Если формат другой, вернётся null.
-    function hoursSince(text) {
+    function minutesSince(text) {
         const m = /^(\d{2})\.(\d{2})\.(\d{4}), (\d{2}):(\d{2})/.exec(text.trim());
         if (!m) return null;
         const start = new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]);
-        return Math.max(0, Math.floor((Date.now() - start.getTime()) / 3600000));
+        return Math.max(0, Math.floor((Date.now() - start.getTime()) / 60000));
     }
 
     rows.forEach(function (row) {
-        const hours = hoursSince(row.querySelector('td[data-label="Дата заявки"]').textContent);
+        const minutes = minutesSince(row.querySelector('td[data-label="Дата заявки"]').textContent);
+        const hours = minutes === null ? null : Math.floor(minutes / 60);
         const cell = row.insertCell(0);
         const badge = document.createElement('span');
         cell.className = 'data';
         cell.dataset.label = 'Простой';
-        row.dataset.hours = hours === null ? -1 : hours;
+        row.dataset.minutes = minutes === null ? -1 : minutes;
         if (hours === null) {
             cell.textContent = '—';
         } else {
             badge.className = 'days ' + (isUrgent(hours) ? 'days-high' : hours >= DAY_HOURS ? 'days-mid' : 'days-low');
-            badge.textContent = daysText(hours);
+            badge.textContent = daysText(minutes);
             cell.appendChild(badge);
         }
     });
@@ -91,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function sortByDowntime() {
         Array.from(tbody.rows)
             .sort(function (x, y) {
-                const diff = x.dataset.hours - y.dataset.hours;
+                const diff = x.dataset.minutes - y.dataset.minutes;
                 return longestFirst ? -diff : diff;
             })
             .forEach(function (row) { tbody.appendChild(row); });

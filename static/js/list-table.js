@@ -7,9 +7,18 @@
   const HOUR = 3600;
   const DAY = 24 * HOUR;
 
+  // «50 мин», «5 ч 20 мин», «3 дн.»
+  function ageText(seconds) {
+    if (seconds >= DAY) return Math.floor(seconds / DAY) + ' дн.';
+    const hours = Math.floor(seconds / HOUR);
+    const minutes = Math.floor((seconds % HOUR) / 60);
+    if (!hours) return minutes + ' мин';
+    return minutes ? hours + ' ч ' + minutes + ' мин' : hours + ' ч';
+  }
+
   function fillOpenAge(cell) {
     const seconds = Math.max(0, Math.floor(Date.now() / 1000) - Number(cell.dataset.opened));
-    cell.textContent = seconds < DAY ? Math.floor(seconds / HOUR) + ' ч' : Math.floor(seconds / DAY) + ' дн.';
+    cell.textContent = ageText(seconds);
     cell.dataset.age = seconds;
   }
   tbody.querySelectorAll('td[data-opened]').forEach(fillOpenAge);

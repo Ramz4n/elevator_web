@@ -7,15 +7,16 @@ from datetime import datetime
 MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль',
           'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
 DOWNTIME_REASONS = ('Неисправность', 'Застревание', 'Остановлен')
-# SQL: заявка не про лифт: ложная, вандализм, пожарная сигнализация. z — таблица заявок
-NOISE_TICKET_SQL = """(LOWER(COALESCE(z.Комментарий, '')) LIKE '%ложн%'
-                        OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%вандал%'
+# SQL: причина заявки не в лифте: вандализм, пожарная сигнализация. z — таблица заявок
+NOISE_TICKET_SQL = """(LOWER(COALESCE(z.Комментарий, '')) LIKE '%вандал%'
                         OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%пож%')"""
-# SQL: заявка не считается неисправностью лифта. Сюда же входит «на момент осмотра»: поломка не подтвердилась
+# SQL: заявка не считается неисправностью лифта. Сюда же входят ложные заявки: поломка не подтвердилась
 FALSE_TICKET_SQL = f"""(LOWER(COALESCE(z.Комментарий, '')) LIKE '%на момент осмотра%'
+                        OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%ложн%'
                         OR {NOISE_TICKET_SQL})"""
-INSPECTION_MARK = 'на момент осмотра'
-NOISE_WORDS = ('ложн', 'вандал', 'пож')
+# Диспетчер пишет или «ложная», или «на момент осмотра»: это одно и то же
+INSPECTION_MARKS = ('на момент осмотра', 'ложн')
+NOISE_WORDS = ('вандал', 'пож')
 # Новая неисправность раньше этого срока после ремонта считается повтором
 REPEAT_DAYS = 3
 LIFT_PERIODS = (3, 6, 12, 0)  # месяцев, 0: всё время
@@ -48,7 +49,7 @@ MECHANIC_HIGH_SHARE = 0.1  # и не меньше этого: иначе при 
 RESTART_WORD = 'перезапуск'
 RESTART_EXCEPT = ('замен', 'регулировк', 'ремонт', 'чистк', 'смазк', 'протяжк', 'настройк', 'подтяж',
                   'электроэнерг', 'напряжен', 'скач', 'фаз')
-INSPECTION_SHARE = 0.2  # доля заявок лифта, закрытых с отметкой «на момент осмотра»
+INSPECTION_SHARE = 0.2  # доля ложных заявок среди всех заявок лифта
 ERROR_CODE = re.compile(r'(?:авари[яи]|ошибк[аи])\s*№?\s*(\d{1,3})')
 NODES = {name: re.compile(pattern) for name, pattern in {
     'двери и приводы дверей': r'двер|створк|привод',
@@ -120,14 +121,12 @@ def format_number(value, digits=1):
 
 
 def format_duration(hours):
-    """1.25 -> «1 ч 15 мин», 0.4 -> «24 мин», 21.6 -> «22 ч»."""
+    """1.25 -> «1 ч 15 мин», 0.4 -> «24 мин», 21.6 -> «21 ч 36 мин»."""
     if hours is None:
         return '—'
     minutes = round(hours * 60)
     if minutes < 60:
         return f'{minutes} мин'
-    if hours >= 10:
-        return f'{round(hours)} ч'
     h, m = divmod(minutes, 60)
     return f'{h} ч {m} мин' if m else f'{h} ч'
 
@@ -479,8 +478,8 @@ def _month_name(key):
 
 
 def _is_inspection(comment):
-    """Заявка закрыта с отметкой «на момент осмотра лифт работал». comment в нижнем регистре."""
-    return INSPECTION_MARK in comment and not any(word in comment for word in NOISE_WORDS)
+    """Ложная заявка: «ложная» или «на момент осмотра лифт работал». comment в нижнем регистре."""
+    return any(mark in comment for mark in INSPECTION_MARKS) and not any(word in comment for word in NOISE_WORDS)
 
 
 def _only_restart(comment):
@@ -500,7 +499,7 @@ def status_period(now):
 def lift_status(last_date, last_end, recent, base, open_date, now):
     """Что с лифтом сейчас.
 
-    Считаются неисправности и заявки «на момент осмотра»: если жители жалуются, тишины нет.
+    Считаются неисправности и ложные заявки: если жители жалуются, тишины нет.
     last_date: дата последней заявки, last_end: когда она или более ранняя закончилась,
     recent и base: заявок за последние дни и за предыдущие, open_date: начало открытой заявки или None.
     Тишина не доказывает ремонт, поэтому «устранили» пишется только как предположение.
@@ -547,7 +546,7 @@ def _lift_findings(faults, city_average, inspections=()):
 
     faults: неисправности по времени, словари {'number', 'date', 'comment', 'worker', 'seconds', 'closed'}
     city_average: неисправностей на лифт в среднем по городу или None
-    inspections: заявки «на момент осмотра» за период, те же словари
+    inspections: ложные заявки за период, те же словари
     """
     total = len(faults)
     findings = []
@@ -586,7 +585,7 @@ def _lift_findings(faults, city_average, inspections=()):
     all_tickets = total + checked
     if checked >= FINDING_MIN_COUNT and (checked / all_tickets >= INSPECTION_SHARE or checked >= FINDING_MANY):
         last = max(item['date'] for item in inspections)
-        text = (f'«На момент осмотра лифт работал»: {checked} из {all_tickets} заявок, последняя {_date_text(last)}. '
+        text = (f'Ложные заявки: {checked} из {all_tickets}, последняя {_date_text(last)}. '
                 'Либо лифт сбоит и к приезду снова работает, либо поломку не отмечают. ')
         text += _worker_note(inspections, 'Отмечали разные механики, поэтому вероятнее, что лифт сбоит время от времени.',
                              'Стоит проверить эти выезды.')
@@ -612,7 +611,7 @@ def _lift_findings(faults, city_average, inspections=()):
 def build_attention(faults, per_lift, activity, now):
     """Лифты с выводами за период страницы аналитики: сначала с большим числом выводов и неисправностей.
 
-    faults: неисправности и заявки «на момент осмотра» за период, строки (id лифта, город, улица, дом, подъезд, тип, дом активен ли,
+    faults: неисправности и ложные заявки за период, строки (id лифта, город, улица, дом, подъезд, тип, дом активен ли,
     номер, дата, дата запуска, комментарий, id механика, механик)
     per_lift: строки раздела «Заявок на один лифт», из них берётся число лифтов города
     activity: {id лифта: аргументы lift_status без now} за все годы
@@ -657,7 +656,7 @@ def build_attention(faults, per_lift, activity, now):
 
 
 def build_mechanics(faults):
-    """По механикам: доля закрытых только перезапуском и доля «на момент осмотра». Сначала большая доля перезапусков."""
+    """По механикам: доля закрытых только перезапуском и доля ложных заявок. Сначала большая доля перезапусков."""
     mechanics = {}
     for lift_id, *_, comment, worker_id, worker in faults:
         if worker_id is None:

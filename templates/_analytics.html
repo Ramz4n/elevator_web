@@ -3,6 +3,7 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/theme.css') }}">
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
@@ -12,6 +13,7 @@
     />
     <title>Аналитика</title>
 <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/analytics.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/lift-button.css') }}">
 </head>
 <body>
 <script>
@@ -170,7 +172,72 @@ function goBack() {
     </div>
   </div>
 
+  <div class="an-block" id="attentionBlock">
+    <div class="an-head">4. На что обратить внимание</div>
+    {% if attention.rows %}
+    <p class="an-summary">Лифтов с выводами: {{ attention.rows|length }} из {{ attention.lifts_with_tickets }} с заявками в домах в работе. Сейчас продолжается: {{ attention.counts['active'] }}, стало реже: {{ attention.counts['less'] }}, давно не ломается: {{ attention.counts['quiet'] }}. Сверху лифты, где проблема продолжается и выводов больше. Подробности и фамилии в карточке лифта.</p>
+    <div class="an-scroll">
+      <table class="an-table an-table-left">
+        <thead><tr><th>Лифт</th><th>Неисправностей</th><th>Простой</th><th>Сейчас</th><th>Выводы за период</th><th class="lift-card-cell">Карточка</th></tr></thead>
+        <tbody>
+          {% for row in attention.rows %}
+          <tr{% if row.position > attention.shown %} class="an-row-extra"{% endif %}>
+            <td><span class="rank">{{ row.position }}.</span> {{ row.city }}, {{ row.address }} <span class="addr-type">{{ row.type }}</span></td>
+            <td>{{ row.faults }}</td>
+            <td class="lift-nowrap">{{ row.downtime }}</td>
+            <td class="lift-nowrap"><b class="status-{{ row.status.key }}">{{ row.status.title }}</b><div class="addr-type">{{ row.status.short }}</div></td>
+            <td>{% for title in row.findings %}<div>{{ title }}</div>{% endfor %}</td>
+            <td class="lift-card-cell"><a class="lift-card-button" href="{{ url_for('lift_card', id=row.id) }}">Карточка лифта</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if attention.rows|length > attention.shown %}
+    <div class="an-more"><button class="btn btn-primary" type="button" id="attentionAll">Показать все {{ attention.rows|length }}</button></div>
+    {% endif %}
+    {% else %}
+    <div class="an-empty">За этот период лифтов с выводами нет</div>
+    {% endif %}
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">5. Механики: перезапуски и «на момент осмотра»</div>
+    {% if mechanics.rows %}
+    <p class="an-summary">Только перезапуск: обычно {{ mechanics.usual }}{% if mechanics.high_count %}, заметно выше у {{ mechanics.high_count }} из {{ mechanics.rows|length }}{% endif %}. «На момент осмотра лифт работал»: обычно {{ mechanics.usual_inspections }}. Высокая доля — повод разобрать заявки, а не готовая оценка: причиной могут быть короткие комментарии или сбои, которые к приезду проходят сами.</p>
+    <div class="an-scroll">
+      <table class="an-table">
+        <thead><tr><th>Механик</th><th>Неисправностей</th><th>Лифтов</th><th>Только перезапуск</th><th>Доля</th><th>На момент осмотра</th><th>Доля от всех заявок</th></tr></thead>
+        <tbody>
+          {% for row in mechanics.rows %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.faults }}</td>
+            <td>{{ row.lifts }}</td>
+            <td>{{ row.restarts }}</td>
+            <td class="bar-cell">
+              <div class="bar-line">
+                <div class="bar-track"><div class="bar" style="width: {{ row.bar }}%"></div></div>
+                <span class="bar-num{% if row.high %} change-up{% endif %}">{{ row.share }}</span>
+              </div>
+              {% if row.high %}<div class="mechanic-high">выше обычного</div>{% endif %}
+            </td>
+            <td>{{ row.inspections }}</td>
+            <td>{{ row.inspection_share }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="an-empty">За этот период нет механиков с {{ mechanics.min_faults }} неисправностями и больше</div>
+    {% endif %}
+  </div>
+
   <ul class="an-notes">
+    <li>В разделах 4 и 5 неисправности считаются как во времени ремонта: без ложных, вандальных, пожарных заявок и «на момент осмотра». Заявки «на момент осмотра» показаны отдельно и в статусе «Сейчас» учитываются: если жители жалуются, тишины нет. Выводы составлены автоматически по заявкам и комментариям: это подсказка, где искать, а не заключение.</li>
+    {% if attention.rows %}<li>«Сейчас» считается на сегодня, по всем годам и не зависит от выбранного года. Последние {{ attention.recent_days }} дней сравниваются с предыдущими 180. Тишина не доказывает ремонт: лифт может сломаться снова.</li>{% endif %}
+    <li>В разделе 5 механик — исполнитель заявки, а если он не указан, механик, принявший заявку. Перезапуск из-за пропавшего питания не считается. Показаны механики от {{ mechanics.min_faults }} неисправностей{% if mechanics.skipped %}, не показано: {{ mechanics.skipped }}{% endif %}.</li>
     <li>Заявки считаются так же, как на странице «Статистика». В разделе 1: дома в работе и текущее число лифтов.</li>
     <li>В разделе 2: только месяцы с полными данными по городу в оба года (всего в периоде {{ a.all_months }}) и только лифты с заявками в оба года. Новые: заявки были только в {{ a.year }}, ушедшие: только в {{ a.previous_year }}. Поэтому числа отличаются от раздела 1.</li>
     {% if a.has_unstable %}<li>* В сравнении меньше {{ a.min_compare_lifts }} лифтов: процент ненадёжен, в выводы такой город не входит.</li>{% endif %}
@@ -180,5 +247,14 @@ function goBack() {
   </ul>
 {% endif %}
 </div>
+<script>
+var attentionAll = document.getElementById('attentionAll');
+if (attentionAll) {
+  attentionAll.addEventListener('click', function () {
+    var open = document.getElementById('attentionBlock').classList.toggle('show-all');
+    attentionAll.textContent = open ? 'Показать первые {{ attention.shown }}' : 'Показать все {{ attention.rows|length }}';
+  });
+}
+</script>
 </body>
 </html>

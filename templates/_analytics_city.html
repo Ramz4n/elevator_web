@@ -3,6 +3,7 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/theme.css') }}">
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
@@ -12,6 +13,7 @@
     />
 <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/analytics.css') }}">
 <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tickets-dialog.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/lift-button.css') }}">
 <script src="{{ url_for('static', filename='js/tickets-dialog.js') }}"></script>
     <title>Аналитика: {{ c.city }}</title>
 </head>
@@ -150,7 +152,8 @@ function goBack() {
           {% for lift in c.worst %}
           <tr{% if lift.position > 20 %} class="an-row-extra"{% endif %}>
             <td><span class="rank">{{ lift.position }}.</span> {{ lift.address }} <span class="addr-type">{{ lift.type }}</span>
-              <button class="tickets-button" type="button" data-lift="{{ lift.id }}" data-title="{{ lift.address }}, {{ lift.type }}">Посмотреть заявки</button></td>
+              <button class="tickets-button" type="button" data-lift="{{ lift.id }}" data-title="{{ lift.address }}, {{ lift.type }}">Посмотреть заявки</button>
+              <a class="lift-card-button" href="{{ url_for('lift_card', id=lift.id) }}">Карточка лифта</a></td>
             <td class="bar-cell bar-cell-sm">
               <div class="bar-line">
                 <div class="bar-track"><div class="bar" style="width: {{ lift.bar }}%"></div></div>

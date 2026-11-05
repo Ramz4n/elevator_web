@@ -1,0 +1,161 @@
+/* Общее для страниц со списками заявок и лифтов */
+table {
+    border-spacing: 0;
+    empty-cells: hide;
+    margin: 0 auto;
+    font-size: 20px;
+    background-color: white;
+}
+
+tr {
+    border-bottom: 1px solid var(--color-border);
+}
+
+th, td {
+    padding: 15px;
+}
+
+.fixed-header {
+    overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
+}
+
+.fixed-header thead th {
+    position: sticky;
+    top: 0;
+    color: var(--color-table-head-text);
+    background-color: var(--color-table-head);
+    border-bottom: 2px solid var(--color-border-strong);
+}
+
+/* Страницы открытых заявок: даты запуска у них ещё нет */
+.hide-launch-date .col-launch {
+    display: none !important;
+}
+
+/* Страницы, где причина у всех заявок одна и уже названа в заголовке */
+.hide-reason .col-reason {
+    display: none !important;
+}
+
+/* Диспетчер показан под датой заявки. На телефоне его строка открывается в «Подробнее» */
+.fixed-header .col-dispatcher {
+    display: none;
+}
+
+.ticket-dispatcher {
+    font-size: 13px;
+    color: var(--color-subtle);
+}
+
+.th-sub {
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* Длинные слова в комментариях и кнопка не должны раздвигать таблицу за край экрана */
+.fixed-header td[data-label="Комментарий"] {
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.fixed-header th.col-comment {
+    text-align: left;
+}
+
+.fixed-header td.lift-card-cell .lift-card-button {
+    white-space: normal;
+}
+
+.fixed-header td.col-open-age,
+.fixed-header td[data-label="Дата заявки"] {
+    white-space: nowrap;
+}
+
+/* «Остановленные»: у страницы своя колонка «Простой» */
+.hide-open-age .col-open-age {
+    display: none !important;
+}
+
+/* Сортировка: заголовок показывает порядок */
+.fixed-header th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.fixed-header th[aria-sort="ascending"]::after {
+    content: ' ▲';
+    font-size: 0.75em;
+}
+
+.fixed-header th[aria-sort="descending"]::after {
+    content: ' ▼';
+    font-size: 0.75em;
+}
+
+/* Простой на странице «Остановленные» */
+.days {
+    display: inline-block;
+    min-width: 76px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.days-high { color: #fff; background: var(--color-critical); }
+.days-mid { color: #fff; background: #E65100; }
+.days-low { color: #5d4300; background: #FFE082; }
+
+/* Плашка вместо пустой таблицы */
+.stop-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 24px;
+    margin: 0 12px 14px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    color: #fff;
+    background: var(--color-banner);
+}
+
+.stop-banner b {
+    font-family: var(--font-heading);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+@media screen and (max-width: 768px) {
+    .stop-banner {
+        margin: 0 0 10px;
+        padding: 10px 14px;
+    }
+
+    .stop-banner b {
+        font-size: 22px;
+    }
+}
+
+/* Печать: на листе шапка чёрная, диспетчер не крупнее даты */
+@media print {
+    .fixed-header thead th {
+        position: static;
+        color: #000;
+        background-color: transparent;
+        border-bottom: 2px solid #000;
+    }
+
+    .ticket-dispatcher,
+    .th-sub {
+        font-size: 10px;
+        color: #000;
+    }
+
+    .fixed-header th[aria-sort]::after {
+        content: none;
+    }
+}

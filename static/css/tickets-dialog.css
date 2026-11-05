@@ -3,6 +3,7 @@
     box-sizing: border-box;
     width: min(1000px, calc(100vw - 32px));
     max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px); /* 100vh на телефоне не учитывает адресную строку: окно обрезалось сверху */
     padding: 0;
     overflow: hidden;
     border: none;
@@ -20,20 +21,21 @@
 }
 
 .tickets-head {
+    flex: none;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
     padding: 12px 16px;
-    color: #2b3a4a;
-    background: #63B2F3;
+    color: var(--color-ink);
+    background: var(--color-head);
 }
 
 .tickets-head h3 {
     margin: 0;
     font-size: 17px;
     font-weight: 700;
-    color: #2b3a4a;
+    color: var(--color-ink);
 }
 
 .tickets-sub {
@@ -46,7 +48,7 @@
     height: 36px;
     font-size: 24px;
     line-height: 1;
-    color: #2b3a4a;
+    color: var(--color-ink);
     cursor: pointer;
     background: none;
     border: none;
@@ -71,17 +73,17 @@
     padding: 8px 10px;
     font-size: 13px;
     font-weight: 600;
-    color: #5a6672;
+    color: var(--color-subhead-text);
     text-align: left;
     white-space: nowrap;
-    background: #f7f9fb;
-    border-bottom: 2px solid #d5dbe2;
+    background: var(--color-subhead);
+    border-bottom: 2px solid var(--color-border-strong);
 }
 
 .tickets-table td {
     padding: 7px 10px;
     vertical-align: top;
-    border-bottom: 1px solid #ececec;
+    border-bottom: 1px solid var(--color-border-soft);
 }
 
 .tickets-table td.tickets-nowrap {
@@ -101,6 +103,7 @@
     .tickets-dialog {
         width: calc(100vw - 16px);
         max-height: calc(100vh - 16px);
+        max-height: calc(100dvh - 16px);
     }
 
     .tickets-table thead {
@@ -116,7 +119,7 @@
         display: block;
         margin: 8px;
         overflow: hidden;
-        border: 1px solid #ddd;
+        border: 1px solid var(--color-border);
         border-radius: 8px;
     }
 
@@ -159,9 +162,9 @@
         margin: -6px 0;
         padding: 6px 12px;
         font-weight: 600;
-        color: #fff;
+        color: var(--color-subhead-text);
         text-align: left;
-        background-color: #4b5563;
+        background-color: var(--color-subhead);
     }
 }
 

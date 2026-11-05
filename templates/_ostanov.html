@@ -1,5 +1,6 @@
 {% extends '_display.html'%}
 {% block title %} Остановленные {% endblock %}
+{% block body_class %}hide-open-age hide-reason{% endblock %}
 {% block extra_style %}
 <style>
     /* На этой странице остановлены все лифты, поэтому розовый фон строк ничего не выделял.
@@ -8,33 +9,22 @@
         background-color: transparent;
     }
     .page-header h2 {
-        color: #B71C1C;
+        color: var(--color-critical);
+    }
+    /* Шапка красная: на этой странице только лифты, которые стоят */
+    .fixed-header thead th,
+    .fixed-header td::before,
+    .fixed-header thead th .th-sub {
+        color: #fff;
     }
     .fixed-header thead th,
     .fixed-header td::before {
-        background-color: #B71C1C;
-        color: #fff;
+        background-color: var(--color-critical);
     }
-    /* Колонка «Дата запуска» стала 11-й, потому что первой добавляется «Простой» */
-    .fixed-header th:nth-child(11), .fixed-header td[data-label="Дата запуска"] { display: none !important; }
+    /* Лифты ещё стоят, даты запуска у них нет */
+    .col-launch { display: none !important; }
 
-
-    .days {
-        display: inline-block;
-        min-width: 76px;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-size: 14px;
-        font-weight: 700;
-        line-height: 1.4;
-        text-align: center;
-        white-space: nowrap;
-    }
-    .days-high { color: #fff; background: #B71C1C; }
-    .days-mid { color: #fff; background: #E65100; }
-    .days-low { color: #5d4300; background: #FFE082; }
-
-    @media (min-width: 769px) {
+    @media (min-width: 1300.02px) {
         .fixed-header tbody tr:nth-child(even) {
             background-color: #fbf6f6;
         }
@@ -92,14 +82,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Новая первая колонка сдвинула номера остальных, обновляем их сортировку
     const headRow = table.tHead.rows[0];
     const th = document.createElement('th');
     th.textContent = 'Простой';
     headRow.insertBefore(th, headRow.firstChild);
-    Array.from(headRow.cells).forEach(function (cell, i) {
-        if (i > 0) cell.setAttribute('onclick', 'sortTable(' + i + ')');
-    });
 
     let longestFirst = true;
     function sortByDowntime() {
@@ -112,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     th.addEventListener('click', function () {
         longestFirst = !longestFirst;
+        window.clearSortMarks();
         sortByDowntime();
     });
     sortByDowntime();

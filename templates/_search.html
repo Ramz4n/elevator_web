@@ -4,9 +4,12 @@
 <!-- minimum-scale=1: без него Chrome при открытии DevTools (ширина на миг 2-6px) залипает на масштабе 4 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/theme.css') }}">
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/print-table.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tables.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/lift-button.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script src="{{ url_for('static', filename='js/xlsx.full.min.js') }}"></script>
     <link
@@ -15,6 +18,12 @@
     />
     <title>Поиск заявок</title>
 <style>
+	.search-hint {
+		margin: 24px 12px;
+		font-size: 15px;
+		color: var(--color-subtle);
+		text-align: center;
+	}
 	/* Стили для выпадающего списка */
 	#results {
 		border: 1px solid #ccc;
@@ -59,35 +68,15 @@ body {
 font-size:14px;
 padding: 15px 20px;
 }
-table {
-border-spacing: 0;
-empty-cells: hide;
-margin: 0 auto;
-font-size: 20px;
-background-color:white;
-}
 
-tr {
-border-bottom: 1px solid #ddd;
-}
 
-th, td {
-padding: 15px;
-}
 .fixed-header {
-width: 100%; /* Ширина таблицы */
-overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
+    width: 100%; /* Ширина таблицы */
 }
 
-.fixed-header thead th {
-position: sticky; /* Фиксация заголовков */
-top: 0; /* Закрепление заголовков в верхней части окна */
-color: #fff;
-background-color: #4b5563; /* Цвет фона заголовков, как на других страницах */
-}
 @media (min-width: 1221px) {
     .fixed-header tbody tr:nth-child(even) {
-        background-color: #f5f6f8;
+        background-color: var(--color-row-even);
     }
 }
 .float-left {
@@ -110,7 +99,7 @@ font-size: 20px;
 .search-subtitle {
     margin: 3px 0 0;
     font-size: 14px;
-    color: #666;
+    color: var(--color-subtle);
 }
 
 .search-container {
@@ -118,7 +107,7 @@ font-size: 20px;
     margin: 0 auto 20px;
     padding: 16px 20px 20px;
     background: #fff;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
@@ -142,11 +131,11 @@ font-size: 20px;
 
 .customLabel {
     margin-bottom: 5px;
-    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-heading);
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: #832018;
+    color: var(--color-title);
     text-transform: uppercase;
 }
 
@@ -162,9 +151,9 @@ font-size: 20px;
     padding: 5px 10px;
     font-family: inherit;
     font-size: 16px;
-    color: #333;
-    background-color: #f2f2f2;
-    border: 2px solid #336699;
+    color: var(--color-text);
+    background-color: var(--color-control);
+    border: 2px solid var(--color-brand);
     border-radius: 5px;
     transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 }
@@ -185,7 +174,7 @@ font-size: 20px;
 .customSelect:focus,
 .customInput:focus {
     outline: none;
-    border-color: #0099cc;
+    border-color: var(--color-focus);
     box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
 }
 
@@ -273,7 +262,7 @@ font-size: 20px;
 
     .table tr {
         display: block;
-        border: 1px solid #ddd;
+        border: 1px solid var(--color-border);
         border-radius: 8px;
         margin-bottom: 12px;
         overflow: hidden; /* скругляет углы цветной колонки */
@@ -306,8 +295,8 @@ font-size: 20px;
         margin: -6px 0;
         padding: 6px 12px;
         font-weight: 600;
-        color: #fff;
-        background-color: #4b5563;
+        color: var(--color-subhead-text);
+        background-color: var(--color-subhead);
     }
 
     /* У строки с кнопкой «Подробнее» подписи нет */
@@ -484,7 +473,7 @@ window.onload = function() {
             <th>Принял</th>
             <th>Исполнил</th>
             <th>Дата устранения</th>
-            <th>Комментарий</th>
+            <th class="col-comment">Комментарий</th>
         </tr>
     </thead>
     <tbody id="data1">
@@ -506,6 +495,7 @@ window.onload = function() {
         {% endfor %}
     </tbody>
 </table>
+<p class="search-hint" id="searchHint"></p>
 
 <script>
     (function () {
@@ -607,6 +597,7 @@ window.onload = function() {
 
     const LABELS = ['№ заявки','Дата заявки','Диспетчер','Город','Адрес','УК','Причина','Принял','Исполнил','Дата устранения','Комментарий'];
     const EXTRA_INDICES = [1, 2, 3, 5, 6, 7, 8, 9];
+    const ADDRESS_INDEX = LABELS.indexOf('Адрес');
 
     function toggleCard(btn) {
         const row = btn.closest('tr');
@@ -616,10 +607,26 @@ window.onload = function() {
 
     function createTicketRow(item) {
         const row = document.createElement('tr');
-        item.forEach((cellData, i) => {
+        // После видимых колонок идёт id лифта
+        const liftId = item[LABELS.length];
+        item.slice(0, LABELS.length).forEach((cellData, i) => {
             const cell = document.createElement('td');
             cell.dataset.label = LABELS[i] || '';
-            cell.textContent = cellData;
+            if (i === ADDRESS_INDEX && liftId) {
+                // Обёртка: в карточке на телефоне адрес с кнопкой занимают одну колонку.
+                // В новой вкладке: результаты поиска на этой странице не сохраняются
+                const wrap = document.createElement('div');
+                wrap.textContent = cellData;
+                const link = document.createElement('a');
+                link.className = 'lift-card-button';
+                link.href = '/_lift?id=' + encodeURIComponent(liftId);
+                link.target = '_blank';
+                link.textContent = 'Карточка лифта';
+                wrap.appendChild(link);
+                cell.appendChild(wrap);
+            } else {
+                cell.textContent = cellData;
+            }
             if (EXTRA_INDICES.includes(i)) cell.classList.add('card-extra');
             row.appendChild(cell);
         });
@@ -638,7 +645,18 @@ window.onload = function() {
         const tbody = document.getElementById('data1');
         tbody.innerHTML = '';
         tickets.forEach(ticket => tbody.appendChild(createTicketRow(ticket)));
+        updateSearchHint();
     }
+
+    // Вместо пустой таблицы: подсказка, а после поиска сообщение, что заявок нет
+    function updateSearchHint() {
+        const hint = document.getElementById('searchHint');
+        hint.hidden = document.getElementById('data1').rows.length > 0;
+        hint.textContent = document.getElementById('cityList').value
+            ? 'Заявок не найдено'
+            : 'Выберите город, чтобы увидеть заявки';
+    }
+    updateSearchHint();
 
     function updateTableData(data) {
         const tbody = document.getElementById('data1');
@@ -665,6 +683,7 @@ window.onload = function() {
         const table = document.querySelector('table');
         const clone = table.cloneNode(true);
         clone.querySelectorAll('.card-toggle-cell').forEach(el => el.remove());
+        clone.querySelectorAll('.lift-card-button').forEach(el => el.remove());
         const wb = XLSX.utils.table_to_book(clone, { sheet: 'Заявки' });
         XLSX.writeFile(wb, 'zayavki.xlsx');
     }
@@ -684,6 +703,7 @@ window.onload = function() {
                 data.data1.forEach(function(item) {
                     tbody.appendChild(createTicketRow(item));
                 });
+                updateSearchHint();
             } else {
                 console.error('Unexpected data format:', data);
             }

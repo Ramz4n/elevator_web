@@ -33,6 +33,7 @@
         background: #fff;
     }
 
+    .search-hint,
     .page-header .btn,
     .card-toggle-cell,
     .card-expand-hint,
@@ -93,11 +94,7 @@
         break-inside: avoid;
     }
 
-    .fixed-header thead th {
-        color: #fff;
-    }
-
-    /* Без этого браузер не печатает фон: белый текст шапки был бы не виден */
+    /* Без этого браузер не печатает фон строк и плашек */
     .fixed-header thead th,
     .fixed-header tbody tr,
     .stop-banner,

@@ -3,9 +3,12 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/theme.css') }}">
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/print-table.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tables.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/lift-button.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
@@ -15,30 +18,11 @@
 </head>
 <body>
   <style>
-table {
-border-spacing: 0;
-empty-cells: hide;
-margin: 0 auto;
-font-size: 20px;
-background-color: white;
-}
 
-tr {
-  border-bottom: 1px solid #ddd;
-}
 
-th, td {
-  padding: 15px;
-}
-.fixed-header {
-overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
-}
 
 .fixed-header thead th {
-position: sticky; /* Фиксация заголовков */
-top: 60px; /* Под закреплённой строкой с итогом и поиском */
-color: #fff;
-background-color: #4b5563; /* Цвет фона заголовков */
+    top: 60px; /* Под закреплённой строкой с итогом и поиском */
 }
 
 /* Итог и поиск: и на компьютере, и на телефоне */
@@ -58,7 +42,7 @@ background-color: #4b5563; /* Цвет фона заголовков */
 
 @media (min-width: 769px) {
     .fixed-header tbody tr:nth-child(even) {
-        background-color: #f5f6f8;
+        background-color: var(--color-row-even);
     }
 }
 
@@ -71,12 +55,12 @@ background-color: #4b5563; /* Цвет фона заголовков */
     border-radius: 8px;
     font-size: 16px;
     font-weight: 600;
-    color: #fff;
-    background: #4b5563;
+    color: var(--color-table-head-text);
+    background: var(--color-table-head);
 }
 
 .lifts-total strong {
-    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-heading);
     font-size: 24px;
     font-weight: 700;
 }
@@ -95,22 +79,22 @@ background-color: #4b5563; /* Цвет фона заголовков */
     padding: 5px 12px;
     font-family: inherit;
     font-size: 16px; /* чтобы iOS не увеличивал страницу при фокусе */
-    color: #333;
-    background-color: #f2f2f2;
-    border: 2px solid #336699;
+    color: var(--color-text);
+    background-color: var(--color-control);
+    border: 2px solid var(--color-brand);
     border-radius: 5px;
 }
 
 .lifts-search:focus {
     outline: none;
-    border-color: #0099cc;
+    border-color: var(--color-focus);
     box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
 }
 
 .lifts-empty {
     padding: 20px 8px;
     font-size: 15px;
-    color: #666;
+    color: var(--color-subtle);
     text-align: center;
 }
 
@@ -159,7 +143,7 @@ background-color: #4b5563; /* Цвет фона заголовков */
         margin-bottom: 8px;
         overflow: hidden;
         background: #fff;
-        border: 1px solid #ddd;
+        border: 1px solid var(--color-border);
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
@@ -171,8 +155,8 @@ background-color: #4b5563; /* Цвет фона заголовков */
         padding: 8px 12px;
         font-size: 14px;
         font-weight: 700;
-        color: #fff;
-        background: #4b5563;
+        color: var(--color-table-head-text);
+        background: var(--color-table-head);
     }
 
     .lift-row {
@@ -190,9 +174,15 @@ background-color: #4b5563; /* Цвет фона заголовков */
     }
 
     .lift-row small {
+        margin-left: auto;
         font-size: 12px;
-        color: #666;
+        color: var(--color-subtle);
         text-align: right;
+    }
+
+    .lift-row .lift-card-button {
+        flex: none;
+        margin-left: 0;
     }
 
 }
@@ -232,6 +222,7 @@ function goBack() {
       <th>Дом</th>
       <th>Подъезд</th>
       <th>Лифт</th>
+      <th class="lift-card-cell">Карточка</th>
     </tr>
   </thead>
   <tbody>
@@ -242,6 +233,7 @@ function goBack() {
         <td class="data">{{dat[2]}}</td>
         <td class="data">{{dat[3]}}</td>
         <td class="data">{{dat[4]}}</td>
+        <td class="data lift-card-cell"><a class="lift-card-button" href="{{ url_for('lift_card', id=dat[5]) }}" target="_blank">Карточка лифта</a></td>
     </tr>
 	{%endfor%}
   </tbody>
@@ -256,7 +248,7 @@ function goBack() {
                 <span class="lift-group-count">{{ street.list|length }}</span>
             </div>
             {% for dat in street.list %}
-            <div class="lift-row"><span>{{ dat[2] }}, {{ dat[3] }}</span><small>{{ dat[4] }}</small></div>
+            <div class="lift-row"><span>{{ dat[2] }}, {{ dat[3] }}</span><small>{{ dat[4] }}</small><a class="lift-card-button" href="{{ url_for('lift_card', id=dat[5]) }}" target="_blank">Карточка лифта</a></div>
             {% endfor %}
         </div>
         {% endfor %}

@@ -3,12 +3,13 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link rel="shortcut icon" href="img/icons/icon-48x48.png" />
-    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/theme.css') }}">
 	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/print-table.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tables.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tickets-dialog.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/lift-button.css') }}">
 	<script src="{{ url_for('static', filename='js/tickets-dialog.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
@@ -19,37 +20,15 @@
 </head>
 <body>
 <style>
-	table {
-	border-spacing: 0;
-	empty-cells: hide;
-	margin: 0 auto;
-	font-size: 20px;
-	background-color: white;
-	}
 
-	tr {
-	  border-bottom: 1px solid #ddd;
-	}
 
-	th, td {
-	  padding: 15px;
-	}
-	.fixed-header {
-	overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
-	}
 
-	.fixed-header thead th {
-		position: sticky;
-		top: 0;
-		color: #fff;
-		background-color: #4b5563;
-	}
 
 	.card-expand-hint { display: none; }
 
         @media (min-width: 769px) {
             .fixed-header tbody tr:nth-child(even):not(.row-stopped) {
-                background-color: #f5f6f8;
+                background-color: var(--color-row-even);
             }
         }
         /* Широкая таблица не помещается на экран ноутбука, делаем её компактнее */
@@ -63,33 +42,6 @@
             }
         }
 
-        /* Плашка вместо пустой таблицы */
-        .stop-banner {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 4px 24px;
-            margin: 0 12px 14px;
-            padding: 12px 18px;
-            border-radius: 8px;
-            color: #fff;
-            background: #1cbb8c;
-        }
-        .stop-banner b {
-            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 28px;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-        @media screen and (max-width: 768px) {
-            .stop-banner {
-                margin: 0 0 10px;
-                padding: 10px 14px;
-            }
-            .stop-banner b {
-                font-size: 22px;
-            }
-        }
 
 	@media screen and (max-width: 768px) {
 		body { padding: 8px; overflow-x: hidden; }
@@ -98,7 +50,7 @@
 
 		.fixed-header > tbody > tr {
 			display: block;
-			border: 1px solid #ddd;
+			border: 1px solid var(--color-border);
 			border-radius: 8px;
 			margin-bottom: 10px;
 			overflow: hidden; /* скругляет углы цветной колонки */
@@ -126,8 +78,8 @@
 			margin: -6px 0;
 			padding: 6px 12px;
 			font-weight: 600;
-			color: #fff;
-			background-color: #4b5563;
+			color: var(--color-subhead-text);
+			background-color: var(--color-subhead);
 		}
 
 		/* У строки «Посмотреть заявки» подписи нет */
@@ -226,9 +178,20 @@ function goBack() {
     .fixed-header tbody tr:nth-child(even):not(.row-stopped):hover {
         background-color: #C4C5C7; /* Серый цвет подсветки */
     }
-    /* Число в этой колонке по центру, заголовок над ним */
-    .fixed-header thead th:last-child {
+    /* Число и кнопка в последних колонках по центру, заголовки над ними */
+    .fixed-header thead th:nth-last-child(-n+2),
+    .fixed-header tbody td.lift-card-cell {
         text-align: center;
+    }
+    /* На телефоне у кнопки подписи нет, она занимает всю строку карточки */
+    @media screen and (max-width: 768px) {
+        .fixed-header > tbody > tr td.lift-card-cell {
+            justify-content: center;
+            padding: 6px 12px;
+        }
+        .fixed-header > tbody > tr td.lift-card-cell::before {
+            display: none;
+        }
     }
 </style>
 
@@ -243,6 +206,7 @@ function goBack() {
             <th>Адрес</th>
             <th>Тип лифта</th>
             <th>Кол-во обращений</th>
+            <th class="lift-card-cell">Карточка</th>
         </tr>
     </thead>
     <tbody>
@@ -253,6 +217,7 @@ function goBack() {
             <td class="data" data-label="Адрес">{{dat[1]}}</td>
             <td class="data card-extra" data-label="Тип лифта">{{dat[2]}}</td>
             <td class="data" data-label="Кол-во обращений" style='text-align: center;'>{{dat[3]}}</td>
+            <td class="data lift-card-cell">{% if dat[4] %}<a class="lift-card-button" href="{{ url_for('lift_card', id=dat[4]) }}">Карточка лифта</a>{% endif %}</td>
             <td class="card-expand-hint">Посмотреть заявки</td>
         </tr>
         {% endfor %}
@@ -291,9 +256,12 @@ function openLiftTickets(row) {
 }
 
 document.querySelectorAll('.lift-row').forEach(function (row) {
-    row.addEventListener('click', function () { openLiftTickets(row); });
+    // Кнопка ведёт в карточку лифта, окно с заявками открывается по остальной строке
+    row.addEventListener('click', function (e) {
+        if (!e.target.closest('a')) openLiftTickets(row);
+    });
     row.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') openLiftTickets(row);
+        if (e.key === 'Enter' && !e.target.closest('a')) openLiftTickets(row);
     });
 });
 </script>

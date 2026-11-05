@@ -21,7 +21,7 @@
 </div>
 <div class="filter">
 	<label for="yearList" class="customLabel">Год</label>
-	<select class="customSelect customSelect-short" id="yearList" autocomplete="off">
+	<select class="customSelect" id="yearList" autocomplete="off">
 		{% for year in years %}
 		<option value="{{ year }}"{% if year == selected_year %} selected{% endif %}>{{ year }}</option>
 		{% endfor %}

@@ -3,10 +3,12 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.gstatic.com" />
-    <link rel="canonical" href="https://demo-basic.adminkit.io/" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/theme.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/app.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/print-table.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/tables.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/lift-button.css') }}">
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
@@ -14,41 +16,24 @@
     />
     <title>{%block title%} {%endblock%}</title>
     <style>
-        table {
-            border-spacing: 0;
-            empty-cells: hide;
-            margin: 0 auto;
-            font-size: 20px;
-            background-color: white;
-        }
 
-        tr {
-            border-bottom: 1px solid #ddd;
-        }
 
         th, td {
-            padding: 15px;
             text-align: center;
             cursor: pointer; /* Курсор указывает на возможность клика */
         }
 
         .fixed-header {
             width: 100%; /* Ширина таблицы */
-            overflow-x: auto; /* Позволяет прокручивать таблицу горизонтально */
         }
 
-        .fixed-header thead th {
-            position: sticky;
-            top: 0;
-            color: #fff;
-            background-color: #4b5563;
-        }
 
         .card-toggle-cell, .card-toggle {
             display: none;
         }
 
-        @media screen and (max-width: 768px) {
+        /* Таблица шириной около 1300px: на меньшем экране вместо неё карточки */
+        @media screen and (max-width: 1300px) {
             body {
                 padding: 8px;
                 overflow-x: hidden;
@@ -60,7 +45,7 @@
 
             .fixed-header tr {
                 display: block;
-                border: 1px solid #ddd;
+                border: 1px solid var(--color-border);
                 border-radius: 8px;
                 margin-bottom: 12px;
                 overflow: hidden; /* скругляет углы цветной колонки */
@@ -91,8 +76,8 @@
                 margin: -6px 0;
                 padding: 6px 12px;
                 font-weight: 600;
-                color: #fff;
-                background-color: #4b5563;
+                color: var(--color-subhead-text);
+                background-color: var(--color-subhead);
             }
 
             /* У строки с кнопкой «Подробнее» подписи нет */
@@ -101,6 +86,21 @@
             }
 
             .fixed-header td.card-toggle-cell::before {
+                display: none;
+            }
+
+            /* На телефоне у диспетчера своя строка в «Подробнее», а не под датой */
+            .ticket-dispatcher {
+                display: none;
+            }
+
+            /* И у кнопки карточки лифта: она занимает всю строку */
+            .fixed-header td.lift-card-cell {
+                justify-content: center;
+                padding: 6px 12px;
+            }
+
+            .fixed-header td.lift-card-cell::before {
                 display: none;
             }
 
@@ -139,13 +139,13 @@
             background-color: #e8e8e8;
         }
 
-        @media (min-width: 769px) {
+        @media (min-width: 1300.02px) {
             .fixed-header tbody tr:nth-child(even):not(.row-stopped) {
-                background-color: #f5f6f8;
+                background-color: var(--color-row-even);
             }
         }
         /* Широкая таблица не помещается на экран ноутбука, делаем её компактнее */
-        @media (min-width: 769px) and (max-width: 1700px) {
+        @media (min-width: 1300.02px) and (max-width: 1700px) {
             .fixed-header {
                 font-size: 15px;
             }
@@ -155,80 +155,13 @@
             }
         }
 
-        /* Плашка вместо пустой таблицы */
-        .stop-banner {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 4px 24px;
-            margin: 0 12px 14px;
-            padding: 12px 18px;
-            border-radius: 8px;
-            color: #fff;
-            background: #1cbb8c;
-        }
-        .stop-banner b {
-            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 28px;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-        @media screen and (max-width: 768px) {
-            .stop-banner {
-                margin: 0 0 10px;
-                padding: 10px 14px;
-            }
-            .stop-banner b {
-                font-size: 22px;
-            }
-        }
     </style>
     {% block extra_style %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 <script>
 function goBack() {
     window.history.back();
-}
-
-function sortTable(n) {
-    const table = document.querySelector(".fixed-header");
-    let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-    switching = true;
-    dir = "asc"; // Устанавливаем направление сортировки по возрастанию
-
-    while (switching) {
-        switching = false;
-        rows = table.rows;
-
-        for (i = 1; i < (rows.length - 1); i++) {
-            shouldSwitch = false;
-            x = rows[i].getElementsByTagName("TD")[n];
-            y = rows[i + 1].getElementsByTagName("TD")[n];
-
-            if (dir === "asc") {
-                if (x.innerHTML > y.innerHTML) {
-                    shouldSwitch = true;
-                    break;
-                }
-            } else if (dir === "desc") {
-                if (x.innerHTML < y.innerHTML) {
-                    shouldSwitch = true;
-                    break;
-                }
-            }
-        }
-        if (shouldSwitch) {
-            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-            switching = true;
-            switchcount++; // Увеличиваем счетчик переключений
-        } else {
-            if (switchcount === 0 && dir === "asc") {
-                dir = "desc"; // Меняем направление сортировки на убывание
-                switching = true;
-            }
-        }
-    }
 }
 </script>
 
@@ -244,38 +177,44 @@ function sortTable(n) {
 <table class="fixed-header"{% if not data1 %} style="display: none"{% endif %}>
     <thead>
         <tr>
-            <th onclick="sortTable(0)">№ заявки</th>
-            <th onclick="sortTable(1)">Дата заявки</th>
-            <th onclick="sortTable(2)">Диспетчер</th>
-            <th onclick="sortTable(3)">Город</th>
-            <th onclick="sortTable(4)">Адрес</th>
-            <th onclick="sortTable(5)">Лифт</th>
-            <th onclick="sortTable(6)">УК</th>
-            <th onclick="sortTable(7)">Причина</th>
-            <th onclick="sortTable(8)">Принял</th>
-            <th onclick="sortTable(9)">Дата запуска</th>
-            <th onclick="sortTable(10)">Комментарий</th>
+            <th data-sort="number">№ заявки</th>
+            <th data-sort="date">Дата заявки<div class="th-sub">Диспетчер</div></th>
+            <th class="col-open-age" data-sort="age">Открыта</th>
+            <th class="col-dispatcher">Диспетчер</th>
+            <th data-sort="text">Город</th>
+            <th data-sort="text">Адрес</th>
+            <th data-sort="text">Лифт</th>
+            <th data-sort="text">УК</th>
+            <th class="col-reason" data-sort="text">Причина</th>
+            <th data-sort="text">Принял</th>
+            <th class="col-launch" data-sort="date">Дата запуска</th>
+            <th class="col-comment" data-sort="text">Комментарий</th>
+            <th class="lift-card-cell">Карточка</th>
         </tr>
     </thead>
     <tbody>
         {% for dat in data1 %}
         <tr {% if dat[7] == "Остановлен" and dat[9] == None %}class="row-stopped"{% endif %}>
             <td class="data" data-label="№ заявки">{{ dat[0] }}</td>
-            <td class="data card-extra" data-label="Дата заявки">{{ dat[1] }}</td>
-            <td class="data card-extra" data-label="Диспетчер">{{ dat[2] }}</td>
+            <td class="data card-extra" data-label="Дата заявки">{{ dat[1] }}<div class="ticket-dispatcher">{{ dat[2] }}</div></td>
+            {# Срок считает list-table.js: у закрытых заявок его нет #}
+            <td class="data col-open-age" data-label="Открыта"{% if dat[9] is none %} data-opened="{{ dat[11] }}"{% endif %}>—</td>
+            <td class="data card-extra col-dispatcher" data-label="Диспетчер">{{ dat[2] }}</td>
             <td class="data{% if not town or town == 'all' %}{% else %} card-extra{% endif %}" data-label="Город">{{ dat[3] }}</td>
             <td class="data" data-label="Адрес">{{ dat[4] }}</td>
             <td class="data card-extra" data-label="Лифт">{{ dat[5] }}</td>
             <td class="data card-extra" data-label="УК">{{ dat[6] }}</td>
-            <td class="data card-extra" data-label="Причина">{{ dat[7] }}</td>
+            <td class="data card-extra col-reason" data-label="Причина">{{ dat[7] }}</td>
             <td class="data card-extra" data-label="Принял">{{ dat[8] }}</td>
-            <td class="data card-extra" data-label="Дата запуска">{{ dat[9] }}</td>
+            <td class="data card-extra col-launch" data-label="Дата запуска">{{ dat[9] }}</td>
             <td class="data" data-label="Комментарий">{{ dat[10] }}</td>
+            <td class="data lift-card-cell">{% if dat[12] %}<a class="lift-card-button" href="{{ url_for('lift_card', id=dat[12]) }}">Карточка лифта</a>{% endif %}</td>
             <td class="card-toggle-cell"><button class="card-toggle" onclick="toggleCard(this)">Подробнее ▼</button></td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+<script src="{{ url_for('static', filename='js/list-table.js') }}"></script>
 <script>
     function toggleCard(btn) {
         const row = btn.closest('tr');

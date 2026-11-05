@@ -20,7 +20,9 @@ from flask_caching import Cache
 from db_manager import DataBaseManager
 from datetime import datetime
 from waitress import serve
-from analytics import build_analytics, build_city, choose_period, complete_months, repair_text, ticket_view
+from analytics import (DOWNTIME_REASONS, FALSE_TICKET_SQL, LIFT_DEFAULT_PERIOD, LIFT_PERIODS, NOISE_TICKET_SQL,
+                       build_analytics,
+                       build_attention, build_city, build_lift, build_mechanics, status_period, choose_period, complete_months, lift_months, repair_text, ticket_view)
 from yearly_stats_cache import yearly_cache  # Кэширование годовой статистики
 
 UPLOAD_FOLDER = 'static'
@@ -1281,6 +1283,8 @@ def search():
 # За сколько дней считаются проблемные лифты. Для локальной проверки на старой копии базы
 # можно задать TOP_BAD_DAYS в .env (не больше 20000: иначе дата уйдёт раньше 1970 года и строк не будет)
 TOP_BAD_DAYS = int(os.getenv('TOP_BAD_DAYS', 14))
+# Заявок по связи мало: за 14 дней повторяются 1-2 лифта, за 90 дней список заполняется
+TOP_BAD_SVYAZ_DAYS = int(os.getenv('TOP_BAD_SVYAZ_DAYS', 90))
 
 
 @tester.route('/_top_bad', methods=['GET', 'POST'])
@@ -1299,13 +1303,14 @@ def _top_bad():
                         cursor.execute(f'''SELECT g.город,
                                             concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                             z.Тип_лифта,
-                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count,
+                                            MAX(z.id_лифт)
                                             FROM {table_name} z
                                             JOIN goroda g ON z.id_город = g.id
                                             JOIN street s ON z.id_улица = s.id
                                             JOIN doma d ON z.id_дом = d.id
                                             JOIN padik p ON z.id_подъезд = p.id
-                                            WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
+                                            WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_SVYAZ_DAYS} DAY))
                                             AND NOT pc_id IS NULL AND z.Причина = "Связь"
                                             GROUP BY g.город, Адрес, Тип_лифта
                                             ORDER BY address_count DESC
@@ -1314,7 +1319,8 @@ def _top_bad():
                         cursor.execute(f'''SELECT g.город,
                                             concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                             z.Тип_лифта,
-                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count,
+                                            MAX(z.id_лифт)
                                             FROM {table_name} z
                                             JOIN goroda g ON z.id_город = g.id
                                             JOIN street s ON z.id_улица = s.id
@@ -1332,7 +1338,7 @@ def _top_bad():
                                             LIMIT 30;''')
                     data1 = cursor.fetchall()
                 return render_template('_top_bad.html', data1=data1, mode=mode,
-                                       days_limit=TOP_BAD_DAYS)
+                                       days_limit=TOP_BAD_SVYAZ_DAYS if mode == 'svyaz' else TOP_BAD_DAYS)
             except Exception as e:
                 print('Проблема в наихудших:', e)
                 return render_template('error.html')
@@ -1344,13 +1350,14 @@ def _top_bad():
                         cursor.execute(f'''SELECT g.город,
                                             concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                             z.Тип_лифта,
-                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count,
+                                            MAX(z.id_лифт)
                                             FROM {table_name} z
                                             JOIN goroda g ON z.id_город = g.id
                                             JOIN street s ON z.id_улица = s.id
                                             JOIN doma d ON z.id_дом = d.id
                                             JOIN padik p ON z.id_подъезд = p.id
-                                            WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
+                                            WHERE Город = ? AND Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_SVYAZ_DAYS} DAY))
                                             AND NOT pc_id IS NULL AND z.Причина = "Связь"
                                             GROUP BY g.город, Адрес, Тип_лифта
                                             ORDER BY address_count DESC
@@ -1359,7 +1366,8 @@ def _top_bad():
                         cursor.execute(f'''SELECT g.город,
                                             concat(s.улица, ', ', d.номер, ', ', p.номер) as Адрес,
                                             z.Тип_лифта,
-                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count
+                                            COUNT(concat(s.улица, ', ', d.номер, ', ', p.номер)) as address_count,
+                                            MAX(z.id_лифт)
                                             FROM {table_name} z
                                             JOIN goroda g ON z.id_город = g.id
                                             JOIN street s ON z.id_улица = s.id
@@ -1378,7 +1386,7 @@ def _top_bad():
                                             LIMIT 30;''', (town,))
                     data1 = cursor.fetchall()
                 return render_template('_top_bad.html', data1=data1, mode=mode,
-                                       days_limit=TOP_BAD_DAYS)
+                                       days_limit=TOP_BAD_SVYAZ_DAYS if mode == 'svyaz' else TOP_BAD_DAYS)
             except Exception as e:
                 print('Проблема в наихудших:', e)
                 return render_template('error.html')
@@ -1413,7 +1421,7 @@ def _top_bad():
                                           JOIN doma d ON z.id_дом = d.id
                                           JOIN padik p ON z.id_подъезд = p.id
                                           JOIN workers m ON z.id_механик = m.id
-                                       WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_DAYS} DAY))
+                                       WHERE Дата_заявки >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL {TOP_BAD_SVYAZ_DAYS} DAY))
                                        AND g.город = ?
                                        AND s.`Улица` = ?
                                        AND d.`Номер` = ?
@@ -1502,7 +1510,9 @@ def _obrasch():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -1535,7 +1545,9 @@ def _obrasch():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -1581,7 +1593,9 @@ def _svyaz():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -1614,7 +1628,9 @@ def _svyaz():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -1659,7 +1675,9 @@ def _uk():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -1692,7 +1710,9 @@ def _uk():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -1735,7 +1755,9 @@ def _tekuschie():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -1766,7 +1788,9 @@ def _tekuschie():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -1878,10 +1902,7 @@ def _load_analytics(cursor, table_name, selected_year):
                     MONTH(FROM_UNIXTIME(z.Дата_заявки)),
                     z.Причина,
                     z.Дата_запуска - z.Дата_заявки,
-                    LOWER(COALESCE(z.Комментарий, '')) LIKE '%на момент осмотра%'
-                        OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%ложн%'
-                        OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%вандал%'
-                        OR LOWER(COALESCE(z.Комментарий, '')) LIKE '%пож%',
+                    {FALSE_TICKET_SQL},
                     d.is_active = 1,
                     z.id_лифт,
                     ls.улица,
@@ -1910,6 +1931,51 @@ def _load_analytics(cursor, table_name, selected_year):
     return selected_year, years, build_analytics(tickets, lifts, monthly, selected_year), tickets, monthly
 
 
+def _load_period_faults(cursor, table_name, year, monthly):
+    # Неисправности и заявки «на момент осмотра» за период страницы аналитики:
+    # для блоков «На что обратить внимание» и «Механики».
+    # Если исполнитель не указан (почти весь 2025 год), берём механика, принявшего заявку
+    months, _ = choose_period(year, complete_months(monthly))
+    reasons = ', '.join('?' for _ in DOWNTIME_REASONS)
+    placeholders = ', '.join('?' for _ in months)
+    cursor.execute(f'''SELECT z.id_лифт, g.город, s.улица, d.номер, p.номер, l.Тип_лифта, d.is_active = 1,
+                    z.Номер_заявки, z.Дата_заявки, z.Дата_запуска, z.Комментарий,
+                    COALESCE(z.id_исполнитель, z.id_механик), w.фио
+                    FROM {table_name} z
+                    LEFT JOIN lifts l ON z.id_лифт = l.id
+                    LEFT JOIN doma d ON l.id_дом = d.id
+                    LEFT JOIN street s ON d.id_улица = s.id
+                    LEFT JOIN goroda g ON s.id_город = g.id
+                    LEFT JOIN padik p ON l.id_подъезд = p.id
+                    LEFT JOIN workers w ON COALESCE(z.id_исполнитель, z.id_механик) = w.id
+                    WHERE NOT z.pc_id IS NULL
+                    AND z.Причина IN ({reasons})
+                    AND NOT {NOISE_TICKET_SQL}
+                    AND YEAR(FROM_UNIXTIME(z.Дата_заявки)) = ?
+                    AND MONTH(FROM_UNIXTIME(z.Дата_заявки)) IN ({placeholders})
+                    ORDER BY z.Дата_заявки, z.id;''', (*DOWNTIME_REASONS, year, *months))
+    return cursor.fetchall()
+
+
+def _load_lift_activity(cursor, table_name, now):
+    # Для статуса «Сейчас»: неисправности и заявки «на момент осмотра» за все годы, аргументы lift_status без now
+    recent_start, base_start = status_period(now)
+    reasons = ', '.join('?' for _ in DOWNTIME_REASONS)
+    cursor.execute(f'''SELECT z.id_лифт,
+                    MAX(z.Дата_заявки),
+                    MAX(GREATEST(z.Дата_заявки, COALESCE(z.Дата_запуска, z.Дата_заявки))),
+                    SUM(z.Дата_заявки >= ?),
+                    SUM(z.Дата_заявки >= ? AND z.Дата_заявки < ?),
+                    MIN(CASE WHEN z.Дата_запуска IS NULL THEN z.Дата_заявки END)
+                    FROM {table_name} z
+                    WHERE NOT z.pc_id IS NULL
+                    AND NOT z.id_лифт IS NULL
+                    AND z.Причина IN ({reasons})
+                    AND NOT {NOISE_TICKET_SQL}
+                    GROUP BY z.id_лифт;''', (recent_start, base_start, recent_start, *DOWNTIME_REASONS))
+    return {row[0]: (row[1], row[2], int(row[3]), int(row[4]), row[5]) for row in cursor.fetchall()}
+
+
 @tester.route('/_analytics')
 @login_required
 def _analytics():
@@ -1918,9 +1984,18 @@ def _analytics():
     db_manager = DataBaseManager()
     try:
         with closing(db_manager.connect()) as connection:
-            selected_year, years, analytics, _, _ = _load_analytics(
-                connection.cursor(), table_name, request.args.get('year', type=int))
-        return render_template('_analytics.html', a=analytics, years=years, selected_year=selected_year)
+            cursor = connection.cursor()
+            selected_year, years, analytics, _, monthly = _load_analytics(
+                cursor, table_name, request.args.get('year', type=int))
+            attention = mechanics = None
+            if analytics:
+                now = int(datetime.now().timestamp())
+                faults = _load_period_faults(cursor, table_name, selected_year, monthly)
+                activity = _load_lift_activity(cursor, table_name, now)
+                attention = build_attention(faults, analytics['per_lift'], activity, now)
+                mechanics = build_mechanics(faults)
+        return render_template('_analytics.html', a=analytics, years=years, selected_year=selected_year,
+                               attention=attention, mechanics=mechanics)
     except Exception as e:
         print('Проблема в аналитике:', e)
         return render_template('error.html')
@@ -1988,6 +2063,78 @@ def _analytics_city():
         return render_template('error.html')
 
 
+@tester.route('/_lift', endpoint='lift_card')
+@login_required
+def _lift_card():
+    # Карточка одного лифта
+    table_name = session.get('table_name', db_table)
+    lift_id = request.args.get('id', type=int)
+    period = request.args.get('period', type=int)
+    if period not in LIFT_PERIODS:
+        period = LIFT_DEFAULT_PERIOD
+    if lift_id is None:
+        return redirect(url_for('_analytics'))
+    db_manager = DataBaseManager()
+    try:
+        with closing(db_manager.connect()) as connection:
+            cursor = connection.cursor()
+            cursor.execute('''SELECT g.id, g.город, s.улица, d.номер, p.номер, l.Тип_лифта, d.is_active = 1
+                            FROM lifts l
+                            JOIN doma d ON l.id_дом = d.id
+                            JOIN street s ON d.id_улица = s.id
+                            JOIN goroda g ON s.id_город = g.id
+                            LEFT JOIN padik p ON l.id_подъезд = p.id
+                            WHERE l.id = ?;''', (lift_id,))
+            row = cursor.fetchone()
+            if row is None:
+                return redirect(url_for('_analytics'))
+            lift = {'id': lift_id, 'city_id': row[0], 'city': row[1],
+                    'address': ', '.join(str(part) for part in row[2:5] if part),
+                    'type': row[5], 'active': bool(row[6])}
+            # Если исполнитель не указан (почти весь 2025 год), берём механика, принявшего заявку
+            cursor.execute(f'''SELECT z.Номер_заявки,
+                            z.Дата_заявки,
+                            FROM_UNIXTIME(z.Дата_заявки, '%d.%m.%Y %H:%i'),
+                            YEAR(FROM_UNIXTIME(z.Дата_заявки)),
+                            MONTH(FROM_UNIXTIME(z.Дата_заявки)),
+                            z.Причина,
+                            z.Дата_запуска,
+                            z.Комментарий,
+                            w.фио,
+                            {FALSE_TICKET_SQL}
+                            FROM {table_name} z
+                            LEFT JOIN workers w ON COALESCE(z.id_исполнитель, z.id_механик) = w.id
+                            WHERE z.id_лифт = ?
+                            AND NOT z.pc_id IS NULL
+                            ORDER BY z.Дата_заявки, z.id;''', (lift_id,))
+            tickets = cursor.fetchall()
+
+            now = datetime.now()
+            months = lift_months(period, now, (tickets[0][3], tickets[0][4]) if tickets else None)
+            start = int(datetime(months[0][0], months[0][1], 1).timestamp()) if period else 0
+            reasons = ', '.join('?' for _ in DOWNTIME_REASONS)
+            cursor.execute(f'''SELECT l.id, s.id_город, COUNT(z.id),
+                            COALESCE(SUM(GREATEST(COALESCE(z.Дата_запуска, ?) - z.Дата_заявки, 0)), 0)
+                            FROM lifts l
+                            JOIN doma d ON l.id_дом = d.id
+                            JOIN street s ON d.id_улица = s.id
+                            LEFT JOIN {table_name} z ON z.id_лифт = l.id
+                                AND NOT z.pc_id IS NULL
+                                AND z.Дата_заявки >= ?
+                                AND z.Причина IN ({reasons})
+                                AND NOT {FALSE_TICKET_SQL}
+                            WHERE d.is_active = 1
+                            GROUP BY l.id, s.id_город;''', (int(now.timestamp()), start, *DOWNTIME_REASONS))
+            fleet = cursor.fetchall()
+        data = build_lift(lift, tickets, fleet, months, start, int(now.timestamp()))
+        periods = [(3, '3 месяца'), (6, '6 месяцев'), (12, '12 месяцев'), (0, 'Всё время')]
+        return render_template('_lift.html', l=data, period=period, periods=periods,
+                               period_name='за ' + dict(periods)[period].lower())
+    except Exception as e:
+        print('Проблема в карточке лифта:', e)
+        return render_template('error.html')
+
+
 @tester.route('/_ostanov', methods=['GET', 'POST'])
 @login_required
 def _ostanov():
@@ -2010,7 +2157,9 @@ def _ostanov():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -2044,7 +2193,9 @@ def _ostanov():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -2089,7 +2240,9 @@ def _lineynie():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -2122,7 +2275,9 @@ def _lineynie():
                                z.Причина,
                                m.фио,
                                FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') as Дата_запуска,
-                               z.Комментарий
+                               z.Комментарий,
+                               z.Дата_заявки,
+                               z.id_лифт
                                FROM {table_name} z
                                JOIN workers di ON z.id_Диспетчер = di.id
                                JOIN goroda g ON z.id_город = g.id
@@ -2158,7 +2313,8 @@ def kolvo_lifts():
                                s.`улица`,
                                d.`номер`,
                                p.`номер`,
-                               Тип_лифта
+                               Тип_лифта,
+                               l.id
                                FROM lifts l
                                JOIN padik p ON l.id_подъезд = p.id
                                JOIN doma d ON l.id_дом = d.id
@@ -2179,7 +2335,8 @@ def kolvo_lifts():
                                s.`улица`,
                                d.`номер`,
                                p.`номер`,
-                               Тип_лифта
+                               Тип_лифта,
+                               l.id
                                FROM lifts l
                                JOIN padik p ON l.id_подъезд = p.id
                                JOIN doma d ON l.id_дом = d.id
@@ -2252,7 +2409,8 @@ def fetch_tickets(cursor, city, addresses=None, start_date=None, end_date=None, 
                     m1.фио AS Принял,
                     m2.фио as Исполнил,
                     FROM_UNIXTIME(z.Дата_запуска, '%d.%m.%Y, %H:%i') AS Дата_запуска,
-                    z.Комментарий
+                    z.Комментарий,
+                    z.id_лифт
                 FROM zayavki z
                 JOIN workers di ON z.id_Диспетчер = di.id
                 JOIN goroda g ON z.id_город = g.id

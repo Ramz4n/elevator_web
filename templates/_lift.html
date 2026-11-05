@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/theme.css') }}">
+	<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='css/app.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/page-title.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/analytics.css') }}">
+    <title>Лифт: {{ l.address }}</title>
+</head>
+<body>
+<script>
+function goBack() {
+  // Открыта в новой вкладке или по прямой ссылке: возвращаться некуда, идём на главную
+  if (history.length > 1 && document.referrer) {
+    history.back();
+    return;
+  }
+  var search = '';
+  try { search = sessionStorage.getItem('baseSearch') || ''; } catch (e) {}
+  window.location.href = '/base' + search;
+}
+</script>
+
+<div class="page-header">
+    <button class="btn btn-success" onclick="goBack()">Назад</button>
+    <h2>{{ l.city }}, {{ l.address }}{% if l.type %}, {{ l.type }}{% endif %}</h2>
+</div>
+
+<div class="an-page">
+  <div class="controls-row">
+    <select class="stat-select" aria-label="Период" id="periodSelect">
+      {% for value, name in periods %}
+        <option value="{{ url_for('lift_card', id=l.id, period=value) }}" {% if value == period %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-primary print-button" type="button" onclick="window.print()">Печать</button>
+  </div>
+
+  <p class="an-period">Период: {{ l.period }}{% if not l.active %}. Дом сейчас не в работе{% endif %}</p>
+
+  <div class="lift-status {{ 'lift-status-bad' if l.has_open_fault else ('lift-status-open' if l.open_tickets else 'lift-status-ok') }}">
+    {% if l.open_tickets %}
+      {% for t in l.open_tickets %}
+      <div><b>Открыта заявка №{{ t.number }}</b>: {{ t.reason }}, с {{ t.date }} ({{ t.age }})</div>
+      {% endfor %}
+    {% else %}
+      <b>Открытых заявок нет</b>
+    {% endif %}
+  </div>
+
+  <div class="an-tiles lift-tiles">
+    <div class="an-tile">
+      <div class="an-tile-label">Неисправностей {{ period_name }}</div>
+      <div class="an-tile-value">{{ l.faults }}</div>
+      <div class="an-tile-note">{% if l.city_faults %}у одного лифта в этом городе в среднем: {{ l.city_faults }}{% else %}с городом не сравниваем: дом не в работе{% endif %}</div>
+    </div>
+    <div class="an-tile">
+      <div class="an-tile-label">Простой {{ period_name }}</div>
+      <div class="an-tile-value">{{ l.downtime }}</div>
+      <div class="an-tile-note">{% if l.city_downtime %}у одного лифта в этом городе в среднем: {{ l.city_downtime }}{% else %}с городом не сравниваем: дом не в работе{% endif %}</div>
+    </div>
+    <div class="an-tile{% if l.repeats %} an-tile-bad{% endif %}">
+      <div class="an-tile-label">Повторов {{ period_name }}</div>
+      <div class="an-tile-value">{{ l.repeats }}</div>
+      <div class="an-tile-note">снова сломался в течение {{ l.repeat_days }} дней после ремонта. Всего неисправностей: {{ l.faults }}</div>
+    </div>
+    <div class="an-tile">
+      <div class="an-tile-label">Место по неисправностям</div>
+      <div class="an-tile-value">{{ l.position if l.position else '—' }}</div>
+      <div class="an-tile-note">{% if l.position %}из {{ l.lifts_total }} лифтов. Чем меньше число, тем чаще лифт ломается{% else %}дом не в работе{% endif %}</div>
+    </div>
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">Выводы {{ period_name }}</div>
+    {% if l.status %}
+    <p class="an-summary lift-now"><b class="status-{{ l.status.key }}">Сейчас: {{ l.status.title }}.</b> {{ l.status.text }}</p>
+    {% endif %}
+    {% if l.findings %}
+    <ul class="lift-findings">
+      {% for f in l.findings %}
+      <li><b>{{ f.title }}.</b> {{ f.text }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="an-summary lift-findings-none">Явных проблем по заявкам и комментариям не видно.</p>
+    {% endif %}
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">1. Неисправности по месяцам</div>
+    <div class="an-chart">
+      {% set ch = l.chart %}
+      <svg viewBox="0 0 {{ ch.width }} {{ ch.height }}" role="img" aria-label="Неисправности по месяцам">
+        {% for line in ch.grid %}
+          <line class="chart-grid" x1="{{ ch.left }}" x2="{{ ch.right }}" y1="{{ line.y }}" y2="{{ line.y }}"></line>
+          <text class="chart-axis" x="{{ ch.left - 6 }}" y="{{ line.y + 4 }}" text-anchor="end">{{ line.label }}</text>
+        {% endfor %}
+        {% for group in ch.groups %}
+          {% for b in group.bars %}
+            <rect class="chart-bar bar-{{ b.series }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="2"
+                  data-tip="{{ group.name }}: {{ b.value }}"></rect>
+          {% endfor %}
+          <text class="chart-axis chart-axis-x" x="{{ group.x }}" y="{{ ch.axis_y }}" text-anchor="middle">{{ group.label }}</text>
+        {% endfor %}
+      </svg>
+    </div>
+  </div>
+
+  <div class="an-block">
+    <div class="an-head">2. Кто ремонтировал</div>
+    {% if l.workers %}
+    <div class="an-scroll">
+      <table class="an-table">
+        <thead><tr><th>Механик</th><th>Неисправностей</th></tr></thead>
+        <tbody>
+          {% for w in l.workers %}
+          <tr>
+            <td>{{ w.name }}</td>
+            <td class="bar-cell">
+              <div class="bar-line">
+                <div class="bar-track"><div class="bar" style="width: {{ w.bar }}%"></div></div>
+                <span class="bar-num">{{ w.count }}</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="an-empty">За этот период неисправностей нет</div>
+    {% endif %}
+  </div>
+
+  <div class="an-block" id="historyBlock">
+    <div class="an-head">3. История заявок</div>
+    {% if l.rows %}
+    <div class="an-scroll">
+      <table class="an-table lift-history">
+        <thead><tr><th>Дата</th><th>№</th><th>Причина</th><th>Ремонт</th><th>Механик</th><th>Комментарий</th></tr></thead>
+        <tbody>
+          {% for row in l.rows %}
+          <tr class="{% if not row.fault %}lift-row-muted{% endif %}{% if row.extra %} an-row-extra{% endif %}">
+            <td class="lift-nowrap">{{ row.date }}</td>
+            <td>{{ row.number }}</td>
+            <td class="lift-nowrap">{{ row.reason }}{% if row.repeat %} <span class="lift-repeat">↻ повтор</span>{% endif %}</td>
+            <td class="lift-nowrap">{{ row.repair }}</td>
+            <td>{{ row.worker }}</td>
+            <td class="lift-comment">{{ row.comment }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if l.rows|length > 20 %}
+    <div class="an-more"><button class="btn btn-primary" type="button" id="showAll">Показать все {{ l.rows|length }}</button></div>
+    {% endif %}
+    {% else %}
+    <div class="an-empty">За этот период заявок нет</div>
+    {% endif %}
+  </div>
+
+  <ul class="an-notes">
+    <li>Выводы составлены автоматически по заявкам и тексту комментариев. Это подсказка, где искать, а не заключение: разбор заявок остаётся за руководством. Узел или код ошибки указан не в каждом комментарии.</li>
+    <li>«Сейчас»: считается на сегодня, по всем годам и не зависит от выбранного периода. Последние {{ l.recent_days }} дней сравниваются с предыдущими 180. Заявки «на момент осмотра» здесь тоже считаются: если жители жалуются, тишины нет. Тишина не доказывает ремонт: лифт может сломаться снова.</li>
+    <li>Неисправности: причины «Неисправность», «Застревание» и «Остановлен», как в разделе «Аналитика». Не считаются ложные, вандальные, пожарные заявки и «на момент осмотра». В истории заявки, которые не считаются, показаны серым.</li>
+    <li>Часы простоя: сумма времени от заявки до запуска. Открытая неисправность считается по текущий момент. Среднее по городу учитывает лифты без заявок.</li>
+    <li>Повтор: следующая неисправность этого лифта не позже чем через {{ l.repeat_days }} дня после запуска. Это может быть другой узел.</li>
+    <li>Механик: исполнитель заявки, а если он не указан, механик, принявший заявку.</li>
+  </ul>
+</div>
+
+<div class="chart-tip" id="chartTip"></div>
+
+<script>
+// replace: смена периода не должна добавлять шаг для кнопки «Назад»
+document.getElementById('periodSelect').addEventListener('change', function () {
+  location.replace(this.value);
+});
+
+var showAll = document.getElementById('showAll');
+if (showAll) {
+  showAll.addEventListener('click', function () {
+    var open = document.getElementById('historyBlock').classList.toggle('show-all');
+    showAll.textContent = open ? 'Показать первые 20' : 'Показать все {{ l.rows|length }}';
+  });
+}
+
+var tip = document.getElementById('chartTip');
+document.querySelectorAll('.chart-bar').forEach(function (bar) {
+  bar.addEventListener('mousemove', function (e) {
+    tip.textContent = bar.getAttribute('data-tip');
+    tip.style.display = 'block';
+    tip.style.left = Math.min(e.clientX + 12, window.innerWidth - tip.offsetWidth - 8) + 'px';
+    tip.style.top = (e.clientY - 34) + 'px';
+  });
+  bar.addEventListener('mouseleave', function () {
+    tip.style.display = 'none';
+  });
+});
+</script>
+</body>
+</html>

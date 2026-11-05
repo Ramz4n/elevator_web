@@ -1,0 +1,42 @@
+/* Кнопка перехода в карточку лифта */
+.lift-card-button {
+    display: inline-block;
+    margin: 2px 0 2px 8px;
+    padding: 1px 9px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap;
+    background: var(--color-action);
+    border-radius: 4px;
+}
+
+.lift-card-button:hover,
+.lift-card-button:focus {
+    color: #fff;
+    text-decoration: none;
+    background: var(--color-brand);
+}
+
+/* В своей колонке отступ слева не нужен */
+.lift-card-cell .lift-card-button {
+    margin-left: 0;
+}
+
+/* Узкие экраны: в карточке заявки кнопка под адресом, ровно по его левому краю */
+@media screen and (max-width: 1220px) {
+    div > .lift-card-button {
+        display: block;
+        width: fit-content;
+        margin-left: 0;
+    }
+}
+
+@media print {
+    .lift-card-button,
+    .lift-card-cell {
+        display: none !important;
+    }
+}

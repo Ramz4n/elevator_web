@@ -1,0 +1,44 @@
+/* Общие цвета и шрифты сайта. Менять здесь: страницы берут значения отсюда */
+:root {
+    /* Бренд и действия */
+    --color-brand: #336699;
+    --color-focus: #0099cc;
+    --color-title: #832018;
+    --color-head: #63b2f3;
+    --color-action: #3b7ddd;
+    --color-banner: #1cbb8c;
+
+    /* Текст */
+    --color-ink: #2b3a4a;
+    --color-text: #333;
+    --color-muted: #5a6672;
+    --color-subtle: #666;
+
+    /* Поверхности и линии */
+    --color-control: #f2f2f2;
+    --color-surface: #f7f9fb;
+    --color-row-even: #f5f6f8;
+    /* Шапка таблицы. Светлее: таблицы под синим заголовком блока и подписи в карточках на телефоне */
+    --color-table-head: #63b2f3;
+    --color-table-head-text: #2b3a4a;
+    --color-subhead: #d6e9fb;
+    --color-subhead-text: #2b3a4a;
+    --color-border: #ddd;
+    --color-border-soft: #ececec;
+    --color-border-strong: #d5dbe2;
+
+    /* Состояния */
+    --color-critical: #b71c1c;
+    --color-warning: #a86f00;
+    --color-good: #2e7d32;
+
+    /* Графики. Значения читает и скрипт главной, поэтому только формат #rrggbb */
+    --series-total: #336699;
+    --series-fault: #3b7ddd;
+    --series-stuck: #dc3545;
+    --series-false: #d99a00;
+    --chart-grid: #e3e7ec;
+    --chart-axis: #b8c2cc;
+
+    --font-heading: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}

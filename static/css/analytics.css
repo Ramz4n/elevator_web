@@ -28,13 +28,13 @@ body {
     padding: 5px 32px 5px 10px;
     font-family: inherit;
     font-size: 16px;
-    color: #333;
-    background-color: #f2f2f2;
+    color: var(--color-text);
+    background-color: var(--color-control);
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23336699' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 10px center;
     background-repeat: no-repeat;
     background-size: 14px 12px;
-    border: 2px solid #336699;
+    border: 2px solid var(--color-brand);
     border-radius: 5px;
 }
 
@@ -61,40 +61,40 @@ body {
 .an-tile {
     padding: 12px 16px;
     background: #fff;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .an-tile-bad {
-    border-left: 5px solid #B71C1C;
+    border-left: 5px solid var(--color-critical);
 }
 
 .an-tile-label {
     font-size: 14px;
     font-weight: 600;
-    color: #5a6672;
+    color: var(--color-muted);
 }
 
 .an-tile-value {
     margin: 2px 0;
-    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-heading);
     font-size: 32px;
     font-weight: 700;
     line-height: 1.2;
-    color: #2b3a4a;
+    color: var(--color-ink);
 }
 
 .an-tile-note {
     font-size: 13px;
-    color: #666;
+    color: var(--color-subtle);
 }
 
 .an-block {
     margin-bottom: 16px;
     overflow: hidden;
     background: #fff;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
@@ -103,16 +103,16 @@ body {
     padding: 9px 14px;
     font-size: 17px;
     font-weight: 700;
-    color: #2b3a4a;
-    background: #63B2F3;
+    color: var(--color-ink);
+    background: var(--color-head);
 }
 
 .an-summary {
     margin: 0;
     padding: 9px 14px;
     font-size: 15px;
-    color: #333;
-    border-bottom: 1px solid #ececec;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border-soft);
 }
 
 .an-scroll {
@@ -130,16 +130,16 @@ body {
     padding: 8px 14px;
     font-size: 14px;
     font-weight: 600;
-    color: #5a6672;
+    color: var(--color-subhead-text);
     text-align: right;
-    background: #f7f9fb;
-    border-bottom: 2px solid #d5dbe2;
+    background: var(--color-subhead);
+    border-bottom: 2px solid var(--color-border-strong);
 }
 
 .an-table td {
     padding: 8px 14px;
     text-align: right;
-    border-bottom: 1px solid #ececec;
+    border-bottom: 1px solid var(--color-border-soft);
 }
 
 .an-table th:first-child,
@@ -153,8 +153,8 @@ body {
 
 .an-table tfoot td {
     font-weight: 700;
-    background: #f7f9fb;
-    border-top: 2px solid #d5dbe2;
+    background: var(--color-surface);
+    border-top: 2px solid var(--color-border-strong);
     border-bottom: none;
 }
 
@@ -184,7 +184,7 @@ body {
 
 .bar {
     height: 10px;
-    background: #63B2F3;
+    background: var(--color-head);
     border-radius: 0 4px 4px 0;
 }
 
@@ -199,15 +199,15 @@ body {
     white-space: nowrap;
 }
 
-.change-up { color: #B71C1C; }
-.change-down { color: #2e7d32; }
-.change-none { color: #666; }
+.change-up { color: var(--color-critical); }
+.change-down { color: var(--color-good); }
+.change-none { color: var(--color-subtle); }
 
 .an-notes {
     margin: 0;
     padding: 0 0 0 18px;
     font-size: 13px;
-    color: #666;
+    color: var(--color-subtle);
 }
 
 .an-notes li {
@@ -217,7 +217,7 @@ body {
 .an-empty {
     padding: 30px 8px;
     font-size: 16px;
-    color: #666;
+    color: var(--color-subtle);
     text-align: center;
 }
 
@@ -478,7 +478,7 @@ body {
 
 /* Ссылка на страницу города */
 .city-link {
-    color: #336699;
+    color: var(--color-brand);
     font-weight: 600;
     text-decoration: underline;
 }
@@ -495,17 +495,17 @@ body {
 }
 
 .chart-grid {
-    stroke: #e3e7ec;
+    stroke: var(--chart-grid);
     stroke-width: 1;
 }
 
 .chart-axis {
     font-size: 12px;
-    fill: #5a6672;
+    fill: var(--color-muted);
 }
 
-.bar-prev { fill: #B8C2CC; }
-.bar-cur { fill: #336699; }
+.bar-prev { fill: var(--chart-axis); }
+.bar-cur { fill: var(--color-brand); }
 
 .chart-bar:hover {
     opacity: 0.8;
@@ -538,7 +538,7 @@ body {
     font-size: 13px;
     color: #fff;
     pointer-events: none;
-    background: #2b3a4a;
+    background: var(--color-ink);
     border-radius: 4px;
 }
 
@@ -558,7 +558,7 @@ body {
 .addr-type {
     display: block;
     font-size: 13px;
-    color: #666;
+    color: var(--color-subtle);
 }
 
 .tickets-button {
@@ -567,19 +567,176 @@ body {
     font-size: 13px;
     color: #fff;
     cursor: pointer;
-    background: #3b7ddd;
+    background: var(--color-action);
     border: none;
     border-radius: 4px;
 }
 
 .tickets-button:hover {
-    background: #336699;
+    background: var(--color-brand);
 }
 
 .rank {
     display: inline-block;
     min-width: 24px;
-    color: #666;
+    color: var(--color-subtle);
+}
+
+/* Карточка лифта */
+.lift-status {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    font-size: 15px;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-left: 5px solid var(--color-good);
+    border-radius: 8px;
+}
+
+.lift-status-open {
+    border-left-color: #e0a100;
+}
+
+.lift-status-bad {
+    border-left-color: var(--color-critical);
+}
+
+@media screen and (min-width: 769px), print {
+    .lift-tiles {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+/* Таблица, где после первой колонки идёт текст, а не числа */
+.an-table-left th,
+.an-table-left td {
+    text-align: left;
+    vertical-align: top;
+}
+
+.an-table-left {
+    font-size: 15px;
+}
+
+.status-active { color: var(--color-critical); }
+.status-less { color: var(--color-warning); }
+.status-quiet { color: var(--color-good); }
+
+.mechanic-high {
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-critical);
+    text-align: right;
+}
+
+/* На телефоне строка лифта становится карточкой: в три колонки выводы сжимаются в столбик */
+@media screen and (max-width: 768px) {
+    #attentionBlock .an-table thead,
+    #attentionBlock .an-table td:nth-child(2),
+    #attentionBlock .an-table td:nth-child(3) {
+        display: none;
+    }
+
+    #attentionBlock .an-table tbody,
+    #attentionBlock .an-table tbody tr:not(.an-row-extra),
+    #attentionBlock.show-all .an-table tbody tr,
+    #attentionBlock .an-table td {
+        display: block;
+    }
+
+    #attentionBlock .an-table tbody tr {
+        padding: 6px 0;
+        border-bottom: 1px solid var(--color-border-soft);
+    }
+
+    #attentionBlock .an-table td {
+        padding: 2px 12px;
+        border-bottom: none;
+    }
+}
+
+@media print {
+    .mechanic-high,
+    .status-active,
+    .status-less,
+    .status-quiet {
+        font-size: 8pt;
+        color: #000;
+    }
+}
+
+.lift-findings {
+    margin: 0;
+    padding: 10px 14px 10px 32px;
+    font-size: 15px;
+    color: var(--color-text);
+}
+
+.lift-findings li + li {
+    margin-top: 6px;
+}
+
+.lift-findings-none {
+    border-bottom: none;
+}
+
+.lift-history th,
+.lift-history td {
+    text-align: left;
+    vertical-align: top;
+}
+
+.lift-history {
+    font-size: 14px;
+}
+
+.lift-nowrap {
+    white-space: nowrap;
+}
+
+.lift-comment {
+    min-width: 240px;
+}
+
+.lift-row-muted td {
+    color: #8a8f96;
+}
+
+.lift-repeat {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-critical);
+}
+
+@media print {
+    .lift-status {
+        padding: 1mm 2.5mm;
+        font-size: 9pt;
+        border: 1px solid #000;
+        border-left: 3px solid #000;
+        border-radius: 0;
+    }
+
+    .lift-findings {
+        padding: 1mm 2.5mm 1mm 6mm;
+        font-size: 9pt;
+        color: #000;
+    }
+
+    .lift-findings li + li {
+        margin-top: 0.5mm;
+    }
+
+    .lift-history {
+        font-size: 8pt;
+    }
+
+    .lift-repeat {
+        font-size: 8pt;
+        color: #000;
+    }
 }
 
 @media print {
@@ -616,7 +773,7 @@ body {
 
     /* На чёрно-белом листе годы различаются по светлоте */
     .bar-prev { fill: #c4c4c4; }
-    .bar-cur { fill: #333; }
+    .bar-cur { fill: var(--color-text); }
 
     .addr-type {
         display: inline;

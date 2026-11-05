@@ -9,27 +9,37 @@
 	<link rel="preconnect" href="https://fonts.gstatic.com" />
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"/>
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='css/theme.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/app.css') }}">
 	<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 	<style>
-	.c-fault { color: blue; } /* Неисправности */
-	.c-stuck { color: red; } /* Застревания */
-	.c-false { color: orange; } /* Ложные обращения */
+	/* Текст остаётся тёмным, цвет несёт значок рядом */
+	.series-dot {
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		margin-right: 6px;
+		border-radius: 2px;
+	}
+	.dot-fault { background: var(--series-fault); }
+	.dot-stuck { background: var(--series-stuck); }
+	.dot-false { background: var(--series-false); }
+	.chart-note {
+		margin: 8px 0 0;
+		font-size: 13px;
+		color: var(--color-muted);
+	}
 
 	/* Шапка */
-	.dash-header {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 12px 40px;
-		padding: 12px 24px;
-	}
+	.dash-header { padding: 12px 24px; }
+	/* Отступы как у шапки: логотип, фильтры и блоки идут по одному краю */
+	.content { padding: 4px 24px 24px; }
 	.dash-logo {
 		display: block;
+		margin: 0 auto; /* По центру над плашками */
 		height: auto;
 		max-width: 100%;
 	}
-	.dash-controls,
 	.dash-filters,
 	.dash-nav {
 		display: flex;
@@ -37,42 +47,88 @@
 		align-items: flex-end;
 		gap: 12px;
 	}
-	.dash-controls { gap: 12px 24px; }
 	.dash-nav .btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		height: 38px;
 	}
+	/* Фильтры и кнопки одним блоком справа от логотипа: как у графиков, но без синей шапки.
+	   Колонка та же, что у графиков, поэтому края блока совпадают с ними */
+	.filter-panel {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 12px 24px;
+		padding: 12px 16px;
+		background: #fff;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+	}
+	.dash-filters { flex: 1 1 400px; }
+	.filter { flex: 1 1 130px; min-width: 0; }
+	.filter:last-child { flex: 0 1 100px; }
+	/* Логотип и блок друг под другом */
+	@media (max-width: 1199.98px) {
+		.filter-panel { margin-top: 12px; }
+	}
 	.customLabel {
 		display: block;
 		margin-bottom: 4px;
-		font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 		font-size: 14px;
-		font-weight: 700;
-		color: #832018;
+		font-weight: 600;
+		color: var(--color-muted);
 	}
 	.customSelect {
-		width: 190px;
+		width: 100%;
 		height: 38px;
 		font-size: 15px;
-		border: 2px solid #336699;
+		border: 2px solid var(--color-brand);
 		border-radius: 5px;
 		padding: 5px;
-		background-color: #f2f2f2;
-		color: #333;
+		background-color: var(--color-control);
+		color: var(--color-text);
 	}
-	.customSelect-short { width: 100px; }
 	.customSelect:focus {
 		outline: none;
-		border-color: #0099cc;
+		border-color: var(--color-focus);
 		box-shadow: 0 0 5px rgba(51, 153, 204, 0.5);
 	}
 	@media (max-width: 768px) {
 		.dash-header { padding: 12px 16px; }
-		.dash-controls, .dash-filters, .dash-nav, .filter { width: 100%; }
-		.customSelect, .customSelect-short { width: 100%; }
+		.content { padding: 4px 16px 16px; }
+		.filter-panel { padding: 8px; gap: 8px; }
+		.dash-filters, .dash-nav, .filter, .filter:last-child { flex: 1 1 100%; }
 		.dash-nav .btn { flex: 1; }
+	}
+
+	/* На телефоне фильтры свёрнуты: иначе они занимают половину первого экрана */
+	.filters-toggle {
+		display: none;
+		box-sizing: border-box;
+		width: 100%;
+		min-height: 44px;
+		padding: 8px 12px;
+		font-size: 15px;
+		color: var(--color-text);
+		text-align: left;
+		cursor: pointer;
+		background: var(--color-control);
+		border: 2px solid var(--color-brand);
+		border-radius: 5px;
+	}
+	.filters-toggle::after {
+		content: '▾';
+		float: right;
+		color: var(--color-brand);
+	}
+	.filters-open .filters-toggle::after { content: '▴'; }
+	@media (max-width: 768px) {
+		.filters-toggle { display: block; }
+		.dash-filters { display: none; }
+		.filters-open .dash-filters { display: flex; }
 	}
 
 	/* Сообщение об ошибке и состояние загрузки */
@@ -94,38 +150,92 @@
 		text-decoration: underline;
 		cursor: pointer;
 	}
-	.content { transition: opacity .15s; }
+	#dashContent { transition: opacity .15s; }
 	.is-loading, .is-stale { opacity: .45; }
 
 	/* Карточки: кликается вся карточка */
 	.stat-grid {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		grid-auto-rows: 1fr;
-		gap: 24px;
-		margin-bottom: 24px;
+		gap: 12px;
+		margin-bottom: 16px;
 	}
 	.stat-grid .card { margin-bottom: 0; }
-	.stat-spacer { display: none; }
-	@media (min-width: 576px) {
-		.stat-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			grid-template-rows: repeat(5, 1fr);
-			grid-auto-flow: column;
-		}
-		.stat-spacer { display: block; }
-	}
+	.stat-card-wide { grid-column: 1 / -1; }
 	.stat-card,
 	.stat-card:hover {
 		color: inherit;
 		text-decoration: none;
-		border-radius: 10px;
+		border-radius: 8px;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 	}
 	.stat-card .card-body {
 		position: relative;
-		border: 1px solid black;
-		border-radius: 10px;
+		padding: 12px 16px;
+		background-color: #fff;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
 		transition: background-color .15s;
+	}
+	.stat-card .card-title {
+		margin-bottom: 0;
+		padding-right: 24px;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--color-muted);
+	}
+	.stat-card .stat-value {
+		font-family: var(--font-heading);
+		font-size: 32px;
+		font-weight: 700;
+		line-height: 1.2;
+		color: var(--color-ink);
+	}
+	@media (max-width: 768px) {
+		.stat-card .card-body { padding: 10px 12px; }
+		.stat-card .stat-value { font-size: 26px; }
+		/* В две колонки стрелка уходит вниз: иначе подпись рвётся посреди слова */
+		.stat-card .card-title {
+			padding-right: 0;
+			font-size: 13px;
+		}
+		.stat-grid .stat-card .card-body::after {
+			top: auto;
+			right: 10px;
+			bottom: 10px;
+			font-size: 16px;
+		}
+	}
+	@media (max-width: 340px) {
+		.stat-card .card-title { font-size: 12px; }
+		.stat-card .card-body { padding: 10px; }
+	}
+
+	/* Блоки с графиками как на страницах аналитики */
+	#dashContent .chart-block {
+		margin-bottom: 16px;
+		overflow: hidden;
+		background: #fff;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+	}
+	#dashContent .chart-block .card-header {
+		padding: 9px 14px;
+		background: var(--color-head);
+		border-bottom: none;
+		border-radius: 0;
+	}
+	#dashContent .chart-block .card-title {
+		font-family: inherit;
+		font-size: 17px;
+		font-weight: 700;
+		color: var(--color-ink);
+	}
+	@media (max-width: 768px) {
+		#dashContent .chart-block .card-header { padding: 8px 12px; }
+		#dashContent .chart-block .card-title { font-size: 15px; }
 	}
 	.stat-card .card-body::after {
 		content: '→';
@@ -139,11 +249,34 @@
 	.stat-card:hover .card-body { background-color: #f1f5fb; }
 	.stat-card:hover .card-body::after { color: #212529; }
 	.stat-card:focus-visible {
-		outline: 3px solid #0099cc;
+		outline: 3px solid var(--color-focus);
 		outline-offset: 2px;
 	}
-	.stat-card .card-title { padding-right: 24px; }
 	.stat-value { margin: 4px 0 0; }
+
+	/* Карточка требует реакции, если значение не ноль. На чёрно-белом листе смысл передаёт подпись */
+	.stat-flag {
+		display: none;
+		margin-top: 2px;
+		font-size: 13px;
+		font-weight: 600;
+	}
+	.stat-alert-critical .stat-flag,
+	.stat-alert-warning .stat-flag { display: block; }
+	.stat-card.stat-alert-critical .card-body {
+		background-color: #fdf0ef;
+		border: 1px solid var(--color-critical);
+		border-left-width: 5px;
+	}
+	.stat-card.stat-alert-critical:hover .card-body { background-color: #fbe3e1; }
+	.stat-alert-critical .stat-flag { color: var(--color-critical); }
+	.stat-card.stat-alert-warning .card-body {
+		background-color: #fff8e8;
+		border: 1px solid var(--color-warning);
+		border-left-width: 5px;
+	}
+	.stat-card.stat-alert-warning:hover .card-body { background-color: #fdf0d2; }
+	.stat-alert-warning .stat-flag { color: #8a5b00; }
 
 	.pie-table td {
 		padding-left: 4px;
@@ -157,8 +290,8 @@
 	</style>
 </head>
 <body>
-{% macro stat_card(title, path, value_id=none, value=none, text=none) %}
-<a class="card stat-card" href="{{ path }}" data-path="{{ path }}">
+{% macro stat_card(title, path, value_id=none, value=none, text=none, alert=none, flag=none, wide=false) %}
+<a class="card stat-card{% if wide %} stat-card-wide{% endif %}{% if alert and value %} stat-alert-{{ alert }}{% endif %}" href="{{ path }}" data-path="{{ path }}"{% if alert %} data-alert="{{ alert }}"{% endif %}>
 	<div class="card-body">
 		<h5 class="card-title">{{ title }}</h5>
 		{% if value_id %}
@@ -166,15 +299,21 @@
 		{% else %}
 		<div class="h1 stat-value">{{ text }}</div>
 		{% endif %}
+		{% if flag %}<div class="stat-flag">{{ flag }}</div>{% endif %}
 	</div>
 </a>
 {% endmacro %}
 
 <header class="dash-header">
+<div class="row align-items-center">
+<div class="col-xl-6 col-xxl-5">
 	<img class="dash-logo" src="{{ url_for('static', filename='vostok.jpg') }}" alt="Логотип">
-	<!--В этом блоке находятся Город, Месяц и Год-->
-	<div class="dash-controls">
-		<div class="dash-filters">
+</div>
+<div class="col-xl-6 col-xxl-7">
+	<!--Город, месяц, год и кнопки-->
+	<section class="filter-panel" aria-label="Фильтры и переходы">
+		<button class="filters-toggle" type="button" id="filtersToggle" aria-expanded="false" aria-controls="dashFilters">Фильтры</button>
+		<div class="dash-filters" id="dashFilters">
 			{% block content %}{% endblock %}
 		</div>
 		<nav class="dash-nav">
@@ -182,7 +321,9 @@
 			<a class="btn btn-success" href="/_analytics">Аналитика</a>
 			<a class="btn btn-outline-secondary" href="/logout/">Выйти</a>
 		</nav>
-	</div>
+	</section>
+</div>
+</div>
 </header>
 
 <div class="dash-error" id="dashError" role="alert" hidden>
@@ -192,52 +333,53 @@
 
 <div class="wrapper">
 	<div class="main">
-		<main class="content" id="dashContent">
-			<div class="container-fluid p-0">
+		<main class="content">
+			<div class="container-fluid p-0" id="dashContent">
 				<div class="row">
 					<div class="col-xl-6 col-xxl-5 d-flex">
 						<div class="w-100">
 							<div class="stat-grid">
-									{{ stat_card('Кол-во лифтов', '/kolvo_lifts', 'data1', data1[0][0]) }}
-									{{ stat_card('Обращений/мес.', '/_obrasch', 'vsego', data2[0][0]) }}
-									{{ stat_card('Связь', '/_svyaz', 'svyaz', data2[0][3]) }}
+									{# Сверху то, что требует реакции #}
+									{{ stat_card('Остановленные', '/_ostanov', 'stopped', data2[0][1], alert='critical', flag='лифты стоят') }}
+									{{ stat_card('Текущие заявки', '/_tekuschie', 'data14', data14[0][0], alert='warning', flag='не закрыты') }}
 									{{ stat_card('Проблемные лифты за 14 дней', '/_top_bad', text='Топ 30 лифтов') }}
-									<div class="stat-spacer"></div>
-									{{ stat_card('Остановленные', '/_ostanov', 'stopped', data2[0][1]) }}
-									{{ stat_card('Текущие заявки', '/_tekuschie', 'data14', data14[0][0]) }}
 									{{ stat_card('Линейные заявки', '/_lineynie', 'lineynaya', data2[0][2]) }}
 									{{ stat_card('УК заявки', '/_uk', 'data15', data15[0][0]) }}
-									{{ stat_card('Поиск заявок', '/_search', text='Найти') }}
+									{{ stat_card('Связь', '/_svyaz', 'svyaz', data2[0][3]) }}
+									{{ stat_card('Обращений/мес.', '/_obrasch', 'vsego', data2[0][0]) }}
+									{{ stat_card('Кол-во лифтов', '/kolvo_lifts', 'data1', data1[0][0]) }}
+									{{ stat_card('Поиск заявок', '/_search', text='Найти', wide=true) }}
 							</div>
 						</div>
 					</div>
 					<div class="col-xl-6 col-xxl-7">
-						<div class="card flex-fill w-100">
+						<div class="card chart-block flex-fill w-100">
 							<div class="card-header">
-								<h5 class="card-title mb-0">Статистика обращений за <span id="chartYear">{{ selected_year }}</span> год (по месяцам)</h5>
+								<h5 class="card-title mb-0">Обращения за <span id="chartYear">{{ selected_year }}</span> год по месяцам</h5>
 							</div>
 							<div class="card-body py-3">
 								<div class="chart chart-line">
-									<canvas id="chartjs-dashboard-line"></canvas>
+									<canvas id="chartjs-dashboard-month"></canvas>
 								</div>
+								<p class="chart-note partial-note"{% if selected_year != default_year %} hidden{% endif %}>Светлый столбец: месяц ещё не закончился.</p>
 							</div>
 						</div>
 						<div class="row">
-							<div class="row">
 								<div class="col-12 col-md-6 col-xxl-8 d-flex order-3 order-xxl-3 custom-height">
-									<div class="card flex-fill w-100">
+									<div class="card chart-block flex-fill w-100">
 										<div class="card-header">
-											<h5 class="card-title mb-0">Количество <span class="c-fault">неисправностей, </span><span class="c-stuck">застреваний, </span><span class="c-false">ложных</span></h5>
+											<h5 class="card-title mb-0">Неисправности, застревания и ложные по месяцам</h5>
 										</div>
-										<div class="card-body d-flex w-100">
-											<div class="align-self-center chart chart-lg">
+										<div class="card-body w-100">
+											<div class="chart chart-lg">
 												<canvas id="chartjs-dashboard-bar2"></canvas>
 											</div>
+											<p class="chart-note partial-note"{% if selected_year != default_year %} hidden{% endif %}>Светлые столбцы: месяц ещё не закончился.</p>
 										</div>
 									</div>
 								</div>
 								<div class="col-12 col-md-6 col-xxl-4 d-flex order-2 order-xxl-2 custom-height">
-									<div class="card flex-fill w-100">
+									<div class="card chart-block flex-fill w-100">
 										<div class="card-header">
 											<h5 class="card-title mb-0">Обращения за месяц</h5>
 										</div>
@@ -250,18 +392,18 @@
 												</div>
 												<table class="table mb-0 pie-table">
 													<tbody>
-														<tr class="c-fault">
-															<td>Неисправности</td>
+														<tr>
+															<td><span class="series-dot dot-fault"></span>Неисправности</td>
 															<td class="text-end data" id="data4">{{ data4[0][0] }}</td>
 															<td class="text-end data" id="procent2">{{ procent2 }}%</td>
 														</tr>
-														<tr class="c-stuck">
-															<td>Застревания</td>
+														<tr>
+															<td><span class="series-dot dot-stuck"></span>Застревания</td>
 															<td class="text-end data" id="data3">{{ data3[0][0] }}</td>
 															<td class="text-end data" id="procent1">{{ procent1 }}%</td>
 														</tr>
-														<tr class="c-false">
-															<td>Ложные обращения</td>
+														<tr>
+															<td><span class="series-dot dot-false"></span>Ложные обращения</td>
 															<td class="text-end data" id="data7">{{ data7[0][0] }}</td>
 															<td class="text-end data" id="procent3">{{ procent3 }}%</td>
 														</tr>
@@ -271,7 +413,6 @@
 										</div>
 									</div>
 								</div>
-							</div>
 						</div>
 					</div>
 				</div>
@@ -295,39 +436,91 @@ function scalar(value) {
 	return value;
 }
 
-let lineChart;
-function updateLineChart(data9) {
-	if (lineChart) {
-		lineChart.data.datasets[0].data = data9;
-		lineChart.update();
+// Одна и та же сущность на всех графиках одного цвета: значения в static/css/theme.css
+const themeColor = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SERIES = {
+	total: themeColor("--series-total"),
+	fault: themeColor("--series-fault"),
+	stuck: themeColor("--series-stuck"),
+	false: themeColor("--series-false"),
+};
+const PARTIAL_ALPHA = "59"; // светлый столбец незаконченного месяца: 35% непрозрачности
+
+function isCurrentYear() {
+	return yearList.value === defaults.year;
+}
+
+function isPartialMonth(index) {
+	return isCurrentYear() && index === Number(defaults.month) - 1;
+}
+
+// Будущих месяцев ещё нет: столбец не рисуем, иначе это выглядело бы как ноль заявок
+function pastMonths(values) {
+	if (!isCurrentYear()) return values;
+	return values.map((value, index) => index < Number(defaults.month) ? value : null);
+}
+
+function monthColors(color) {
+	return MONTH_LABELS.map((_, index) => isPartialMonth(index) ? color + PARTIAL_ALPHA : color);
+}
+
+function partialFooter(items) {
+	return items.length && isPartialMonth(items[0].index) ? "Месяц ещё не закончился" : "";
+}
+
+function barDataset(label, color, data) {
+	return {
+		label: label,
+		seriesColor: color,
+		backgroundColor: monthColors(color),
+		borderColor: "transparent",
+		hoverBackgroundColor: monthColors(color),
+		hoverBorderColor: "transparent",
+		data: pastMonths(data),
+		barPercentage: 0.8,
+		categoryPercentage: 0.8,
+		maxBarThickness: 44,
+	};
+}
+
+function setBarData(chart, values) {
+	chart.data.datasets.forEach((dataset, index) => {
+		dataset.data = pastMonths(values[index]);
+		dataset.backgroundColor = monthColors(dataset.seriesColor);
+		dataset.hoverBackgroundColor = monthColors(dataset.seriesColor);
+	});
+	chart.update();
+}
+
+const barScales = {
+	xAxes: [{ gridLines: { display: false } }],
+	yAxes: [{ ticks: countTicks, gridLines: { color: themeColor("--chart-grid"), drawBorder: false, zeroLineColor: themeColor("--chart-axis") } }],
+};
+
+// В первые часы месяца заявок может не быть: столбца нет, и подпись была бы не к чему
+function updatePartialNotes(values) {
+	const hasPartialBar = isCurrentYear() && Number(values[Number(defaults.month) - 1]) > 0;
+	document.querySelectorAll('.partial-note').forEach(note => { note.hidden = !hasPartialBar; });
+}
+
+let monthChart;
+function updateMonthChart(data9) {
+	updatePartialNotes(data9);
+	if (monthChart) {
+		setBarData(monthChart, [data9]);
 		return;
 	}
-	const ctx = document.getElementById("chartjs-dashboard-line").getContext("2d");
-	const gradient = ctx.createLinearGradient(0, 0, 0, 225);
-	gradient.addColorStop(0, "rgba(215, 227, 244, 1)");
-	gradient.addColorStop(1, "rgba(215, 227, 244, 0)");
-	lineChart = new Chart(ctx, {
-		type: "line",
+	monthChart = new Chart(document.getElementById("chartjs-dashboard-month"), {
+		type: "bar",
 		data: {
 			labels: MONTH_LABELS,
-			datasets: [{
-				label: "Обращений",
-				fill: true,
-				backgroundColor: gradient,
-				borderColor: "#808080",
-				data: data9,
-			}],
+			datasets: [barDataset("Обращений", SERIES.total, data9)],
 		},
 		options: {
 			maintainAspectRatio: false,
 			legend: { display: false },
-			tooltips: { intersect: false },
-			hover: { intersect: true },
-			plugins: { filler: { propagate: false } },
-			scales: {
-				xAxes: [{ reverse: true, gridLines: { color: "#808080" } }],
-				yAxes: [{ ticks: countTicks, display: true, borderDash: [3, 3], gridLines: { color: "#808080" } }],
-			},
+			tooltips: { callbacks: { footer: partialFooter } },
+			scales: barScales,
 		},
 	});
 }
@@ -339,7 +532,7 @@ function updatePieChart(data4, data7, data3) {
 	const chartData = isEmpty ? [1, 1, 1] : [n4, n7, n3];
 	const chartColors = isEmpty
 		? ['#d0d0d0', '#d0d0d0', '#d0d0d0']
-		: [window.theme.primary, window.theme.warning, window.theme.danger];
+		: [SERIES.fault, SERIES.false, SERIES.stuck];
 
 	const canvas = document.getElementById("chartjs-dashboard-pie");
 	let noDataLabel = document.getElementById("pie-no-data");
@@ -363,7 +556,7 @@ function updatePieChart(data4, data7, data3) {
 		type: "pie",
 		data: {
 			labels: ["Неисправности", "Ложные обращения", "Застревания"],
-			datasets: [{ data: chartData, backgroundColor: chartColors, borderWidth: 0 }],
+			datasets: [{ data: chartData, backgroundColor: chartColors, borderColor: "#fff", borderWidth: 2 }],
 		},
 		options: {
 			responsive: !window.MSInputMethodContext,
@@ -381,39 +574,24 @@ function updatePieChart(data4, data7, data3) {
 let BarChart2;
 function updateBarChart2(data12, data10, data13) {
 	if (BarChart2) {
-		BarChart2.data.datasets[0].data = data12[0];
-		BarChart2.data.datasets[1].data = data10[0];
-		BarChart2.data.datasets[2].data = data13[0];
-		BarChart2.update();
+		setBarData(BarChart2, [data12[0], data10[0], data13[0]]);
 		return;
 	}
-	const barDataset = (label, color, data) => ({
-		label: label,
-		backgroundColor: color,
-		borderColor: color,
-		hoverBackgroundColor: color,
-		hoverBorderColor: color,
-		data: data,
-		barPercentage: 0.75,
-		categoryPercentage: 0.9,
-	});
 	BarChart2 = new Chart(document.getElementById("chartjs-dashboard-bar2"), {
 		type: "bar",
 		data: {
 			labels: MONTH_LABELS,
 			datasets: [
-				barDataset("Неисправности", "#0000FF", data12[0]),
-				barDataset("Застревания", "#FF0000", data10[0]),
-				barDataset("Ложные", window.theme.warning, data13[0]),
+				barDataset("Неисправности", SERIES.fault, data12[0]),
+				barDataset("Застревания", SERIES.stuck, data10[0]),
+				barDataset("Ложные", SERIES.false, data13[0]),
 			],
 		},
 		options: {
 			maintainAspectRatio: false,
-			legend: { display: false },
-			scales: {
-				yAxes: [{ gridLines: { display: true }, stacked: false, ticks: countTicks }],
-				xAxes: [{ stacked: false, gridLines: { color: "black" } }],
-			},
+			legend: { display: true, position: "bottom", labels: { boxWidth: 12, fontColor: "#333" } },
+			tooltips: { callbacks: { footer: partialFooter } },
+			scales: barScales,
 		},
 	});
 }
@@ -425,6 +603,7 @@ const monthList = document.getElementById('monthList');
 const yearList = document.getElementById('yearList');
 const dashContent = document.getElementById('dashContent');
 const dashError = document.getElementById('dashError');
+const filtersToggle = document.getElementById('filtersToggle');
 const defaults = { month: '{{ default_month }}', year: '{{ default_year }}' };
 let lastRequest = 0;
 
@@ -441,7 +620,7 @@ function syncFilters() {
 		sessionStorage.setItem('baseSearch', search);
 	} catch (e) {}
 
-	document.querySelectorAll('.stat-card').forEach(card => {
+	document.querySelectorAll('[data-path]').forEach(card => {
 		const params = new URLSearchParams({
 			selectedCity: cityList.value,
 			monthList: monthList.value,
@@ -450,6 +629,20 @@ function syncFilters() {
 		card.href = card.dataset.path + '?' + params.toString();
 	});
 	document.getElementById('chartYear').textContent = yearList.value;
+	updateFiltersToggle();
+}
+
+// На свёрнутой кнопке видно, что выбрано сейчас
+function updateFiltersToggle() {
+	const selected = list => list.options[list.selectedIndex].textContent;
+	filtersToggle.textContent = selected(cityList) + ', ' + selected(monthList).toLowerCase() + ' ' + selected(yearList);
+}
+
+function updateAlerts() {
+	document.querySelectorAll('.stat-card[data-alert]').forEach(card => {
+		const value = Number(card.querySelector('.data').textContent) || 0;
+		card.classList.toggle('stat-alert-' + card.dataset.alert, value > 0);
+	});
 }
 
 function renderData(data) {
@@ -458,8 +651,9 @@ function renderData(data) {
 		const value = scalar(data[element.id]);
 		element.textContent = element.id.startsWith('procent') ? value + '%' : value;
 	});
+	updateAlerts();
 	updatePieChart(data.data4, data.data7, data.data3);
-	updateLineChart(data.data9[0]);
+	updateMonthChart(data.data9[0]);
 	updateBarChart2(data.data12, data.data10, data.data13);
 }
 
@@ -500,11 +694,16 @@ async function refresh() {
 
 [cityList, monthList, yearList].forEach(select => select.addEventListener('change', refresh));
 document.getElementById('dashRetry').addEventListener('click', refresh);
+filtersToggle.addEventListener('click', function() {
+	const open = document.querySelector('.filter-panel').classList.toggle('filters-open');
+	filtersToggle.setAttribute('aria-expanded', String(open));
+});
+updateFiltersToggle();
 
 window.addEventListener('load', function() {
 	updateBarChart2({{ data12 | tojson }}, {{ data10 | tojson }}, {{ data13 | tojson }});
 	updatePieChart({{ data4 | tojson }}, {{ data7 | tojson }}, {{ data3 | tojson }});
-	updateLineChart({{ data9 | tojson }});
+	updateMonthChart({{ data9 | tojson }});
 	syncFilters(); // Данные уже за фильтры из адреса: сервер учёл их при загрузке
 });
 </script>
